@@ -1,26 +1,12 @@
-import { createFileRoute } from "@tanstack/react-router";
+// src/routes/clientes.tsx
 
+import { createFileRoute } from "@tanstack/react-router";
+import { ClientesPage } from "@/features/clientes/pages/clientes-page";
 
 export const Route = createFileRoute("/clientes")({
-
   component: Clientes,
-
 });
 
-
-function Clientes(){
-
-  return (
-
-    <div>
-
-      <h1 className="text-3xl font-bold">
-        Clientes
-      </h1>
-
-
-    </div>
-
-  );
-
+function Clientes() {
+  return <ClientesPage />;
 }

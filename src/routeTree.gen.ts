@@ -12,11 +12,18 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ClientesRouteImport } from './routes/clientes'
 import { Route as LoginRouteImport } from './routes/login'
-import { Route as ObrasRouteImport } from './routes/obras'
 import { Route as RelatoriosRouteImport } from './routes/relatorios'
 import { Route as AuthenticatedObrasIndexRouteImport } from './routes/_authenticated/obras/index'
 import { Route as AuthenticatedObrasIdRouteImport } from './routes/_authenticated/obras/$id'
 import { Route as AuthenticatedObrasNovaRouteImport } from './routes/_authenticated/obras/nova'
+import { Route as AuthenticatedObrasIdIndexRouteImport } from './routes/_authenticated/obras/$id/index'
+import { Route as AuthenticatedObrasIdEditarRouteImport } from './routes/_authenticated/obras/$id/editar'
+import { Route as AuthenticatedObrasIdCronogramaIndexRouteImport } from './routes/_authenticated/obras/$id/cronograma/index'
+import { Route as AuthenticatedObrasIdDemandasIndexRouteImport } from './routes/_authenticated/obras/$id/demandas/index'
+import { Route as AuthenticatedObrasIdDemandasEditarRouteImport } from './routes/_authenticated/obras/$id/demandas/editar'
+import { Route as AuthenticatedObrasIdDemandasNovaRouteImport } from './routes/_authenticated/obras/$id/demandas/nova'
+import { Route as AuthenticatedObrasIdDocumentosIndexRouteImport } from './routes/_authenticated/obras/$id/documentos/index'
+import { Route as AuthenticatedObrasIdEquipamentosIndexRouteImport } from './routes/_authenticated/obras/$id/equipamentos/index'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -31,11 +38,6 @@ const ClientesRoute = ClientesRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ObrasRoute = ObrasRouteImport.update({
-  id: '/obras',
-  path: '/obras',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RelatoriosRoute = RelatoriosRouteImport.update({
@@ -58,36 +60,105 @@ const AuthenticatedObrasNovaRoute = AuthenticatedObrasNovaRouteImport.update({
   path: '/obras/nova',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedObrasIdIndexRoute =
+  AuthenticatedObrasIdIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedObrasIdRoute,
+  } as any)
+const AuthenticatedObrasIdEditarRoute =
+  AuthenticatedObrasIdEditarRouteImport.update({
+    id: '/editar',
+    path: '/editar',
+    getParentRoute: () => AuthenticatedObrasIdRoute,
+  } as any)
+const AuthenticatedObrasIdCronogramaIndexRoute =
+  AuthenticatedObrasIdCronogramaIndexRouteImport.update({
+    id: '/cronograma/',
+    path: '/cronograma/',
+    getParentRoute: () => AuthenticatedObrasIdRoute,
+  } as any)
+const AuthenticatedObrasIdDemandasIndexRoute =
+  AuthenticatedObrasIdDemandasIndexRouteImport.update({
+    id: '/demandas/',
+    path: '/demandas/',
+    getParentRoute: () => AuthenticatedObrasIdRoute,
+  } as any)
+const AuthenticatedObrasIdDemandasEditarRoute =
+  AuthenticatedObrasIdDemandasEditarRouteImport.update({
+    id: '/demandas/editar',
+    path: '/demandas/editar',
+    getParentRoute: () => AuthenticatedObrasIdRoute,
+  } as any)
+const AuthenticatedObrasIdDemandasNovaRoute =
+  AuthenticatedObrasIdDemandasNovaRouteImport.update({
+    id: '/demandas/nova',
+    path: '/demandas/nova',
+    getParentRoute: () => AuthenticatedObrasIdRoute,
+  } as any)
+const AuthenticatedObrasIdDocumentosIndexRoute =
+  AuthenticatedObrasIdDocumentosIndexRouteImport.update({
+    id: '/documentos/',
+    path: '/documentos/',
+    getParentRoute: () => AuthenticatedObrasIdRoute,
+  } as any)
+const AuthenticatedObrasIdEquipamentosIndexRoute =
+  AuthenticatedObrasIdEquipamentosIndexRouteImport.update({
+    id: '/equipamentos/',
+    path: '/equipamentos/',
+    getParentRoute: () => AuthenticatedObrasIdRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/clientes': typeof ClientesRoute
   '/login': typeof LoginRoute
-  '/obras': typeof ObrasRoute
   '/relatorios': typeof RelatoriosRoute
-  '/obras/$id': typeof AuthenticatedObrasIdRoute
+  '/obras/$id': typeof AuthenticatedObrasIdRouteWithChildren
   '/obras/nova': typeof AuthenticatedObrasNovaRoute
   '/obras/': typeof AuthenticatedObrasIndexRoute
+  '/obras/$id/editar': typeof AuthenticatedObrasIdEditarRoute
+  '/obras/$id/': typeof AuthenticatedObrasIdIndexRoute
+  '/obras/$id/demandas/editar': typeof AuthenticatedObrasIdDemandasEditarRoute
+  '/obras/$id/demandas/nova': typeof AuthenticatedObrasIdDemandasNovaRoute
+  '/obras/$id/cronograma/': typeof AuthenticatedObrasIdCronogramaIndexRoute
+  '/obras/$id/demandas/': typeof AuthenticatedObrasIdDemandasIndexRoute
+  '/obras/$id/documentos/': typeof AuthenticatedObrasIdDocumentosIndexRoute
+  '/obras/$id/equipamentos/': typeof AuthenticatedObrasIdEquipamentosIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/clientes': typeof ClientesRoute
   '/login': typeof LoginRoute
-  '/obras': typeof AuthenticatedObrasIndexRoute
   '/relatorios': typeof RelatoriosRoute
-  '/obras/$id': typeof AuthenticatedObrasIdRoute
   '/obras/nova': typeof AuthenticatedObrasNovaRoute
+  '/obras': typeof AuthenticatedObrasIndexRoute
+  '/obras/$id/editar': typeof AuthenticatedObrasIdEditarRoute
+  '/obras/$id': typeof AuthenticatedObrasIdIndexRoute
+  '/obras/$id/demandas/editar': typeof AuthenticatedObrasIdDemandasEditarRoute
+  '/obras/$id/demandas/nova': typeof AuthenticatedObrasIdDemandasNovaRoute
+  '/obras/$id/cronograma': typeof AuthenticatedObrasIdCronogramaIndexRoute
+  '/obras/$id/demandas': typeof AuthenticatedObrasIdDemandasIndexRoute
+  '/obras/$id/documentos': typeof AuthenticatedObrasIdDocumentosIndexRoute
+  '/obras/$id/equipamentos': typeof AuthenticatedObrasIdEquipamentosIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/clientes': typeof ClientesRoute
   '/login': typeof LoginRoute
-  '/obras': typeof ObrasRoute
   '/relatorios': typeof RelatoriosRoute
-  '/_authenticated/obras/$id': typeof AuthenticatedObrasIdRoute
+  '/_authenticated/obras/$id': typeof AuthenticatedObrasIdRouteWithChildren
   '/_authenticated/obras/nova': typeof AuthenticatedObrasNovaRoute
   '/_authenticated/obras/': typeof AuthenticatedObrasIndexRoute
+  '/_authenticated/obras/$id/editar': typeof AuthenticatedObrasIdEditarRoute
+  '/_authenticated/obras/$id/': typeof AuthenticatedObrasIdIndexRoute
+  '/_authenticated/obras/$id/demandas/editar': typeof AuthenticatedObrasIdDemandasEditarRoute
+  '/_authenticated/obras/$id/demandas/nova': typeof AuthenticatedObrasIdDemandasNovaRoute
+  '/_authenticated/obras/$id/cronograma/': typeof AuthenticatedObrasIdCronogramaIndexRoute
+  '/_authenticated/obras/$id/demandas/': typeof AuthenticatedObrasIdDemandasIndexRoute
+  '/_authenticated/obras/$id/documentos/': typeof AuthenticatedObrasIdDocumentosIndexRoute
+  '/_authenticated/obras/$id/equipamentos/': typeof AuthenticatedObrasIdEquipamentosIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -95,39 +166,59 @@ export interface FileRouteTypes {
     | '/'
     | '/clientes'
     | '/login'
-    | '/obras'
     | '/relatorios'
     | '/obras/$id'
     | '/obras/nova'
     | '/obras/'
+    | '/obras/$id/editar'
+    | '/obras/$id/'
+    | '/obras/$id/demandas/editar'
+    | '/obras/$id/demandas/nova'
+    | '/obras/$id/cronograma/'
+    | '/obras/$id/demandas/'
+    | '/obras/$id/documentos/'
+    | '/obras/$id/equipamentos/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/clientes'
     | '/login'
-    | '/obras'
     | '/relatorios'
-    | '/obras/$id'
     | '/obras/nova'
+    | '/obras'
+    | '/obras/$id/editar'
+    | '/obras/$id'
+    | '/obras/$id/demandas/editar'
+    | '/obras/$id/demandas/nova'
+    | '/obras/$id/cronograma'
+    | '/obras/$id/demandas'
+    | '/obras/$id/documentos'
+    | '/obras/$id/equipamentos'
   id:
     | '__root__'
     | '/'
     | '/clientes'
     | '/login'
-    | '/obras'
     | '/relatorios'
     | '/_authenticated/obras/$id'
     | '/_authenticated/obras/nova'
     | '/_authenticated/obras/'
+    | '/_authenticated/obras/$id/editar'
+    | '/_authenticated/obras/$id/'
+    | '/_authenticated/obras/$id/demandas/editar'
+    | '/_authenticated/obras/$id/demandas/nova'
+    | '/_authenticated/obras/$id/cronograma/'
+    | '/_authenticated/obras/$id/demandas/'
+    | '/_authenticated/obras/$id/documentos/'
+    | '/_authenticated/obras/$id/equipamentos/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ClientesRoute: typeof ClientesRoute
   LoginRoute: typeof LoginRoute
-  ObrasRoute: typeof ObrasRoute
   RelatoriosRoute: typeof RelatoriosRoute
-  AuthenticatedObrasIdRoute: typeof AuthenticatedObrasIdRoute
+  AuthenticatedObrasIdRoute: typeof AuthenticatedObrasIdRouteWithChildren
   AuthenticatedObrasNovaRoute: typeof AuthenticatedObrasNovaRoute
   AuthenticatedObrasIndexRoute: typeof AuthenticatedObrasIndexRoute
 }
@@ -153,13 +244,6 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/obras': {
-      id: '/obras'
-      path: '/obras'
-      fullPath: '/obras'
-      preLoaderRoute: typeof ObrasRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/relatorios': {
@@ -190,16 +274,101 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedObrasNovaRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/obras/$id/': {
+      id: '/_authenticated/obras/$id/'
+      path: '/'
+      fullPath: '/obras/$id/'
+      preLoaderRoute: typeof AuthenticatedObrasIdIndexRouteImport
+      parentRoute: typeof AuthenticatedObrasIdRoute
+    }
+    '/_authenticated/obras/$id/editar': {
+      id: '/_authenticated/obras/$id/editar'
+      path: '/editar'
+      fullPath: '/obras/$id/editar'
+      preLoaderRoute: typeof AuthenticatedObrasIdEditarRouteImport
+      parentRoute: typeof AuthenticatedObrasIdRoute
+    }
+    '/_authenticated/obras/$id/cronograma/': {
+      id: '/_authenticated/obras/$id/cronograma/'
+      path: '/cronograma'
+      fullPath: '/obras/$id/cronograma/'
+      preLoaderRoute: typeof AuthenticatedObrasIdCronogramaIndexRouteImport
+      parentRoute: typeof AuthenticatedObrasIdRoute
+    }
+    '/_authenticated/obras/$id/demandas/': {
+      id: '/_authenticated/obras/$id/demandas/'
+      path: '/demandas'
+      fullPath: '/obras/$id/demandas/'
+      preLoaderRoute: typeof AuthenticatedObrasIdDemandasIndexRouteImport
+      parentRoute: typeof AuthenticatedObrasIdRoute
+    }
+    '/_authenticated/obras/$id/demandas/editar': {
+      id: '/_authenticated/obras/$id/demandas/editar'
+      path: '/demandas/editar'
+      fullPath: '/obras/$id/demandas/editar'
+      preLoaderRoute: typeof AuthenticatedObrasIdDemandasEditarRouteImport
+      parentRoute: typeof AuthenticatedObrasIdRoute
+    }
+    '/_authenticated/obras/$id/demandas/nova': {
+      id: '/_authenticated/obras/$id/demandas/nova'
+      path: '/demandas/nova'
+      fullPath: '/obras/$id/demandas/nova'
+      preLoaderRoute: typeof AuthenticatedObrasIdDemandasNovaRouteImport
+      parentRoute: typeof AuthenticatedObrasIdRoute
+    }
+    '/_authenticated/obras/$id/documentos/': {
+      id: '/_authenticated/obras/$id/documentos/'
+      path: '/documentos'
+      fullPath: '/obras/$id/documentos/'
+      preLoaderRoute: typeof AuthenticatedObrasIdDocumentosIndexRouteImport
+      parentRoute: typeof AuthenticatedObrasIdRoute
+    }
+    '/_authenticated/obras/$id/equipamentos/': {
+      id: '/_authenticated/obras/$id/equipamentos/'
+      path: '/equipamentos'
+      fullPath: '/obras/$id/equipamentos/'
+      preLoaderRoute: typeof AuthenticatedObrasIdEquipamentosIndexRouteImport
+      parentRoute: typeof AuthenticatedObrasIdRoute
+    }
   }
 }
+
+interface AuthenticatedObrasIdRouteChildren {
+  AuthenticatedObrasIdEditarRoute: typeof AuthenticatedObrasIdEditarRoute
+  AuthenticatedObrasIdIndexRoute: typeof AuthenticatedObrasIdIndexRoute
+  AuthenticatedObrasIdDemandasEditarRoute: typeof AuthenticatedObrasIdDemandasEditarRoute
+  AuthenticatedObrasIdDemandasNovaRoute: typeof AuthenticatedObrasIdDemandasNovaRoute
+  AuthenticatedObrasIdCronogramaIndexRoute: typeof AuthenticatedObrasIdCronogramaIndexRoute
+  AuthenticatedObrasIdDemandasIndexRoute: typeof AuthenticatedObrasIdDemandasIndexRoute
+  AuthenticatedObrasIdDocumentosIndexRoute: typeof AuthenticatedObrasIdDocumentosIndexRoute
+  AuthenticatedObrasIdEquipamentosIndexRoute: typeof AuthenticatedObrasIdEquipamentosIndexRoute
+}
+
+const AuthenticatedObrasIdRouteChildren: AuthenticatedObrasIdRouteChildren = {
+  AuthenticatedObrasIdEditarRoute: AuthenticatedObrasIdEditarRoute,
+  AuthenticatedObrasIdIndexRoute: AuthenticatedObrasIdIndexRoute,
+  AuthenticatedObrasIdDemandasEditarRoute:
+    AuthenticatedObrasIdDemandasEditarRoute,
+  AuthenticatedObrasIdDemandasNovaRoute: AuthenticatedObrasIdDemandasNovaRoute,
+  AuthenticatedObrasIdCronogramaIndexRoute:
+    AuthenticatedObrasIdCronogramaIndexRoute,
+  AuthenticatedObrasIdDemandasIndexRoute:
+    AuthenticatedObrasIdDemandasIndexRoute,
+  AuthenticatedObrasIdDocumentosIndexRoute:
+    AuthenticatedObrasIdDocumentosIndexRoute,
+  AuthenticatedObrasIdEquipamentosIndexRoute:
+    AuthenticatedObrasIdEquipamentosIndexRoute,
+}
+
+const AuthenticatedObrasIdRouteWithChildren =
+  AuthenticatedObrasIdRoute._addFileChildren(AuthenticatedObrasIdRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ClientesRoute: ClientesRoute,
   LoginRoute: LoginRoute,
-  ObrasRoute: ObrasRoute,
   RelatoriosRoute: RelatoriosRoute,
-  AuthenticatedObrasIdRoute: AuthenticatedObrasIdRoute,
+  AuthenticatedObrasIdRoute: AuthenticatedObrasIdRouteWithChildren,
   AuthenticatedObrasNovaRoute: AuthenticatedObrasNovaRoute,
   AuthenticatedObrasIndexRoute: AuthenticatedObrasIndexRoute,
 }
