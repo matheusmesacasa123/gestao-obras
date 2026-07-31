@@ -5,14 +5,25 @@ import {
 
 import {
   AlertTriangle,
+  Building2,
   CalendarClock,
   CheckCircle2,
   CirclePause,
   Clock3,
+  Eye,
   Pencil,
   Trash2,
+  UserRound,
   XCircle,
 } from "lucide-react";
+
+import {
+  useAuth,
+} from "@/features/auth/auth-context";
+
+import {
+  supabase,
+} from "@/integrations/supabase/client";
 
 import {
   deleteDemanda,
@@ -25,8 +36,11 @@ import type {
 interface DemandaCardProps {
   demanda: Demanda;
   obraId: string;
+  obraSetorId: string | null;
   onDelete?: () => void;
-  onEdit?: (demanda: Demanda) => void;
+  onEdit?: (
+    demanda: Demanda
+  ) => void;
 }
 
 interface StatusVisual {
@@ -44,7 +58,9 @@ interface StatusVisual {
 interface SituacaoPrazo {
   mensagem: string;
   className: string;
-  icone: "alerta" | "relogio";
+  icone:
+    | "alerta"
+    | "relogio";
 }
 
 function somenteData(
@@ -54,7 +70,9 @@ function somenteData(
     return "";
   }
 
-  return data.split("T")[0];
+  return data.split(
+    "T"
+  )[0];
 }
 
 function parseDataLocal(
@@ -65,22 +83,32 @@ function parseDataLocal(
   }
 
   const dataSemHorario =
-    somenteData(data);
+    somenteData(
+      data
+    );
 
-  const [ano, mes, dia] =
-    dataSemHorario
-      .split("-")
-      .map(Number);
+  const [
+    ano,
+    mes,
+    dia,
+  ] = dataSemHorario
+    .split("-")
+    .map(Number);
 
-  if (!ano || !mes || !dia) {
+  if (
+    !ano ||
+    !mes ||
+    !dia
+  ) {
     return null;
   }
 
-  const resultado = new Date(
-    ano,
-    mes - 1,
-    dia
-  );
+  const resultado =
+    new Date(
+      ano,
+      mes - 1,
+      dia
+    );
 
   resultado.setHours(
     0,
@@ -96,10 +124,12 @@ function formatarData(
   data?: string | null
 ): string {
   const dataConvertida =
-    parseDataLocal(data);
+    parseDataLocal(
+      data
+    );
 
   if (!dataConvertida) {
-    return "-";
+    return "Não informado";
   }
 
   return dataConvertida.toLocaleDateString(
@@ -108,7 +138,8 @@ function formatarData(
 }
 
 function obterHoje(): Date {
-  const hoje = new Date();
+  const hoje =
+    new Date();
 
   hoje.setHours(
     0,
@@ -125,13 +156,17 @@ function diferencaEmDias(
   dataFinal: Date
 ): number {
   const milissegundosPorDia =
-    1000 * 60 * 60 * 24;
+    1000 *
+    60 *
+    60 *
+    24;
 
   return Math.ceil(
     (
       dataFinal.getTime() -
       dataInicial.getTime()
-    ) / milissegundosPorDia
+    ) /
+      milissegundosPorDia
   );
 }
 
@@ -149,48 +184,66 @@ function obterStatusVisual(
     );
 
   if (
-    demanda.status === "cancelada"
+    demanda.status ===
+    "cancelada"
   ) {
     return {
-      label: "Cancelada",
+      label:
+        "Cancelada",
+
       className:
         "bg-red-100 text-red-700",
+
       borderClassName:
         "border-red-300",
-      icone: "cancelada",
+
+      icone:
+        "cancelada",
     };
   }
 
   if (
-    demanda.status === "concluida"
+    demanda.status ===
+    "concluida"
   ) {
     const finalizadaComAtraso =
       Boolean(
         prazo &&
         dataConclusao &&
-        dataConclusao > prazo
+        dataConclusao >
+          prazo
       );
 
-    if (finalizadaComAtraso) {
+    if (
+      finalizadaComAtraso
+    ) {
       return {
         label:
           "Finalizada com atraso",
+
         className:
           "bg-amber-100 text-amber-800",
+
         borderClassName:
           "border-amber-300",
+
         icone:
           "finalizada_atraso",
       };
     }
 
     return {
-      label: "Finalizada",
+      label:
+        "Finalizada",
+
       className:
         "bg-green-100 text-green-700",
+
       borderClassName:
         "border-green-300",
-      icone: "finalizada",
+
+      icone:
+        "finalizada",
     };
   }
 
@@ -199,22 +252,32 @@ function obterStatusVisual(
     "em_andamento"
   ) {
     return {
-      label: "Em andamento",
+      label:
+        "Em andamento",
+
       className:
         "bg-blue-100 text-blue-700",
+
       borderClassName:
         "border-blue-200",
-      icone: "andamento",
+
+      icone:
+        "andamento",
     };
   }
 
   return {
-    label: "Aguardando início",
+    label:
+      "Aguardando início",
+
     className:
       "bg-slate-100 text-slate-700",
+
     borderClassName:
       "border-slate-300",
-    icone: "aguardando",
+
+    icone:
+      "aguardando",
   };
 }
 
@@ -222,8 +285,10 @@ function obterSituacaoPrazo(
   demanda: Demanda
 ): SituacaoPrazo | null {
   if (
-    demanda.status === "concluida" ||
-    demanda.status === "cancelada"
+    demanda.status ===
+      "concluida" ||
+    demanda.status ===
+      "cancelada"
   ) {
     return null;
   }
@@ -237,9 +302,13 @@ function obterSituacaoPrazo(
     return null;
   }
 
-  const hoje = obterHoje();
+  const hoje =
+    obterHoje();
 
-  if (prazo < hoje) {
+  if (
+    prazo <
+    hoje
+  ) {
     const diasAtraso =
       Math.abs(
         diferencaEmDias(
@@ -253,9 +322,12 @@ function obterSituacaoPrazo(
         diasAtraso === 1
           ? "A demanda está atrasada há 1 dia."
           : `A demanda está atrasada há ${diasAtraso} dias.`,
+
       className:
         "border-red-200 bg-red-50 text-red-700",
-      icone: "alerta",
+
+      icone:
+        "alerta",
     };
   }
 
@@ -265,28 +337,40 @@ function obterSituacaoPrazo(
       prazo
     );
 
-  if (diasRestantes === 0) {
+  if (
+    diasRestantes ===
+    0
+  ) {
     return {
       mensagem:
         "O prazo termina hoje.",
+
       className:
         "border-orange-200 bg-orange-50 text-orange-700",
-      icone: "relogio",
+
+      icone:
+        "relogio",
     };
   }
 
   if (
-    diasRestantes >= 1 &&
-    diasRestantes <= 3
+    diasRestantes >=
+      1 &&
+    diasRestantes <=
+      3
   ) {
     return {
       mensagem:
-        diasRestantes === 1
+        diasRestantes ===
+        1
           ? "Falta 1 dia para o prazo."
           : `Faltam ${diasRestantes} dias para o prazo.`,
+
       className:
         "border-orange-200 bg-orange-50 text-orange-700",
-      icone: "relogio",
+
+      icone:
+        "relogio",
     };
   }
 
@@ -297,18 +381,20 @@ function obterCorPrioridade(
   prioridade:
     Demanda["prioridade"]
 ): string {
-  switch (prioridade) {
+  switch (
+    prioridade
+  ) {
     case "baixa":
-      return "bg-green-100 text-green-700";
+      return "border-green-200 bg-green-50 text-green-700";
 
     case "media":
-      return "bg-orange-100 text-orange-700";
+      return "border-orange-200 bg-orange-50 text-orange-700";
 
     case "alta":
-      return "bg-red-100 text-red-700";
+      return "border-red-200 bg-red-50 text-red-700";
 
     default:
-      return "bg-muted text-muted-foreground";
+      return "border-slate-200 bg-slate-50 text-slate-600";
   }
 }
 
@@ -316,7 +402,9 @@ function obterLabelPrioridade(
   prioridade:
     Demanda["prioridade"]
 ): string {
-  switch (prioridade) {
+  switch (
+    prioridade
+  ) {
     case "baixa":
       return "Prioridade: Baixa";
 
@@ -334,9 +422,12 @@ function obterLabelPrioridade(
 function IconeStatus({
   icone,
 }: {
-  icone: StatusVisual["icone"];
+  icone:
+    StatusVisual["icone"];
 }) {
-  switch (icone) {
+  switch (
+    icone
+  ) {
     case "aguardando":
       return (
         <CirclePause className="h-3.5 w-3.5" />
@@ -370,17 +461,65 @@ function IconeStatus({
 export function DemandaCard({
   demanda,
   obraId,
+  obraSetorId,
   onDelete,
   onEdit,
 }: DemandaCardProps) {
-  const [excluindo, setExcluindo] =
-    useState(false);
+  const {
+    perfil,
+  } = useAuth();
+
+  const [
+    excluindo,
+    setExcluindo,
+  ] = useState(false);
+
+  const administrador =
+    perfil?.administrador ===
+    true;
+
+  const demandaDoMeuSetor =
+    Boolean(
+      perfil?.setor_id &&
+      demanda.setor_id &&
+      perfil.setor_id ===
+        demanda.setor_id
+    );
+
+  const obraNoMeuSetor =
+    Boolean(
+      perfil?.setor_id &&
+      obraSetorId &&
+      perfil.setor_id ===
+        obraSetorId
+    );
+
+  const podeGerenciar =
+    administrador ||
+    (
+      demandaDoMeuSetor &&
+      obraNoMeuSetor
+    );
 
   const statusVisual =
-    obterStatusVisual(demanda);
+    obterStatusVisual(
+      demanda
+    );
 
   const situacaoPrazo =
-    obterSituacaoPrazo(demanda);
+    obterSituacaoPrazo(
+      demanda
+    );
+
+  const nomeResponsavel =
+    demanda.responsavel?.nome ||
+    "Não atribuído";
+
+  const nomeSetor =
+    demanda.setor?.nome ||
+    demanda.responsavel?.setor
+      ?.nome ||
+    "Não informado";
 
   async function handleExcluir(
     event:
@@ -388,16 +527,103 @@ export function DemandaCard({
   ) {
     event.stopPropagation();
 
-    const confirmou = confirm(
-      `Deseja excluir "${demanda.titulo}"?`
-    );
+    if (
+      !podeGerenciar
+    ) {
+      alert(
+        "Você não possui permissão para excluir esta demanda."
+      );
+
+      return;
+    }
+
+    if (
+      !administrador
+    ) {
+      const [
+        respostaObra,
+        respostaDemanda,
+      ] = await Promise.all([
+        supabase
+          .from("obras")
+          .select(
+            "setor_id"
+          )
+          .eq(
+            "id",
+            obraId
+          )
+          .single(),
+
+        supabase
+          .from("demandas")
+          .select(
+            "setor_id"
+          )
+          .eq(
+            "id",
+            demanda.id
+          )
+          .single(),
+      ]);
+
+      if (
+        respostaObra.error ||
+        respostaDemanda.error
+      ) {
+        console.error(
+          "Erro ao validar permissão para excluir demanda:",
+          respostaObra.error ||
+            respostaDemanda.error
+        );
+
+        alert(
+          "Não foi possível confirmar sua permissão para excluir esta demanda."
+        );
+
+        return;
+      }
+
+      const setorUsuarioId =
+        perfil?.setor_id;
+
+      const aindaPodeExcluir =
+        Boolean(
+          setorUsuarioId &&
+          respostaObra.data
+            .setor_id ===
+            setorUsuarioId &&
+          respostaDemanda.data
+            .setor_id ===
+            setorUsuarioId
+        );
+
+      if (
+        !aindaPodeExcluir
+      ) {
+        alert(
+          "A obra ou a demanda não pertence mais ao seu setor. Você não pode excluir esta demanda."
+        );
+
+        onDelete?.();
+
+        return;
+      }
+    }
+
+    const confirmou =
+      confirm(
+        `Deseja excluir "${demanda.titulo}"?`
+      );
 
     if (!confirmou) {
       return;
     }
 
     try {
-      setExcluindo(true);
+      setExcluindo(
+        true
+      );
 
       await deleteDemanda(
         demanda.id
@@ -414,7 +640,9 @@ export function DemandaCard({
         "Erro ao excluir a demanda."
       );
     } finally {
-      setExcluindo(false);
+      setExcluindo(
+        false
+      );
     }
   }
 
@@ -424,56 +652,92 @@ export function DemandaCard({
   ) {
     event.stopPropagation();
 
-    onEdit?.(demanda);
+    if (
+      !podeGerenciar
+    ) {
+      alert(
+        "Você não possui permissão para editar esta demanda."
+      );
+
+      return;
+    }
+
+    onEdit?.(
+      demanda
+    );
   }
 
   return (
     <article
-      data-obra-id={obraId}
+      data-obra-id={
+        obraId
+      }
       className={`
-        relative
-        space-y-4
-        rounded-xl
+        flex
+        h-full
+        flex-col
+        gap-4
+        rounded-2xl
         border
+        bg-white
         p-5
-        transition
-        hover:bg-muted/40
+        shadow-sm
+        transition-all
+        hover:shadow-md
         ${statusVisual.borderClassName}
       `}
     >
       <div className="flex items-start justify-between gap-4">
-        <div>
-          <h2 className="text-lg font-semibold">
-            {demanda.titulo}
+        <div className="min-w-0">
+          <h2 className="truncate text-lg font-bold text-gray-900">
+            {
+              demanda.titulo
+            }
           </h2>
 
-          {demanda.descricao && (
-            <p className="mt-1 text-sm text-muted-foreground">
-              {demanda.descricao}
-            </p>
-          )}
+          <p className="mt-1 line-clamp-2 text-sm text-gray-500">
+            {demanda.descricao ||
+              "Sem descrição informada."}
+          </p>
         </div>
 
-        <div className="flex items-center gap-1">
-          <button
-            type="button"
-            onClick={handleEditar}
-            title="Editar demanda"
-            className="rounded-lg p-1.5 text-gray-500 transition hover:bg-muted hover:text-black"
-          >
-            <Pencil className="h-4 w-4" />
-          </button>
+        {podeGerenciar ? (
+          <div className="flex shrink-0 items-center gap-1">
+            <button
+              type="button"
+              onClick={
+                handleEditar
+              }
+              title="Editar demanda"
+              className="rounded-lg p-2 text-gray-500 transition hover:bg-gray-100 hover:text-black"
+            >
+              <Pencil className="h-4 w-4" />
+            </button>
 
-          <button
-            type="button"
-            onClick={handleExcluir}
-            disabled={excluindo}
-            title="Excluir demanda"
-            className="rounded-lg p-1.5 text-gray-400 transition hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
+            <button
+              type="button"
+              onClick={
+                handleExcluir
+              }
+              disabled={
+                excluindo
+              }
+              title="Excluir demanda"
+              className="rounded-lg p-2 text-gray-400 transition hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <Trash2 className="h-4 w-4" />
+            </button>
+          </div>
+        ) : (
+          <div
+            className="flex shrink-0 items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs font-medium text-slate-500"
+            title="Demanda indisponível para edição"
           >
-            <Trash2 className="h-4 w-4" />
-          </button>
-        </div>
+            <Eye className="h-3.5 w-3.5" />
+
+            Visualização
+          </div>
+        )}
       </div>
 
       <div className="flex flex-wrap gap-2">
@@ -486,15 +750,19 @@ export function DemandaCard({
             px-3
             py-1
             text-xs
-            font-medium
+            font-semibold
             ${statusVisual.className}
           `}
         >
           <IconeStatus
-            icone={statusVisual.icone}
+            icone={
+              statusVisual.icone
+            }
           />
 
-          {statusVisual.label}
+          {
+            statusVisual.label
+          }
         </span>
 
         <span
@@ -502,10 +770,11 @@ export function DemandaCard({
             inline-flex
             items-center
             rounded-full
+            border
             px-3
             py-1
             text-xs
-            font-medium
+            font-semibold
             ${obterCorPrioridade(
               demanda.prioridade
             )}
@@ -517,68 +786,116 @@ export function DemandaCard({
         </span>
       </div>
 
-      {situacaoPrazo && (
-        <div
-          className={`
-            flex
-            items-center
-            gap-2
-            rounded-lg
-            border
-            px-3
-            py-2
-            text-sm
-            ${situacaoPrazo.className}
-          `}
-        >
-          {situacaoPrazo.icone ===
-          "alerta" ? (
-            <AlertTriangle className="h-4 w-4 shrink-0" />
-          ) : (
-            <CalendarClock className="h-4 w-4 shrink-0" />
-          )}
+      <div className="grid grid-cols-2 gap-3">
+        <div className="rounded-xl border bg-slate-50 p-3">
+          <div className="flex items-center gap-2">
+            <UserRound className="h-4 w-4 shrink-0 text-slate-500" />
 
-          <span>
-            {situacaoPrazo.mensagem}
-          </span>
+            <span className="text-xs font-medium text-slate-500">
+              Responsável
+            </span>
+          </div>
+
+          <p className="mt-2 truncate text-sm font-semibold text-slate-800">
+            {
+              nomeResponsavel
+            }
+          </p>
         </div>
-      )}
 
-      <div className="space-y-1 text-sm">
-        {demanda.prazo && (
-          <p>
-            <span className="font-medium">
-              Prazo:
-            </span>{" "}
+        <div className="rounded-xl border bg-slate-50 p-3">
+          <div className="flex items-center gap-2">
+            <Building2 className="h-4 w-4 shrink-0 text-slate-500" />
+
+            <span className="text-xs font-medium text-slate-500">
+              Setor
+            </span>
+          </div>
+
+          <p className="mt-2 truncate text-sm font-semibold text-slate-800">
+            {
+              nomeSetor
+            }
+          </p>
+        </div>
+
+        <div className="rounded-xl border bg-slate-50 p-3">
+          <div className="flex items-center gap-2">
+            <CalendarClock className="h-4 w-4 shrink-0 text-slate-500" />
+
+            <span className="text-xs font-medium text-slate-500">
+              Prazo
+            </span>
+          </div>
+
+          <p className="mt-2 text-sm font-semibold text-slate-800">
             {formatarData(
               demanda.prazo
             )}
           </p>
-        )}
+        </div>
 
-        {demanda.data_conclusao && (
-          <p>
-            <span className="font-medium">
-              Data de conclusão:
-            </span>{" "}
+        <div className="rounded-xl border bg-slate-50 p-3">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="h-4 w-4 shrink-0 text-slate-500" />
+
+            <span className="text-xs font-medium text-slate-500">
+              Conclusão
+            </span>
+          </div>
+
+          <p className="mt-2 text-sm font-semibold text-slate-800">
             {formatarData(
               demanda.data_conclusao
             )}
           </p>
-        )}
+        </div>
       </div>
 
-      {demanda.motivo_atraso && (
-        <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
-          <p className="text-xs font-semibold uppercase tracking-wide text-amber-800">
-            Motivo do atraso
-          </p>
+      <div className="mt-auto space-y-3">
+        {situacaoPrazo && (
+          <div
+            className={`
+              flex
+              items-center
+              gap-2
+              rounded-xl
+              border
+              px-3
+              py-2
+              text-sm
+              ${situacaoPrazo.className}
+            `}
+          >
+            {situacaoPrazo.icone ===
+            "alerta" ? (
+              <AlertTriangle className="h-4 w-4 shrink-0" />
+            ) : (
+              <CalendarClock className="h-4 w-4 shrink-0" />
+            )}
 
-          <p className="mt-1 text-sm text-amber-900">
-            {demanda.motivo_atraso}
-          </p>
-        </div>
-      )}
+            <span>
+              {
+                situacaoPrazo.mensagem
+              }
+            </span>
+          </div>
+        )}
+
+        {demanda.motivo_atraso && (
+          <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-amber-800">
+              Motivo do atraso
+            </p>
+
+            <p className="mt-1 text-sm text-amber-900">
+              {
+                demanda.motivo_atraso
+              }
+            </p>
+          </div>
+        )}
+      </div>
     </article>
   );
 }

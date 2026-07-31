@@ -108,33 +108,13 @@ function ObraLayoutPage() {
       exact:
         false,
     },
-    {
-      label:
-        "Equipamentos",
-
-      to:
-        "/obras/$id/equipamentos",
-
-      exact:
-        false,
-    },
-    {
-      label:
-        "Cronograma",
-
-      to:
-        "/obras/$id/cronograma",
-
-      exact:
-        false,
-    },
   ] as const;
 
   return (
-    <div className="max-w-6xl space-y-6 p-8">
+    <div className="mx-auto max-w-6xl space-y-6 p-8">
       <Link
         to="/obras"
-        className="flex w-fit items-center gap-1 text-sm font-medium text-gray-600 hover:text-black"
+        className="flex w-fit items-center gap-1 text-sm font-medium text-gray-600 transition hover:text-black"
       >
         ← Voltar para Obras
       </Link>
@@ -145,7 +125,7 @@ function ObraLayoutPage() {
             Código da obra
           </span>
 
-          <h1 className="text-3xl font-extrabold tracking-tight">
+          <h1 className="text-3xl font-extrabold tracking-tight text-gray-900">
             {obra.codigo ||
               "Sem código"}
           </h1>
@@ -173,42 +153,44 @@ function ObraLayoutPage() {
         </div>
       </div>
 
-      <nav className="flex items-center gap-2 overflow-x-auto rounded-2xl border bg-white p-2 shadow-sm">
-        {tabs.map(
-          (
-            tab
-          ) => (
-            <Link
-              key={
-                tab.label
-              }
-              to={
-                tab.to
-              }
-              params={{
-                id:
-                  obra.id,
-              }}
-              activeOptions={{
-                exact:
-                  tab.exact,
-              }}
-              activeProps={{
-                className:
-                  "bg-black text-white",
-              }}
-              inactiveProps={{
-                className:
-                  "text-gray-600 hover:bg-gray-100",
-              }}
-              className="block whitespace-nowrap rounded-xl px-4 py-2 text-sm font-medium transition-all"
-            >
-              {
-                tab.label
-              }
-            </Link>
-          )
-        )}
+      <nav className="flex justify-center rounded-2xl border bg-white p-2 shadow-sm">
+        <div className="flex flex-wrap items-center justify-center gap-2">
+          {tabs.map(
+            (
+              tab
+            ) => (
+              <Link
+                key={
+                  tab.label
+                }
+                to={
+                  tab.to
+                }
+                params={{
+                  id:
+                    obra.id,
+                }}
+                activeOptions={{
+                  exact:
+                    tab.exact,
+                }}
+                activeProps={{
+                  className:
+                    "bg-black text-white shadow-sm",
+                }}
+                inactiveProps={{
+                  className:
+                    "text-gray-600 hover:bg-gray-100 hover:text-gray-900",
+                }}
+                className="block min-w-[130px] whitespace-nowrap rounded-xl px-5 py-2.5 text-center text-sm font-semibold transition-all"
+              >
+                {
+                  tab.label
+                }
+              </Link>
+            )
+          )}
+        </div>
       </nav>
 
       <Outlet />

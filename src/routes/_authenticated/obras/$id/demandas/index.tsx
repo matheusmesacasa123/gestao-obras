@@ -6,8 +6,27 @@ import {
 import {
   useCallback,
   useEffect,
+  useMemo,
   useState,
 } from "react";
+
+import {
+  Building2,
+  CheckCircle2,
+  CirclePause,
+  Clock3,
+  ListTodo,
+  Plus,
+  RefreshCw,
+} from "lucide-react";
+
+import {
+  useAuth,
+} from "@/features/auth/auth-context";
+
+import {
+  supabase,
+} from "@/integrations/supabase/client";
 
 import {
   getDemandasPorObra,
@@ -23,160 +42,781 @@ import type {
   Demanda,
 } from "@/features/obras/demandas/types";
 
-export const Route = createFileRoute(
-  "/_authenticated/obras/$id/demandas/"
-)({
-  component: DemandasPage,
-});
+interface SetorFiltro {
+  id: string;
+  nome: string;
+}
+
+interface ObraPermissao {
+  setor_id: string | null;
+}
+
+export const Route =
+  createFileRoute(
+    "/_authenticated/obras/$id/demandas/"
+  )({
+    component:
+      DemandasPage,
+  });
 
 function DemandasPage() {
-  const { id } = Route.useParams();
-  const navigate = useNavigate();
+  const {
+    id,
+  } = Route.useParams();
 
-  const [demandas, setDemandas] = useState<Demanda[]>([]);
-  const [loadingDemandas, setLoadingDemandas] = useState(true);
-  const [erroDemandas, setErroDemandas] = useState(false);
+  const navigate =
+    useNavigate();
 
-  const [demandaParaEditar, setDemandaParaEditar] =
-    useState<Demanda | null>(null);
+  const {
+    perfil,
+  } = useAuth();
 
-  const carregarDemandas = useCallback(async () => {
-    try {
-      setLoadingDemandas(true);
-      setErroDemandas(false);
+  const [
+    demandas,
+    setDemandas,
+  ] = useState<Demanda[]>(
+    []
+  );
 
-      const data = await getDemandasPorObra(id);
+  const [
+    setores,
+    setSetores,
+  ] = useState<SetorFiltro[]>(
+    []
+  );
 
-      setDemandas(data);
-    } catch (error) {
-      console.error("Erro ao buscar demandas:", error);
-      setErroDemandas(true);
-    } finally {
-      setLoadingDemandas(false);
-    }
-  }, [id]);
+  const [
+    obraSetorId,
+    setObraSetorId,
+  ] = useState<string | null>(
+    null
+  );
+
+  const [
+    setorSelecionadoId,
+    setSetorSelecionadoId,
+  ] = useState("");
+
+  const [
+    filtroInicialAplicado,
+    setFiltroInicialAplicado,
+  ] = useState(false);
+
+  const [
+    loadingDemandas,
+    setLoadingDemandas,
+  ] = useState(true);
+
+  const [
+    carregandoPermissao,
+    setCarregandoPermissao,
+  ] = useState(true);
+
+  const [
+    atualizando,
+    setAtualizando,
+  ] = useState(false);
+
+  const [
+    erroDemandas,
+    setErroDemandas,
+  ] = useState(false);
+
+  const [
+    erroSetores,
+    setErroSetores,
+  ] = useState(false);
+
+  const [
+    erroPermissao,
+    setErroPermissao,
+  ] = useState(false);
+
+  const [
+    demandaParaEditar,
+    setDemandaParaEditar,
+  ] =
+    useState<Demanda | null>(
+      null
+    );
+
+  const administrador =
+    perfil?.administrador ===
+    true;
+
+  const usuarioMesmoSetorDaObra =
+    Boolean(
+      perfil?.setor_id &&
+      obraSetorId &&
+      perfil.setor_id ===
+        obraSetorId
+    );
+
+  const podeCriarDemanda =
+    administrador ||
+    usuarioMesmoSetorDaObra;
+
+  const carregarSetores =
+    useCallback(
+      async () => {
+        try {
+          setErroSetores(
+            false
+          );
+
+          const {
+            data,
+            error,
+          } = await supabase
+            .from("setores")
+            .select(
+              "id, nome"
+            )
+            .eq(
+              "ativo",
+              true
+            )
+            .order(
+              "nome",
+              {
+                ascending:
+                  true,
+              }
+            );
+
+          if (error) {
+            throw error;
+          }
+
+          setSetores(
+            (
+              data ??
+              []
+            ) as SetorFiltro[]
+          );
+        } catch (error) {
+          console.error(
+            "Erro ao carregar setores:",
+            error
+          );
+
+          setErroSetores(
+            true
+          );
+        }
+      },
+      []
+    );
+
+  const carregarPermissaoObra =
+    useCallback(
+      async () => {
+        try {
+          setCarregandoPermissao(
+            true
+          );
+
+          setErroPermissao(
+            false
+          );
+
+          const {
+            data,
+            error,
+          } = await supabase
+            .from("obras")
+            .select(
+              "setor_id"
+            )
+            .eq(
+              "id",
+              id
+            )
+            .single();
+
+          if (error) {
+            throw error;
+          }
+
+          const obra =
+            data as ObraPermissao;
+
+          setObraSetorId(
+            obra.setor_id
+          );
+        } catch (error) {
+          console.error(
+            "Erro ao verificar setor atual da obra:",
+            error
+          );
+
+          setObraSetorId(
+            null
+          );
+
+          setErroPermissao(
+            true
+          );
+        } finally {
+          setCarregandoPermissao(
+            false
+          );
+        }
+      },
+      [
+        id,
+      ]
+    );
+
+  const carregarDemandas =
+    useCallback(
+      async (
+        exibirCarregamentoInicial =
+          true
+      ) => {
+        try {
+          if (
+            exibirCarregamentoInicial
+          ) {
+            setLoadingDemandas(
+              true
+            );
+          } else {
+            setAtualizando(
+              true
+            );
+          }
+
+          setErroDemandas(
+            false
+          );
+
+          const data =
+            await getDemandasPorObra(
+              id
+            );
+
+          setDemandas(
+            data
+          );
+        } catch (error) {
+          console.error(
+            "Erro ao buscar demandas:",
+            error
+          );
+
+          setErroDemandas(
+            true
+          );
+        } finally {
+          setLoadingDemandas(
+            false
+          );
+
+          setAtualizando(
+            false
+          );
+        }
+      },
+      [
+        id,
+      ]
+    );
+
+  const atualizarPagina =
+    useCallback(
+      async () => {
+        await Promise.all([
+          carregarDemandas(
+            false
+          ),
+          carregarPermissaoObra(),
+        ]);
+      },
+      [
+        carregarDemandas,
+        carregarPermissaoObra,
+      ]
+    );
 
   useEffect(() => {
-    carregarDemandas();
-  }, [carregarDemandas]);
+    Promise.all([
+      carregarDemandas(),
+      carregarSetores(),
+      carregarPermissaoObra(),
+    ]);
+  }, [
+    carregarDemandas,
+    carregarSetores,
+    carregarPermissaoObra,
+  ]);
 
-  if (loadingDemandas) {
+  useEffect(() => {
+    if (
+      filtroInicialAplicado
+    ) {
+      return;
+    }
+
+    if (
+      perfil?.setor_id
+    ) {
+      setSetorSelecionadoId(
+        perfil.setor_id
+      );
+
+      setFiltroInicialAplicado(
+        true
+      );
+
+      return;
+    }
+
+    if (perfil) {
+      setSetorSelecionadoId(
+        "todos"
+      );
+
+      setFiltroInicialAplicado(
+        true
+      );
+    }
+  }, [
+    perfil,
+    filtroInicialAplicado,
+  ]);
+
+  const demandasFiltradas =
+    useMemo(() => {
+      if (
+        !setorSelecionadoId ||
+        setorSelecionadoId ===
+          "todos"
+      ) {
+        return demandas;
+      }
+
+      if (
+        setorSelecionadoId ===
+        "sem_setor"
+      ) {
+        return demandas.filter(
+          (
+            demanda
+          ) =>
+            !demanda.setor_id
+        );
+      }
+
+      return demandas.filter(
+        (
+          demanda
+        ) =>
+          demanda.setor_id ===
+          setorSelecionadoId
+      );
+    }, [
+      demandas,
+      setorSelecionadoId,
+    ]);
+
+  const totais =
+    useMemo(() => {
+      const abertas =
+        demandasFiltradas.filter(
+          (
+            demanda
+          ) =>
+            demanda.status ===
+            "aberta"
+        ).length;
+
+      const andamento =
+        demandasFiltradas.filter(
+          (
+            demanda
+          ) =>
+            demanda.status ===
+            "em_andamento"
+        ).length;
+
+      const concluidas =
+        demandasFiltradas.filter(
+          (
+            demanda
+          ) =>
+            demanda.status ===
+            "concluida"
+        ).length;
+
+      return {
+        total:
+          demandasFiltradas.length,
+
+        abertas,
+
+        andamento,
+
+        concluidas,
+      };
+    }, [
+      demandasFiltradas,
+    ]);
+
+  const nomeSetorSelecionado =
+    useMemo(() => {
+      if (
+        setorSelecionadoId ===
+        "todos"
+      ) {
+        return "Todos os setores";
+      }
+
+      if (
+        setorSelecionadoId ===
+        "sem_setor"
+      ) {
+        return "Sem setor definido";
+      }
+
+      return (
+        setores.find(
+          (
+            setor
+          ) =>
+            setor.id ===
+            setorSelecionadoId
+        )?.nome ||
+        "Setor não encontrado"
+      );
+    }, [
+      setores,
+      setorSelecionadoId,
+    ]);
+
+  if (
+    loadingDemandas
+  ) {
     return (
-      <div className="border rounded-2xl p-8 bg-white shadow-sm">
-        Carregando demandas...
+      <div className="rounded-2xl border bg-white p-8 shadow-sm">
+        <div className="flex items-center gap-3 text-sm font-medium text-gray-600">
+          <RefreshCw className="h-4 w-4 animate-spin" />
+
+          Carregando demandas...
+        </div>
       </div>
     );
   }
 
-  if (erroDemandas) {
+  if (
+    erroDemandas
+  ) {
     return (
-      <div className="border rounded-2xl p-8 bg-white shadow-sm">
-        Erro ao carregar demandas.
+      <div className="space-y-4 rounded-2xl border border-red-200 bg-red-50 p-8">
+        <div>
+          <h2 className="font-semibold text-red-800">
+            Erro ao carregar demandas
+          </h2>
+
+          <p className="mt-1 text-sm text-red-700">
+            Não foi possível buscar as demandas desta obra.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={() =>
+            carregarDemandas()
+          }
+          className="rounded-xl border border-red-300 bg-white px-4 py-2 text-sm font-semibold text-red-700 transition hover:bg-red-100"
+        >
+          Tentar novamente
+        </button>
       </div>
     );
   }
-
-  const abertas = demandas.filter(
-    (demanda) => demanda.status === "aberta"
-  ).length;
-
-  const andamento = demandas.filter(
-    (demanda) => demanda.status === "em_andamento"
-  ).length;
-
-  const concluidas = demandas.filter(
-    (demanda) => demanda.status === "concluida"
-  ).length;
 
   return (
     <>
       <div className="space-y-8">
-        <div className="flex justify-between items-center flex-wrap gap-4">
+        <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h2 className="text-2xl font-bold">
+            <h2 className="text-2xl font-bold tracking-tight text-gray-900">
               Demandas
             </h2>
 
-            <p className="text-muted-foreground">
+            <p className="mt-1 text-sm text-gray-500">
               Gerenciamento das atividades da obra
             </p>
           </div>
 
-          <button
-            type="button"
-            onClick={() =>
-              navigate({
-                to: "/obras/$id/demandas/nova",
-                params: { id },
-              })
-            }
-            className="border rounded-lg px-4 py-2 hover:bg-muted transition"
-          >
-            + Nova Demanda
-          </button>
-        </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              onClick={
+                atualizarPagina
+              }
+              disabled={
+                atualizando
+              }
+              className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border bg-white px-4 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <RefreshCw
+                className={`h-4 w-4 ${
+                  atualizando
+                    ? "animate-spin"
+                    : ""
+                }`}
+              />
 
-        <div className="grid md:grid-cols-4 gap-4">
-          <div className="border rounded-xl p-5 bg-white">
-            <p className="text-sm text-muted-foreground">
-              Total
-            </p>
+              Atualizar
+            </button>
 
-            <strong className="text-3xl">
-              {demandas.length}
-            </strong>
-          </div>
+            {!carregandoPermissao &&
+              podeCriarDemanda && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    navigate({
+                      to:
+                        "/obras/$id/demandas/nova",
 
-          <div className="border rounded-xl p-5 bg-white">
-            <p className="text-sm text-muted-foreground">
-              Abertas
-            </p>
+                      params: {
+                        id,
+                      },
+                    })
+                  }
+                  className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-black px-4 text-sm font-semibold text-white transition hover:bg-gray-800"
+                >
+                  <Plus className="h-4 w-4" />
 
-            <strong className="text-3xl">
-              {abertas}
-            </strong>
-          </div>
-
-          <div className="border rounded-xl p-5 bg-white">
-            <p className="text-sm text-muted-foreground">
-              Em andamento
-            </p>
-
-            <strong className="text-3xl">
-              {andamento}
-            </strong>
-          </div>
-
-          <div className="border rounded-xl p-5 bg-white">
-            <p className="text-sm text-muted-foreground">
-              Concluídas
-            </p>
-
-            <strong className="text-3xl">
-              {concluidas}
-            </strong>
+                  Nova demanda
+                </button>
+              )}
           </div>
         </div>
 
-        <DemandaList
-          demandas={demandas}
-          obraId={id}
-          onDelete={carregarDemandas}
-          onEdit={(demanda) => {
-            setDemandaParaEditar(demanda);
+        {erroPermissao && (
+          <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            Não foi possível confirmar sua permissão para criar demandas nesta obra.
+          </div>
+        )}
+
+        {!carregandoPermissao &&
+          !podeCriarDemanda &&
+          !erroPermissao && (
+            <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+              Você pode visualizar as demandas, mas somente o setor atual da obra ou um administrador pode criar novas demandas.
+            </div>
+          )}
+
+        <div className="rounded-2xl border bg-white p-5 shadow-sm">
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <div className="min-w-[240px] flex-1">
+              <label
+                htmlFor="filtro-setor-demandas"
+                className="flex items-center gap-2 text-sm font-semibold text-gray-700"
+              >
+                <Building2 className="h-4 w-4 text-gray-500" />
+
+                Setor das demandas
+              </label>
+
+              <select
+                id="filtro-setor-demandas"
+                value={
+                  setorSelecionadoId
+                }
+                onChange={(
+                  event
+                ) =>
+                  setSetorSelecionadoId(
+                    event.target.value
+                  )
+                }
+                disabled={
+                  erroSetores
+                }
+                className="mt-2 h-11 w-full rounded-xl border border-gray-300 bg-white px-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-gray-100"
+              >
+                <option value="todos">
+                  Todos os setores
+                </option>
+
+                {setores.map(
+                  (
+                    setor
+                  ) => (
+                    <option
+                      key={
+                        setor.id
+                      }
+                      value={
+                        setor.id
+                      }
+                    >
+                      {
+                        setor.nome
+                      }
+                    </option>
+                  )
+                )}
+
+                <option value="sem_setor">
+                  Sem setor definido
+                </option>
+              </select>
+
+              {erroSetores && (
+                <p className="mt-2 text-xs text-red-600">
+                  Não foi possível carregar os setores.
+                </p>
+              )}
+            </div>
+
+            <div className="rounded-xl border bg-slate-50 px-4 py-3">
+              <span className="block text-xs font-medium text-slate-500">
+                Visualizando
+              </span>
+
+              <span className="mt-0.5 block text-sm font-semibold text-slate-800">
+                {
+                  nomeSetorSelecionado
+                }
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="rounded-2xl border bg-white p-5 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-500">
+                  Total
+                </p>
+
+                <strong className="mt-1 block text-3xl font-bold text-gray-900">
+                  {
+                    totais.total
+                  }
+                </strong>
+              </div>
+
+              <div className="rounded-xl bg-slate-100 p-3 text-slate-600">
+                <ListTodo className="h-5 w-5" />
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border bg-white p-5 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-500">
+                  Aguardando início
+                </p>
+
+                <strong className="mt-1 block text-3xl font-bold text-gray-900">
+                  {
+                    totais.abertas
+                  }
+                </strong>
+              </div>
+
+              <div className="rounded-xl bg-slate-100 p-3 text-slate-600">
+                <CirclePause className="h-5 w-5" />
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border bg-white p-5 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-500">
+                  Em andamento
+                </p>
+
+                <strong className="mt-1 block text-3xl font-bold text-gray-900">
+                  {
+                    totais.andamento
+                  }
+                </strong>
+              </div>
+
+              <div className="rounded-xl bg-blue-50 p-3 text-blue-600">
+                <Clock3 className="h-5 w-5" />
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border bg-white p-5 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-500">
+                  Concluídas
+                </p>
+
+                <strong className="mt-1 block text-3xl font-bold text-gray-900">
+                  {
+                    totais.concluidas
+                  }
+                </strong>
+              </div>
+
+              <div className="rounded-xl bg-green-50 p-3 text-green-600">
+                <CheckCircle2 className="h-5 w-5" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+                <DemandaList
+          demandas={
+            demandasFiltradas
+          }
+          obraId={
+            id
+          }
+          obraSetorId={
+            obraSetorId
+          }
+          onDelete={() =>
+            carregarDemandas(
+              false
+            )
+          }
+          onEdit={(
+            demanda
+          ) => {
+            setDemandaParaEditar(
+              demanda
+            );
           }}
         />
       </div>
 
       {demandaParaEditar && (
         <ModalEditarDemanda
-          demanda={demandaParaEditar}
+          demanda={
+            demandaParaEditar
+          }
+          obraId={
+            id
+          }
+          obraSetorId={
+            obraSetorId
+          }
           onClose={() => {
-            setDemandaParaEditar(null);
+            setDemandaParaEditar(
+              null
+            );
           }}
           onSuccess={() => {
-            setDemandaParaEditar(null);
-            carregarDemandas();
+            setDemandaParaEditar(
+              null
+            );
+
+            atualizarPagina();
           }}
         />
       )}

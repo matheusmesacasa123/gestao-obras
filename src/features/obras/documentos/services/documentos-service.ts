@@ -1,94 +1,199 @@
-import { supabase } from "@/integrations/supabase/client";
-import type { Documento } from "../types";
+import {
+  supabase,
+} from "@/integrations/supabase/client";
+
+import type {
+  Documento,
+} from "../types";
 
 export async function getDocumentosPorObra(
   obraId: string
 ): Promise<Documento[]> {
-  const { data, error } = await supabase
+  const {
+    data,
+    error,
+  } = await supabase
     .from("documentos")
     .select("*")
-    .eq("obra_id", obraId)
-    .order("created_at", {
-      ascending: false,
-    });
+    .eq(
+      "obra_id",
+      obraId
+    )
+    .order(
+      "created_at",
+      {
+        ascending:
+          false,
+      }
+    );
 
   if (error) {
-    console.error("Erro ao buscar documentos:", error);
+    console.error(
+      "Erro ao buscar documentos:",
+      error
+    );
+
     throw error;
   }
 
-  return data ?? [];
+  return (
+    data ??
+    []
+  ) as Documento[];
 }
 
 export async function uploadDocumento(
   obraId: string,
   arquivo: File,
   nome: string,
-  categoria?: string
-) {
-  const caminho = `${obraId}/${Date.now()}-${arquivo.name}`;
+  categoria: string,
+  setorId: string | null
+): Promise<Documento> {
+  const nomeArquivoSeguro =
+    arquivo.name.replace(
+      /[^a-zA-Z0-9._-]/g,
+      "_"
+    );
 
-  const { error: uploadError } = await supabase.storage
+  const caminho =
+    `${obraId}/${Date.now()}-${nomeArquivoSeguro}`;
+
+  const {
+    error: uploadError,
+  } = await supabase.storage
     .from("documentos")
-    .upload(caminho, arquivo);
+    .upload(
+      caminho,
+      arquivo
+    );
 
   if (uploadError) {
     throw uploadError;
   }
 
-  const { data: urlData } = supabase.storage
-    .from("documentos")
-    .getPublicUrl(caminho);
+  try {
+    const {
+      data: urlData,
+    } = supabase.storage
+      .from("documentos")
+      .getPublicUrl(
+        caminho
+      );
 
-  const { data, error } = await supabase
-    .from("documentos")
-    .insert({
-      obra_id: obraId,
-      nome,
-      categoria: categoria ?? null,
-      arquivo_url: urlData.publicUrl,
-    })
-    .select()
-    .single();
+    const {
+      data,
+      error,
+    } = await supabase
+      .from("documentos")
+      .insert({
+        obra_id:
+          obraId,
 
-  if (error) {
+        setor_id:
+          setorId,
+
+        nome,
+
+        categoria:
+          categoria ||
+          null,
+
+        arquivo_url:
+          urlData.publicUrl,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      throw error;
+    }
+
+    return data as Documento;
+  } catch (error) {
+    const {
+      error: removerArquivoError,
+    } = await supabase.storage
+      .from("documentos")
+      .remove([
+        caminho,
+      ]);
+
+    if (
+      removerArquivoError
+    ) {
+      console.warn(
+        "O cadastro do documento falhou e o arquivo não pôde ser removido do Storage:",
+        removerArquivoError
+      );
+    }
+
     throw error;
   }
-
-  return data;
 }
 
-export async function deletarDocumento(id: string, arquivoUrl: string) {
-  console.log("Iniciando exclusão do documento ID:", id);
-
-  // 1. Remove o registro do banco de dados primeiro
-  const { error: dbError } = await supabase
+export async function deletarDocumento(
+  id: string,
+  arquivoUrl: string
+): Promise<void> {
+  const {
+    error: dbError,
+  } = await supabase
     .from("documentos")
     .delete()
-    .eq("id", id);
+    .eq(
+      "id",
+      id
+    );
 
   if (dbError) {
-    console.error("Erro detalhado do Supabase ao deletar do banco:", dbError);
+    console.error(
+      "Erro ao excluir documento do banco:",
+      dbError
+    );
+
     throw dbError;
   }
 
-  console.log("Registro removido do banco com sucesso.");
-
-  // 2. Tenta remover o arquivo do Storage em segundo plano
   try {
-    const partesUrl = arquivoUrl.split("/documentos/");
-    const caminhoArquivo = partesUrl[1];
+    const partesUrl =
+      arquivoUrl.split(
+        "/documentos/"
+      );
 
-    if (caminhoArquivo) {
-      const { error: storageError } = await supabase.storage
-        .from("documentos")
-        .remove([decodeURIComponent(caminhoArquivo)]);
+    const caminhoArquivo =
+      partesUrl[1];
 
-      if (storageError) {
-        console.warn("Aviso ao remover arquivo físico do storage:", storageError);
-      }
+    if (
+      !caminhoArquivo
+    ) {
+      return;
+    }
+
+    const caminhoDecodificado =
+      decodeURIComponent(
+        caminhoArquivo
+      );
+
+    const {
+      error: storageError,
+    } = await supabase.storage
+      .from("documentos")
+      .remove([
+        caminhoDecodificado,
+      ]);
+
+    if (
+      storageError
+    ) {
+      console.warn(
+        "O registro foi removido, mas o arquivo não pôde ser excluído do Storage:",
+        storageError
+      );
     }
   } catch (storageError) {
-    console.warn("Erro ao processar caminho do storage:", storageError);
+    console.warn(
+      "Erro ao processar o caminho do arquivo no Storage:",
+      storageError
+    );
   }
 }

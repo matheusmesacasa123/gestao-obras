@@ -12,12 +12,24 @@ import {
   supabase,
 } from "@/integrations/supabase/client";
 
-import { criarObra } from "@/features/obras/services/obras-service";
-import { getClientes, type Cliente } from "@/features/clientes/services/clientes-service";
+import {
+  criarObra,
+} from "@/features/obras/services/obras-service";
+
+import {
+  getClientes,
+  type Cliente,
+} from "@/features/clientes/services/clientes-service";
 
 type SetorObra = {
   id: string;
   nome: string;
+};
+
+type VendedorObra = {
+  id: string;
+  nome: string;
+  email: string;
 };
 
 type PerfilUsuarioObra = {
@@ -25,86 +37,232 @@ type PerfilUsuarioObra = {
   administrador: boolean;
 };
 
-export const Route = createFileRoute(
-  "/_authenticated/obras/nova"
-)({
-  component: NovaObraPage,
-});
-
-function NovaObraPage(){
-  const navigate = useNavigate();
-  const [loading, setLoading] = useState(false);
-  const [clientesLista, setClientesLista] = useState<Cliente[]>([]);
-  const [setoresLista, setSetoresLista] = useState<SetorObra[]>([]);
-  const [modoNovoCliente, setModoNovoCliente] = useState(false);
-  const [usuarioAdministrador, setUsuarioAdministrador] = useState(false);
-  const [carregandoPermissoes, setCarregandoPermissoes] = useState(true);
-  const [erroPermissoes, setErroPermissoes] = useState("");
-
-  const [form, setForm] = useState({
-    // Gerais
-    codigo:"",
-    setor_id:"",
-    cliente_id:"", // ID do cliente selecionado
-    novoClienteNome:"", // Nome para cadastro rápido
-    novoClienteTelefone:"", // Telefone para cadastro rápido
-    razao_social:"",
-    cnpj:"",
-    email:"",
-    telefone:"",
-    cidade:"",
-    estado:"",
-
-    // Comercial
-    numero_proposta:"",
-    revisao:"",
-    motivo_revisao:"",
-    vendedor:"",
-    data_entrada:"",
-    data_entrega_esperada:"",
-    tipo_proposta:"",
-    tipo_orcamentacao:"",
-
-    // Obra
-    nome_obra:"",
-    descricao:"",
-    complexidade:"",
-    responsavel_engenheiro:"",
-
-    // Técnico
-    vazao:"",
-    tipo_projeto:"",
-    tipo_efluente:"",
-
-    // Execução
-    data_inicio:"",
-    data_entrega:"",
-    situacao_especial:"",
-    motivo_atraso:"",
-    prazo_entrega:"",
-
-    status:"recebida",
-    observacoes:"",
+export const Route =
+  createFileRoute(
+    "/_authenticated/obras/nova"
+  )({
+    component:
+      NovaObraPage,
   });
 
-  // Busca clientes, usuário atual e setores disponíveis ao carregar a página
+function NovaObraPage() {
+  const navigate =
+    useNavigate();
+
+  const [
+    loading,
+    setLoading,
+  ] = useState(false);
+
+  const [
+    clientesLista,
+    setClientesLista,
+  ] = useState<Cliente[]>(
+    []
+  );
+
+  const [
+    setoresLista,
+    setSetoresLista,
+  ] = useState<SetorObra[]>(
+    []
+  );
+
+  const [
+    vendedoresLista,
+    setVendedoresLista,
+  ] = useState<VendedorObra[]>(
+    []
+  );
+
+  const [
+    modoNovoCliente,
+    setModoNovoCliente,
+  ] = useState(false);
+
+  const [
+    usuarioAdministrador,
+    setUsuarioAdministrador,
+  ] = useState(false);
+
+  const [
+    carregandoPermissoes,
+    setCarregandoPermissoes,
+  ] = useState(true);
+
+  const [
+    carregandoVendedores,
+    setCarregandoVendedores,
+  ] = useState(true);
+
+  const [
+    erroPermissoes,
+    setErroPermissoes,
+  ] = useState("");
+
+  const [
+    erroVendedores,
+    setErroVendedores,
+  ] = useState("");
+
+  const [
+    form,
+    setForm,
+  ] = useState({
+    codigo: "",
+    setor_id: "",
+
+    cliente_id: "",
+    novoClienteNome: "",
+    novoClienteTelefone: "",
+
+    razao_social: "",
+    cnpj: "",
+    email: "",
+    telefone: "",
+    cidade: "",
+    estado: "",
+
+    numero_proposta: "",
+    revisao: "",
+    motivo_revisao: "",
+
+    vendedor_id: "",
+    vendedor: "",
+
+    data_entrada: "",
+    data_entrega_esperada: "",
+    tipo_proposta: "",
+    tipo_orcamentacao: "",
+
+    nome_obra: "",
+    descricao: "",
+    complexidade: "",
+
+    vazao: "",
+    tipo_projeto: "",
+    tipo_efluente: "",
+
+    status:
+      "recebida",
+
+    observacoes: "",
+  });
+
   useEffect(() => {
     async function carregarDadosIniciais() {
       try {
-        setCarregandoPermissoes(true);
-        setErroPermissoes("");
+        setCarregandoPermissoes(
+          true
+        );
 
-        const [clientes, respostaAuth] = await Promise.all([
+        setCarregandoVendedores(
+          true
+        );
+
+        setErroPermissoes("");
+        setErroVendedores("");
+
+        const [
+          clientes,
+          respostaAuth,
+          respostaCargoVendedor,
+        ] = await Promise.all([
           getClientes(),
+
           supabase.auth.getUser(),
+
+          supabase
+            .from("cargos")
+            .select(
+              "id, nome"
+            )
+            .eq(
+              "nome",
+              "Vendedor"
+            )
+            .eq(
+              "ativo",
+              true
+            )
+            .maybeSingle(),
         ]);
 
-        setClientesLista(clientes);
+        setClientesLista(
+          clientes
+        );
 
-        const usuarioAuth = respostaAuth.data.user;
+        const usuarioAuth =
+          respostaAuth.data.user;
 
-        if (respostaAuth.error || !usuarioAuth) {
-          throw respostaAuth.error || new Error("Usuário não autenticado.");
+        if (
+          respostaAuth.error ||
+          !usuarioAuth
+        ) {
+          throw (
+            respostaAuth.error ||
+            new Error(
+              "Usuário não autenticado."
+            )
+          );
+        }
+
+        if (
+          respostaCargoVendedor.error
+        ) {
+          throw respostaCargoVendedor.error;
+        }
+
+        if (
+          respostaCargoVendedor
+            .data?.id
+        ) {
+          const {
+            data: vendedores,
+            error:
+              erroBuscaVendedores,
+          } = await supabase
+            .from("usuarios")
+            .select(
+              "id, nome, email"
+            )
+            .eq(
+              "cargo_id",
+              respostaCargoVendedor
+                .data.id
+            )
+            .eq(
+              "ativo",
+              true
+            )
+            .order(
+              "nome",
+              {
+                ascending:
+                  true,
+              }
+            );
+
+          if (
+            erroBuscaVendedores
+          ) {
+            throw erroBuscaVendedores;
+          }
+
+          setVendedoresLista(
+            (
+              vendedores ||
+              []
+            ) as VendedorObra[]
+          );
+        } else {
+          setVendedoresLista(
+            []
+          );
+
+          setErroVendedores(
+            'O cargo ativo "Vendedor" não foi encontrado.'
+          );
         }
 
         const {
@@ -112,61 +270,106 @@ function NovaObraPage(){
           error: erroPerfil,
         } = await supabase
           .from("usuarios")
-          .select("setor_id, administrador")
-          .eq("id", usuarioAuth.id)
+          .select(
+            "setor_id, administrador"
+          )
+          .eq(
+            "id",
+            usuarioAuth.id
+          )
           .single();
 
         if (erroPerfil) {
           throw erroPerfil;
         }
 
-        const perfilUsuario = perfil as PerfilUsuarioObra;
-        const administrador = Boolean(perfilUsuario.administrador);
+        const perfilUsuario =
+          perfil as PerfilUsuarioObra;
 
-        setUsuarioAdministrador(administrador);
+        const administrador =
+          Boolean(
+            perfilUsuario.administrador
+          );
 
-        let consultaSetores = supabase
-          .from("setores")
-          .select("id, nome")
-          .eq("ativo", true)
-          .order("nome", {
-            ascending: true,
-          });
+        setUsuarioAdministrador(
+          administrador
+        );
+
+        let consultaSetores =
+          supabase
+            .from("setores")
+            .select(
+              "id, nome"
+            )
+            .eq(
+              "ativo",
+              true
+            )
+            .order(
+              "nome",
+              {
+                ascending:
+                  true,
+              }
+            );
 
         if (!administrador) {
-          if (!perfilUsuario.setor_id) {
-            setSetoresLista([]);
+          if (
+            !perfilUsuario.setor_id
+          ) {
+            setSetoresLista(
+              []
+            );
+
             setErroPermissoes(
               "Seu usuário ainda não possui um setor definido. Solicite o ajuste no painel administrativo."
             );
+
             return;
           }
 
-          consultaSetores = consultaSetores.eq(
-            "id",
-            perfilUsuario.setor_id
-          );
+          consultaSetores =
+            consultaSetores.eq(
+              "id",
+              perfilUsuario.setor_id
+            );
         }
 
         const {
           data: setores,
           error: erroSetores,
-        } = await consultaSetores;
+        } =
+          await consultaSetores;
 
         if (erroSetores) {
           throw erroSetores;
         }
 
         const setoresEncontrados =
-          (setores || []) as SetorObra[];
+          (
+            setores ||
+            []
+          ) as SetorObra[];
 
-        setSetoresLista(setoresEncontrados);
+        setSetoresLista(
+          setoresEncontrados
+        );
 
-        if (!administrador && perfilUsuario.setor_id) {
-          setForm((estadoAtual) => ({
-            ...estadoAtual,
-            setor_id: perfilUsuario.setor_id || "",
-          }));
+        if (
+          !administrador &&
+          perfilUsuario.setor_id
+        ) {
+          setForm(
+            (
+              estadoAtual
+            ) => ({
+              ...estadoAtual,
+
+              setor_id:
+                perfilUsuario.setor_id ||
+                "",
+            })
+          );
         }
       } catch (error) {
         console.error(
@@ -175,178 +378,449 @@ function NovaObraPage(){
         );
 
         setErroPermissoes(
-          "Não foi possível carregar seu setor e as permissões para cadastrar a obra."
+          "Não foi possível carregar os dados necessários para cadastrar a obra."
         );
       } finally {
-        setCarregandoPermissoes(false);
+        setCarregandoPermissoes(
+          false
+        );
+
+        setCarregandoVendedores(
+          false
+        );
       }
     }
 
     carregarDadosIniciais();
   }, []);
 
-  function formatarCnpj(valor:string){
+  function formatarCnpj(
+    valor: string
+  ) {
     return valor
-      .replace(/\D/g,"")
-      .slice(0,14)
-      .replace(/^(\d{2})(\d)/, "$1.$2")
-      .replace(/^(\d{2})\.(\d{3})(\d)/, "$1.$2.$3")
-      .replace(/\.(\d{3})(\d)/, ".$1/$2")
-      .replace(/(\d{4})(\d)/, "$1-$2");
+      .replace(
+        /\D/g,
+        ""
+      )
+      .slice(
+        0,
+        14
+      )
+      .replace(
+        /^(\d{2})(\d)/,
+        "$1.$2"
+      )
+      .replace(
+        /^(\d{2})\.(\d{3})(\d)/,
+        "$1.$2.$3"
+      )
+      .replace(
+        /\.(\d{3})(\d)/,
+        ".$1/$2"
+      )
+      .replace(
+        /(\d{4})(\d)/,
+        "$1-$2"
+      );
   }
 
-  function formatarTelefone(valor:string){
+  function formatarTelefone(
+    valor: string
+  ) {
     return valor
-      .replace(/\D/g,"")
-      .slice(0,11)
-      .replace(/^(\d{2})(\d)/, "($1) $2")
-      .replace(/(\d{5})(\d)/, "$1-$2");
+      .replace(
+        /\D/g,
+        ""
+      )
+      .slice(
+        0,
+        11
+      )
+      .replace(
+        /^(\d{2})(\d)/,
+        "($1) $2"
+      )
+      .replace(
+        /(\d{5})(\d)/,
+        "$1-$2"
+      );
   }
 
   function handleChange(
-    e: React.ChangeEvent<
-      HTMLInputElement |
-      HTMLTextAreaElement |
-      HTMLSelectElement
+    event: React.ChangeEvent<
+      | HTMLInputElement
+      | HTMLTextAreaElement
+      | HTMLSelectElement
     >
-  ){
-    let valor = e.target.value;
+  ) {
+    const {
+      name,
+    } = event.target;
 
-    if(e.target.name === "cnpj"){
-      valor = formatarCnpj(valor);
+    let valor =
+      event.target.value;
+
+    if (
+      name ===
+      "cnpj"
+    ) {
+      valor =
+        formatarCnpj(
+          valor
+        );
     }
 
-    if(e.target.name === "telefone" || e.target.name === "novoClienteTelefone"){
-      valor = formatarTelefone(valor);
+    if (
+      name ===
+        "telefone" ||
+      name ===
+        "novoClienteTelefone"
+    ) {
+      valor =
+        formatarTelefone(
+          valor
+        );
     }
 
-    setForm({
-      ...form,
-      [e.target.name]: valor,
-    });
+    setForm(
+      (
+        estadoAtual
+      ) => ({
+        ...estadoAtual,
+
+        [name]:
+          valor,
+      })
+    );
+  }
+
+  function handleSelecionarVendedor(
+    event:
+      React.ChangeEvent<HTMLSelectElement>
+  ) {
+    const vendedorId =
+      event.target.value;
+
+    const vendedorSelecionado =
+      vendedoresLista.find(
+        (
+          vendedor
+        ) =>
+          vendedor.id ===
+          vendedorId
+      );
+
+    setForm(
+      (
+        estadoAtual
+      ) => ({
+        ...estadoAtual,
+
+        vendedor_id:
+          vendedorId,
+
+        vendedor:
+          vendedorSelecionado?.nome ||
+          "",
+      })
+    );
   }
 
   async function handleSubmit(
-    e: React.FormEvent
-  ){
-    e.preventDefault();
+    event:
+      React.FormEvent
+  ) {
+    event.preventDefault();
 
-    if (!form.setor_id) {
-      alert("Selecione o setor responsável pela obra.");
+    if (
+      !form.setor_id
+    ) {
+      alert(
+        "Selecione o setor responsável pela obra."
+      );
+
       return;
     }
 
-    try{
+    try {
       setLoading(true);
 
-      // Utiliza a função criarObra do service para tratar o cliente (existente ou novo)
       await criarObra({
-        codigo: form.codigo || null,
-        setor_id: form.setor_id,
-        cliente_id: form.cliente_id || null,
-        novoClienteNome: modoNovoCliente ? form.novoClienteNome : undefined,
-        novoClienteTelefone: modoNovoCliente ? form.novoClienteTelefone : undefined,
-        razao_social: form.razao_social || null,
-        cnpj: form.cnpj || null,
-        email: form.email || null,
-        telefone: form.telefone || null,
-        cidade: form.cidade || null,
-        estado: form.estado || null,
-        numero_proposta: form.numero_proposta || null,
-        revisao: form.revisao ? Number(form.revisao) : 0,
-        motivo_revisao: form.motivo_revisao || null,
-        vendedor: form.vendedor || null,
-        data_entrada: form.data_entrada || null,
-        data_entrega_esperada: form.data_entrega_esperada || null,
-        tipo_proposta: form.tipo_proposta || null,
-        tipo_orcamentacao: form.tipo_orcamentacao || null,
-        nome_obra: form.nome_obra || "Obra sem nome",
-        descricao: form.descricao || null,
-        complexidade: form.complexidade || null,
-        responsavel_engenheiro: form.responsavel_engenheiro || null,
-        vazao: form.vazao ? Number(form.vazao) : null,
-        tipo_projeto: form.tipo_projeto || null,
-        tipo_efluente: form.tipo_efluente || null,
-        data_inicio: form.data_inicio || null,
-        data_entrega: form.data_entrega || null,
-        situacao_especial: form.situacao_especial || null,
-        motivo_atraso: form.motivo_atraso || null,
-        prazo_entrega: form.prazo_entrega || null,
-        status: form.status,
-        observacoes: form.observacoes || null,
+        codigo:
+          form.codigo ||
+          null,
+
+        setor_id:
+          form.setor_id,
+
+        cliente_id:
+          form.cliente_id ||
+          null,
+
+        novoClienteNome:
+          modoNovoCliente
+            ? form.novoClienteNome
+            : undefined,
+
+        novoClienteTelefone:
+          modoNovoCliente
+            ? form.novoClienteTelefone
+            : undefined,
+
+        razao_social:
+          form.razao_social ||
+          null,
+
+        cnpj:
+          form.cnpj ||
+          null,
+
+        email:
+          form.email ||
+          null,
+
+        telefone:
+          form.telefone ||
+          null,
+
+        cidade:
+          form.cidade ||
+          null,
+
+        estado:
+          form.estado ||
+          null,
+
+        numero_proposta:
+          form.numero_proposta ||
+          null,
+
+        revisao:
+          form.revisao
+            ? Number(
+                form.revisao
+              )
+            : 0,
+
+        motivo_revisao:
+          form.motivo_revisao ||
+          null,
+
+        vendedor_id:
+          form.vendedor_id ||
+          null,
+
+        vendedor:
+          form.vendedor ||
+          null,
+
+        data_entrada:
+          form.data_entrada ||
+          null,
+
+        data_entrega_esperada:
+          form.data_entrega_esperada ||
+          null,
+
+        tipo_proposta:
+          form.tipo_proposta ||
+          null,
+
+        tipo_orcamentacao:
+          form.tipo_orcamentacao ||
+          null,
+
+        nome_obra:
+          form.nome_obra ||
+          "Obra sem nome",
+
+        descricao:
+          form.descricao ||
+          null,
+
+        complexidade:
+          form.complexidade ||
+          null,
+
+        vazao:
+          form.vazao
+            ? Number(
+                form.vazao
+              )
+            : null,
+
+        tipo_projeto:
+          form.tipo_projeto ||
+          null,
+
+        tipo_efluente:
+          form.tipo_efluente ||
+          null,
+
+        status:
+          form.status,
+
+        observacoes:
+          form.observacoes ||
+          null,
       });
 
       navigate({
-        to:"/obras",
+        to:
+          "/obras",
       });
-
-    }catch(error){
+    } catch (error) {
       console.error(
         "Erro ao criar obra:",
         error
       );
+
+      const mensagem =
+        error instanceof Error
+          ? error.message
+          : "Erro desconhecido.";
+
       alert(
-        "Erro ao cadastrar obra"
+        `Erro ao cadastrar obra: ${mensagem}`
       );
-    }finally{
+    } finally {
       setLoading(false);
     }
   }
 
+  const inputClassName =
+    "h-11 w-full rounded-xl border border-gray-300 bg-white px-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100";
+
+  const textareaClassName =
+    "w-full resize-y rounded-xl border border-gray-300 bg-white px-3 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100";
+
   return (
-    <div className="p-8 max-w-5xl space-y-8">
+    <div className="max-w-5xl space-y-8 p-8">
       <div>
-        <h1 className="text-3xl font-bold">
-          Nova Obra
+        <h1 className="text-3xl font-bold tracking-tight text-gray-900">
+          Nova obra
         </h1>
-        <p className="text-muted-foreground">
+
+        <p className="mt-1 text-sm text-gray-500">
           Cadastro comercial e técnico da obra.
         </p>
       </div>
 
       <form
-        onSubmit={handleSubmit}
+        onSubmit={
+          handleSubmit
+        }
         className="space-y-6"
       >
-        <div className="border rounded-2xl p-6 space-y-5">
-          <div className="flex justify-between items-center">
-            <h2 className="text-xl font-semibold">
-              Dados Gerais & Cliente
-            </h2>
+        <section className="space-y-5 rounded-2xl border bg-white p-6 shadow-sm">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 className="text-xl font-semibold text-gray-900">
+                Dados gerais e cliente
+              </h2>
+
+              <p className="mt-1 text-sm text-gray-500">
+                Identificação da obra e informações do cliente.
+              </p>
+            </div>
+
             <button
               type="button"
               onClick={() => {
-                setModoNovoCliente(!modoNovoCliente);
-                setForm({ ...form, cliente_id: "", novoClienteNome: "", novoClienteTelefone: "" });
+                setModoNovoCliente(
+                  (
+                    estadoAtual
+                  ) =>
+                    !estadoAtual
+                );
+
+                setForm(
+                  (
+                    estadoAtual
+                  ) => ({
+                    ...estadoAtual,
+
+                    cliente_id:
+                      "",
+
+                    novoClienteNome:
+                      "",
+
+                    novoClienteTelefone:
+                      "",
+                  })
+                );
               }}
-              className="text-xs text-blue-600 font-semibold hover:underline"
+              className="text-sm font-semibold text-blue-600 transition hover:text-blue-800"
             >
-              {modoNovoCliente ? "Selecionar cliente existente" : "+ Cadastrar novo cliente rápido"}
+              {modoNovoCliente
+                ? "Selecionar cliente existente"
+                : "+ Cadastrar novo cliente"}
             </button>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-4">
-            <input
-              name="codigo"
-              placeholder="Código da obra"
-              value={form.codigo}
-              onChange={handleChange}
-              className="border rounded-lg p-3"
-            />
+          {erroPermissoes && (
+            <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+              {
+                erroPermissoes
+              }
+            </div>
+          )}
 
-            <input
-              name="nome_obra"
-              placeholder="Nome da obra *"
-              value={form.nome_obra}
-              onChange={handleChange}
-              className="border rounded-lg p-3"
-              required
-            />
+          <div className="grid gap-5 md:grid-cols-2">
+            <div className="space-y-2">
+              <label
+                htmlFor="codigo"
+                className="text-sm font-semibold text-gray-700"
+              >
+                Código da obra
+              </label>
 
-            <div className="space-y-1">
+              <input
+                id="codigo"
+                name="codigo"
+                placeholder="Ex.: 1234/2026"
+                value={
+                  form.codigo
+                }
+                onChange={
+                  handleChange
+                }
+                className={
+                  inputClassName
+                }
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label
+                htmlFor="nome_obra"
+                className="text-sm font-semibold text-gray-700"
+              >
+                Nome da obra *
+              </label>
+
+              <input
+                id="nome_obra"
+                name="nome_obra"
+                placeholder="Ex.: ETE Chapecó"
+                value={
+                  form.nome_obra
+                }
+                onChange={
+                  handleChange
+                }
+                className={
+                  inputClassName
+                }
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
               <label
                 htmlFor="setor_id"
-                className="text-sm font-medium text-gray-700"
+                className="text-sm font-semibold text-gray-700"
               >
                 Setor responsável *
               </label>
@@ -354,321 +828,739 @@ function NovaObraPage(){
               <select
                 id="setor_id"
                 name="setor_id"
-                value={form.setor_id}
-                onChange={handleChange}
+                value={
+                  form.setor_id
+                }
+                onChange={
+                  handleChange
+                }
                 disabled={
                   carregandoPermissoes ||
                   !usuarioAdministrador
                 }
                 required
-                className="border rounded-lg p-3 bg-white w-full disabled:cursor-not-allowed disabled:bg-gray-100"
+                className={`${inputClassName} cursor-pointer disabled:cursor-not-allowed disabled:bg-gray-100`}
               >
                 <option value="">
                   {carregandoPermissoes
                     ? "Carregando setores..."
-                    : "Selecione o setor responsável..."}
+                    : "Selecione o setor"}
                 </option>
 
-                {setoresLista.map((setor) => (
-                  <option
-                    key={setor.id}
-                    value={setor.id}
-                  >
-                    {setor.nome}
-                  </option>
-                ))}
+                {setoresLista.map(
+                  (
+                    setor
+                  ) => (
+                    <option
+                      key={
+                        setor.id
+                      }
+                      value={
+                        setor.id
+                      }
+                    >
+                      {
+                        setor.nome
+                      }
+                    </option>
+                  )
+                )}
               </select>
 
               {!usuarioAdministrador &&
                 form.setor_id && (
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-xs text-gray-500">
                     A obra será vinculada automaticamente ao seu setor.
                   </p>
                 )}
             </div>
 
-            {erroPermissoes && (
-              <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-                {erroPermissoes}
-              </div>
-            )}
-
-            {/* Bloco condicional para Cliente: Select da lista (exibindo apenas o nome) ou Inputs de Cadastro Rápido */}
             {!modoNovoCliente ? (
-              <select
-                name="cliente_id"
-                value={form.cliente_id}
-                onChange={handleChange}
-                className="border rounded-lg p-3 bg-white"
-              >
-                <option value="">Selecione um cliente...</option>
-                {clientesLista.map((cli) => (
-                  <option key={cli.id} value={cli.id}>
-                    {cli.nome}
+              <div className="space-y-2">
+                <label
+                  htmlFor="cliente_id"
+                  className="text-sm font-semibold text-gray-700"
+                >
+                  Cliente
+                </label>
+
+                <select
+                  id="cliente_id"
+                  name="cliente_id"
+                  value={
+                    form.cliente_id
+                  }
+                  onChange={
+                    handleChange
+                  }
+                  className={`${inputClassName} cursor-pointer`}
+                >
+                  <option value="">
+                    Selecione um cliente
                   </option>
-                ))}
-              </select>
-            ) : (
-              <div className="grid grid-cols-2 gap-2 md:col-span-2 bg-gray-50 p-3 rounded-lg border">
-                <input
-                  name="novoClienteNome"
-                  placeholder="Nome do novo cliente *"
-                  value={form.novoClienteNome}
-                  onChange={handleChange}
-                  className="border rounded-lg p-3 bg-white"
-                />
-                <input
-                  name="novoClienteTelefone"
-                  placeholder="Telefone do novo cliente"
-                  value={form.novoClienteTelefone}
-                  onChange={handleChange}
-                  maxLength={15}
-                  className="border rounded-lg p-3 bg-white"
-                />
+
+                  {clientesLista.map(
+                    (
+                      cliente
+                    ) => (
+                      <option
+                        key={
+                          cliente.id
+                        }
+                        value={
+                          cliente.id
+                        }
+                      >
+                        {
+                          cliente.nome
+                        }
+                      </option>
+                    )
+                  )}
+                </select>
               </div>
+            ) : (
+              <>
+                <div className="space-y-2">
+                  <label
+                    htmlFor="novoClienteNome"
+                    className="text-sm font-semibold text-gray-700"
+                  >
+                    Nome do novo cliente *
+                  </label>
+
+                  <input
+                    id="novoClienteNome"
+                    name="novoClienteNome"
+                    placeholder="Nome do cliente"
+                    value={
+                      form.novoClienteNome
+                    }
+                    onChange={
+                      handleChange
+                    }
+                    className={
+                      inputClassName
+                    }
+                    required={
+                      modoNovoCliente
+                    }
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label
+                    htmlFor="novoClienteTelefone"
+                    className="text-sm font-semibold text-gray-700"
+                  >
+                    Telefone do novo cliente
+                  </label>
+
+                  <input
+                    id="novoClienteTelefone"
+                    name="novoClienteTelefone"
+                    placeholder="(00) 00000-0000"
+                    value={
+                      form.novoClienteTelefone
+                    }
+                    onChange={
+                      handleChange
+                    }
+                    maxLength={
+                      15
+                    }
+                    className={
+                      inputClassName
+                    }
+                  />
+                </div>
+              </>
             )}
 
-            <input
-              name="razao_social"
-              placeholder="Razão social"
-              value={form.razao_social}
-              onChange={handleChange}
-              className="border rounded-lg p-3"
-            />
+            <div className="space-y-2">
+              <label
+                htmlFor="razao_social"
+                className="text-sm font-semibold text-gray-700"
+              >
+                Razão social
+              </label>
 
-            <input
-              name="cnpj"
-              placeholder="CNPJ"
-              value={form.cnpj}
-              onChange={handleChange}
-              maxLength={18}
-              className="border rounded-lg p-3"
-            />
+              <input
+                id="razao_social"
+                name="razao_social"
+                placeholder="Razão social da empresa"
+                value={
+                  form.razao_social
+                }
+                onChange={
+                  handleChange
+                }
+                className={
+                  inputClassName
+                }
+              />
+            </div>
 
-            <input
-              name="telefone"
-              placeholder="Telefone"
-              value={form.telefone}
-              onChange={handleChange}
-              maxLength={15}
-              className="border rounded-lg p-3"
-            />
+            <div className="space-y-2">
+              <label
+                htmlFor="cnpj"
+                className="text-sm font-semibold text-gray-700"
+              >
+                CNPJ
+              </label>
 
-            <input
-              name="email"
-              placeholder="E-mail"
-              value={form.email}
-              onChange={handleChange}
-              className="border rounded-lg p-3"
-            />
+              <input
+                id="cnpj"
+                name="cnpj"
+                placeholder="00.000.000/0000-00"
+                value={
+                  form.cnpj
+                }
+                onChange={
+                  handleChange
+                }
+                maxLength={
+                  18
+                }
+                className={
+                  inputClassName
+                }
+              />
+            </div>
 
-            <input
-              name="cidade"
-              placeholder="Cidade"
-              value={form.cidade}
-              onChange={handleChange}
-              className="border rounded-lg p-3"
-            />
+            <div className="space-y-2">
+              <label
+                htmlFor="telefone"
+                className="text-sm font-semibold text-gray-700"
+              >
+                Telefone
+              </label>
 
-            <input
-              name="estado"
-              placeholder="Estado"
-              value={form.estado}
-              onChange={handleChange}
-              className="border rounded-lg p-3"
+              <input
+                id="telefone"
+                name="telefone"
+                placeholder="(00) 00000-0000"
+                value={
+                  form.telefone
+                }
+                onChange={
+                  handleChange
+                }
+                maxLength={
+                  15
+                }
+                className={
+                  inputClassName
+                }
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label
+                htmlFor="email"
+                className="text-sm font-semibold text-gray-700"
+              >
+                E-mail
+              </label>
+
+              <input
+                id="email"
+                name="email"
+                type="email"
+                placeholder="cliente@empresa.com"
+                value={
+                  form.email
+                }
+                onChange={
+                  handleChange
+                }
+                className={
+                  inputClassName
+                }
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label
+                htmlFor="cidade"
+                className="text-sm font-semibold text-gray-700"
+              >
+                Cidade
+              </label>
+
+              <input
+                id="cidade"
+                name="cidade"
+                placeholder="Cidade"
+                value={
+                  form.cidade
+                }
+                onChange={
+                  handleChange
+                }
+                className={
+                  inputClassName
+                }
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label
+                htmlFor="estado"
+                className="text-sm font-semibold text-gray-700"
+              >
+                Estado
+              </label>
+
+              <input
+                id="estado"
+                name="estado"
+                placeholder="Ex.: SC"
+                value={
+                  form.estado
+                }
+                onChange={
+                  handleChange
+                }
+                className={
+                  inputClassName
+                }
+              />
+            </div>
+          </div>
+        </section>
+
+        <section className="space-y-5 rounded-2xl border bg-white p-6 shadow-sm">
+          <div>
+            <h2 className="text-xl font-semibold text-gray-900">
+              Informações comerciais
+            </h2>
+
+            <p className="mt-1 text-sm text-gray-500">
+              Dados da proposta e responsável comercial.
+            </p>
+          </div>
+
+          {erroVendedores && (
+            <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+              {
+                erroVendedores
+              }
+            </div>
+          )}
+
+          <div className="grid gap-5 md:grid-cols-2">
+            <div className="space-y-2">
+              <label
+                htmlFor="numero_proposta"
+                className="text-sm font-semibold text-gray-700"
+              >
+                Número da proposta
+              </label>
+
+              <input
+                id="numero_proposta"
+                name="numero_proposta"
+                placeholder="Ex.: 123/2026"
+                value={
+                  form.numero_proposta
+                }
+                onChange={
+                  handleChange
+                }
+                className={
+                  inputClassName
+                }
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label
+                htmlFor="revisao"
+                className="text-sm font-semibold text-gray-700"
+              >
+                Revisão
+              </label>
+
+              <input
+                id="revisao"
+                name="revisao"
+                type="number"
+                min="0"
+                placeholder="Ex.: 0"
+                value={
+                  form.revisao
+                }
+                onChange={
+                  handleChange
+                }
+                className={
+                  inputClassName
+                }
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label
+                htmlFor="vendedor_id"
+                className="text-sm font-semibold text-gray-700"
+              >
+                Vendedor
+              </label>
+
+              <select
+                id="vendedor_id"
+                name="vendedor_id"
+                value={
+                  form.vendedor_id
+                }
+                onChange={
+                  handleSelecionarVendedor
+                }
+                disabled={
+                  carregandoVendedores
+                }
+                className={`${inputClassName} cursor-pointer disabled:cursor-not-allowed disabled:bg-gray-100`}
+              >
+                <option value="">
+                  {carregandoVendedores
+                    ? "Carregando vendedores..."
+                    : "Selecione o vendedor"}
+                </option>
+
+                {vendedoresLista.map(
+                  (
+                    vendedor
+                  ) => (
+                    <option
+                      key={
+                        vendedor.id
+                      }
+                      value={
+                        vendedor.id
+                      }
+                    >
+                      {
+                        vendedor.nome
+                      }
+                    </option>
+                  )
+                )}
+              </select>
+
+              {!carregandoVendedores &&
+                vendedoresLista.length ===
+                  0 && (
+                  <p className="text-xs text-amber-700">
+                    Nenhum usuário ativo com o cargo Vendedor foi encontrado.
+                  </p>
+                )}
+            </div>
+
+            <div className="space-y-2">
+              <label
+                htmlFor="data_entrada"
+                className="text-sm font-semibold text-gray-700"
+              >
+                Data de entrada
+              </label>
+
+              <input
+                id="data_entrada"
+                name="data_entrada"
+                type="date"
+                value={
+                  form.data_entrada
+                }
+                onChange={
+                  handleChange
+                }
+                className={
+                  inputClassName
+                }
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label
+                htmlFor="data_entrega_esperada"
+                className="text-sm font-semibold text-gray-700"
+              >
+                Data de entrega esperada
+              </label>
+
+              <input
+                id="data_entrega_esperada"
+                name="data_entrega_esperada"
+                type="date"
+                value={
+                  form.data_entrega_esperada
+                }
+                onChange={
+                  handleChange
+                }
+                className={
+                  inputClassName
+                }
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label
+                htmlFor="tipo_proposta"
+                className="text-sm font-semibold text-gray-700"
+              >
+                Tipo de proposta
+              </label>
+
+              <input
+                id="tipo_proposta"
+                name="tipo_proposta"
+                placeholder="Ex.: Equipamentos"
+                value={
+                  form.tipo_proposta
+                }
+                onChange={
+                  handleChange
+                }
+                className={
+                  inputClassName
+                }
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label
+                htmlFor="tipo_orcamentacao"
+                className="text-sm font-semibold text-gray-700"
+              >
+                Tipo de orçamentação
+              </label>
+
+              <input
+                id="tipo_orcamentacao"
+                name="tipo_orcamentacao"
+                placeholder="Ex.: Completa"
+                value={
+                  form.tipo_orcamentacao
+                }
+                onChange={
+                  handleChange
+                }
+                className={
+                  inputClassName
+                }
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <label
+              htmlFor="motivo_revisao"
+              className="text-sm font-semibold text-gray-700"
+            >
+              Motivo da revisão
+            </label>
+
+            <textarea
+              id="motivo_revisao"
+              name="motivo_revisao"
+              placeholder="Descreva o motivo da revisão"
+              value={
+                form.motivo_revisao
+              }
+              onChange={
+                handleChange
+              }
+              rows={3}
+              className={
+                textareaClassName
+              }
             />
           </div>
-        </div>
+        </section>
 
-        {/* Informações Comerciais */}
-        <div className="border rounded-2xl p-6 space-y-5">
-          <h2 className="text-xl font-semibold">
-            Informações Comerciais
-          </h2>
-          <div className="grid md:grid-cols-2 gap-4">
-            <input
-              name="numero_proposta"
-              placeholder="Nº Proposta"
-              value={form.numero_proposta}
-              onChange={handleChange}
-              className="border rounded-lg p-3"
-            />
-            <input
-              name="revisao"
-              type="number"
-              placeholder="Revisão"
-              value={form.revisao}
-              onChange={handleChange}
-              className="border rounded-lg p-3"
-            />
-            <input
-              name="vendedor"
-              placeholder="Vendedor"
-              value={form.vendedor}
-              onChange={handleChange}
-              className="border rounded-lg p-3"
-            />
-            <input
-              name="data_entrada"
-              type="date"
-              value={form.data_entrada}
-              onChange={handleChange}
-              className="border rounded-lg p-3"
-            />
-            <input
-              name="data_entrega_esperada"
-              type="date"
-              value={form.data_entrega_esperada}
-              onChange={handleChange}
-              className="border rounded-lg p-3"
-            />
-            <input
-              name="tipo_proposta"
-              placeholder="Tipo de proposta"
-              value={form.tipo_proposta}
-              onChange={handleChange}
-              className="border rounded-lg p-3"
-            />
-            <input
-              name="tipo_orcamentacao"
-              placeholder="Tipo de orçamentação"
-              value={form.tipo_orcamentacao}
-              onChange={handleChange}
-              className="border rounded-lg p-3"
+        <section className="space-y-5 rounded-2xl border bg-white p-6 shadow-sm">
+          <div>
+            <h2 className="text-xl font-semibold text-gray-900">
+              Dados técnicos
+            </h2>
+
+            <p className="mt-1 text-sm text-gray-500">
+              Informações de dimensionamento e características do projeto.
+            </p>
+          </div>
+
+          <div className="grid gap-5 md:grid-cols-2">
+            <div className="space-y-2">
+              <label
+                htmlFor="vazao"
+                className="text-sm font-semibold text-gray-700"
+              >
+                Vazão (m³/dia)
+              </label>
+
+              <input
+                id="vazao"
+                name="vazao"
+                type="number"
+                min="0"
+                step="any"
+                placeholder="Ex.: 500"
+                value={
+                  form.vazao
+                }
+                onChange={
+                  handleChange
+                }
+                className={
+                  inputClassName
+                }
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label
+                htmlFor="tipo_projeto"
+                className="text-sm font-semibold text-gray-700"
+              >
+                Tipo de projeto
+              </label>
+
+              <input
+                id="tipo_projeto"
+                name="tipo_projeto"
+                placeholder="Ex.: ETE"
+                value={
+                  form.tipo_projeto
+                }
+                onChange={
+                  handleChange
+                }
+                className={
+                  inputClassName
+                }
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label
+                htmlFor="tipo_efluente"
+                className="text-sm font-semibold text-gray-700"
+              >
+                Tipo de efluente
+              </label>
+
+              <input
+                id="tipo_efluente"
+                name="tipo_efluente"
+                placeholder="Ex.: Sanitário"
+                value={
+                  form.tipo_efluente
+                }
+                onChange={
+                  handleChange
+                }
+                className={
+                  inputClassName
+                }
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label
+                htmlFor="complexidade"
+                className="text-sm font-semibold text-gray-700"
+              >
+                Complexidade
+              </label>
+
+              <input
+                id="complexidade"
+                name="complexidade"
+                placeholder="Ex.: Média"
+                value={
+                  form.complexidade
+                }
+                onChange={
+                  handleChange
+                }
+                className={
+                  inputClassName
+                }
+              />
+            </div>
+          </div>
+        </section>
+
+        <section className="space-y-5 rounded-2xl border bg-white p-6 shadow-sm">
+          <div className="space-y-2">
+            <label
+              htmlFor="descricao"
+              className="text-sm font-semibold text-gray-700"
+            >
+              Descrição da obra
+            </label>
+
+            <textarea
+              id="descricao"
+              name="descricao"
+              placeholder="Descrição geral da obra"
+              value={
+                form.descricao
+              }
+              onChange={
+                handleChange
+              }
+              rows={4}
+              className={
+                textareaClassName
+              }
             />
           </div>
-          <textarea
-            name="motivo_revisao"
-            placeholder="Motivo da revisão"
-            value={form.motivo_revisao}
-            onChange={handleChange}
-            className="border rounded-lg p-3 w-full"
-          />
-        </div>
 
-        {/* Dados Técnicos */}
-        <div className="border rounded-2xl p-6 space-y-5">
-          <h2 className="text-xl font-semibold">
-            Dados Técnicos
-          </h2>
-          <div className="grid md:grid-cols-2 gap-4">
-            <input
-              name="vazao"
-              placeholder="Vazão (m³/dia)"
-              type="number"
-              value={form.vazao}
-              onChange={handleChange}
-              className="border rounded-lg p-3"
-            />
-            <input
-              name="tipo_projeto"
-              placeholder="Tipo de projeto"
-              value={form.tipo_projeto}
-              onChange={handleChange}
-              className="border rounded-lg p-3"
-            />
-            <input
-              name="tipo_efluente"
-              placeholder="Tipo de efluente"
-              value={form.tipo_efluente}
-              onChange={handleChange}
-              className="border rounded-lg p-3"
-            />
-            <input
-              name="complexidade"
-              placeholder="Complexidade"
-              value={form.complexidade}
-              onChange={handleChange}
-              className="border rounded-lg p-3"
+          <div className="space-y-2">
+            <label
+              htmlFor="observacoes"
+              className="text-sm font-semibold text-gray-700"
+            >
+              Observações
+            </label>
+
+            <textarea
+              id="observacoes"
+              name="observacoes"
+              placeholder="Observações adicionais"
+              value={
+                form.observacoes
+              }
+              onChange={
+                handleChange
+              }
+              rows={4}
+              className={
+                textareaClassName
+              }
             />
           </div>
-        </div>
+        </section>
 
-        {/* Execução */}
-        <div className="border rounded-2xl p-6 space-y-5">
-          <h2 className="text-xl font-semibold">
-            Execução
-          </h2>
-          <div className="grid md:grid-cols-2 gap-4">
-            <input
-              name="responsavel_engenheiro"
-              placeholder="Responsável Eng."
-              value={form.responsavel_engenheiro}
-              onChange={handleChange}
-              className="border rounded-lg p-3"
-            />
-            <input
-              name="data_inicio"
-              type="date"
-              value={form.data_inicio}
-              onChange={handleChange}
-              className="border rounded-lg p-3"
-            />
-            <input
-              name="data_entrega"
-              type="date"
-              value={form.data_entrega}
-              onChange={handleChange}
-              className="border rounded-lg p-3"
-            />
-            <input
-              name="situacao_especial"
-              placeholder="Situação especial"
-              value={form.situacao_especial}
-              onChange={handleChange}
-              className="border rounded-lg p-3"
-            />
-          </div>
-          <textarea
-            name="motivo_atraso"
-            placeholder="Motivo de atraso"
-            value={form.motivo_atraso}
-            onChange={handleChange}
-            className="border rounded-lg p-3 w-full"
-          />
-        </div>
-
-        <textarea
-          name="descricao"
-          placeholder="Descrição da obra"
-          value={form.descricao}
-          onChange={handleChange}
-          rows={4}
-          className="border rounded-lg p-3 w-full"
-        />
-
-        <textarea
-          name="observacoes"
-          placeholder="Observações"
-          value={form.observacoes}
-          onChange={handleChange}
-          rows={4}
-          className="border rounded-lg p-3 w-full"
-        />
-
-        <button
-          disabled={
-            loading ||
-            carregandoPermissoes ||
-            !form.setor_id
-          }
-          className="
-            bg-black
-            text-white
-            px-8
-            py-3
-            rounded-xl
-            cursor-pointer
-            hover:bg-gray-800
-            transition
-          "
-        >
-          {
-            loading
+        <div className="flex justify-end">
+          <button
+            type="submit"
+            disabled={
+              loading ||
+              carregandoPermissoes ||
+              carregandoVendedores ||
+              !form.setor_id
+            }
+            className="rounded-xl bg-black px-8 py-3 text-sm font-semibold text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {loading
               ? "Salvando..."
-              : "Cadastrar Obra"
-          }
-        </button>
+              : "Cadastrar obra"}
+          </button>
+        </div>
       </form>
     </div>
   );

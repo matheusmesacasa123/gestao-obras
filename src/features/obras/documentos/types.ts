@@ -1,8 +1,9 @@
 export interface Documento {
-
   id: string;
 
   obra_id: string;
+
+  setor_id: string | null;
 
   nome: string;
 
@@ -11,5 +12,4 @@ export interface Documento {
   arquivo_url: string;
 
   created_at: string;
-
 }

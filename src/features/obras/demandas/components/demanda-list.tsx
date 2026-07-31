@@ -1,26 +1,37 @@
-import { DemandaCard } from "./demanda-card";
+import {
+  DemandaCard,
+} from "./demanda-card";
 
-import type { Demanda } from "../types";
+import type {
+  Demanda,
+} from "../types";
 
 interface DemandaListProps {
   demandas: Demanda[];
   obraId: string;
+  obraSetorId: string | null;
   onDelete?: () => void;
-  onEdit?: (demanda: Demanda) => void;
+  onEdit?: (
+    demanda: Demanda
+  ) => void;
 }
 
 export function DemandaList({
   demandas,
   obraId,
+  obraSetorId,
   onDelete,
   onEdit,
 }: DemandaListProps) {
-  if (demandas.length === 0) {
+  if (
+    demandas.length ===
+    0
+  ) {
     return (
       <div
         className="
-          border
           rounded-xl
+          border
           p-8
           text-center
         "
@@ -29,7 +40,7 @@ export function DemandaList({
           Nenhuma demanda cadastrada
         </h2>
 
-        <p className="text-muted-foreground mt-2">
+        <p className="mt-2 text-muted-foreground">
           Crie a primeira demanda desta obra.
         </p>
       </div>
@@ -37,16 +48,33 @@ export function DemandaList({
   }
 
   return (
-    <div className="grid md:grid-cols-2 gap-5">
-      {demandas.map((demanda) => (
-        <DemandaCard
-          key={demanda.id}
-          demanda={demanda}
-          obraId={obraId}
-          onDelete={onDelete}
-          onEdit={onEdit}
-        />
-      ))}
+    <div className="grid gap-5 md:grid-cols-2">
+      {demandas.map(
+        (
+          demanda
+        ) => (
+          <DemandaCard
+            key={
+              demanda.id
+            }
+            demanda={
+              demanda
+            }
+            obraId={
+              obraId
+            }
+            obraSetorId={
+              obraSetorId
+            }
+            onDelete={
+              onDelete
+            }
+            onEdit={
+              onEdit
+            }
+          />
+        )
+      )}
     </div>
   );
 }

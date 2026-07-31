@@ -1,99 +1,247 @@
-import { useState } from "react";
-import { Upload, X, FileText } from "lucide-react";
-import { uploadDocumento } from "../services/documentos-service";
+import {
+  useState,
+} from "react";
+
+import {
+  FileText,
+  Upload,
+  X,
+} from "lucide-react";
+
+import {
+  useAuth,
+} from "@/features/auth/auth-context";
+
+import {
+  uploadDocumento,
+} from "../services/documentos-service";
 
 interface DocumentoFormProps {
   obraId: string;
   onSuccess: () => void;
 }
 
-export function DocumentoForm({ obraId, onSuccess }: DocumentoFormProps) {
-  const [nome, setNome] = useState("");
-  const [categoria, setCategoria] = useState("");
-  const [arquivo, setArquivo] = useState<File | null>(null);
-  const [loading, setLoading] = useState(false);
+export function DocumentoForm({
+  obraId,
+  onSuccess,
+}: DocumentoFormProps) {
+  const {
+    perfil,
+  } = useAuth();
+
+  const [
+    nome,
+    setNome,
+  ] = useState("");
+
+  const [
+    categoria,
+    setCategoria,
+  ] = useState("");
+
+  const [
+    arquivo,
+    setArquivo,
+  ] = useState<File | null>(
+    null
+  );
+
+  const [
+    loading,
+    setLoading,
+  ] = useState(false);
 
   async function enviar() {
-    if (!nome || !arquivo) {
-      alert("Informe o nome e selecione um arquivo.");
+    if (
+      !nome.trim() ||
+      !arquivo
+    ) {
+      alert(
+        "Informe o nome e selecione um arquivo."
+      );
+
       return;
     }
 
     try {
-      setLoading(true);
-      await uploadDocumento(obraId, arquivo, nome, categoria);
+      setLoading(
+        true
+      );
+
+      await uploadDocumento(
+        obraId,
+        arquivo,
+        nome.trim(),
+        categoria.trim(),
+        perfil?.setor_id ??
+          null
+      );
 
       setNome("");
       setCategoria("");
       setArquivo(null);
+
       onSuccess();
     } catch (error) {
-      console.error(error);
-      alert("Erro ao enviar documento. Verifique as permissões (RLS) do bucket no Supabase.");
+      console.error(
+        "Erro ao enviar documento:",
+        error
+      );
+
+      alert(
+        error instanceof Error
+          ? `Erro ao enviar documento: ${error.message}`
+          : "Erro ao enviar documento. Verifique as permissões do Supabase."
+      );
     } finally {
-      setLoading(false);
+      setLoading(
+        false
+      );
     }
   }
 
   return (
-    <div className="border rounded-xl p-5 space-y-4 bg-white shadow-sm">
-      <h3 className="font-semibold text-lg">Novo Documento</h3>
+    <div className="space-y-4 rounded-xl border bg-white p-5 shadow-sm">
+      <h3 className="text-lg font-semibold">
+        Novo Documento
+      </h3>
 
       <input
-        value={nome}
-        onChange={(e) => setNome(e.target.value)}
+        value={
+          nome
+        }
+        onChange={(
+          event
+        ) =>
+          setNome(
+            event.target.value
+          )
+        }
+        disabled={
+          loading
+        }
         placeholder="Nome do documento"
-        className="border rounded-lg px-3 py-2 w-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+        className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:bg-gray-100"
       />
 
       <input
-        value={categoria}
-        onChange={(e) => setCategoria(e.target.value)}
+        value={
+          categoria
+        }
+        onChange={(
+          event
+        ) =>
+          setCategoria(
+            event.target.value
+          )
+        }
+        disabled={
+          loading
+        }
         placeholder="Categoria"
-        className="border rounded-lg px-3 py-2 w-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+        className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:bg-gray-100"
       />
 
-      {/* Input de arquivo customizado com botão de remover */}
       <div className="space-y-2">
         {!arquivo ? (
-          <label className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-xl p-6 cursor-pointer hover:border-blue-500 hover:bg-blue-50/50 transition">
-            <Upload className="w-6 h-6 text-gray-400 mb-2" />
-            <span className="text-sm font-medium text-gray-700">Clique para selecionar o arquivo</span>
-            <span className="text-xs text-gray-400 mt-1">PDF, planilhas, imagens ou documentos</span>
+          <label
+            className={`
+              flex
+              flex-col
+              items-center
+              justify-center
+              rounded-xl
+              border-2
+              border-dashed
+              border-gray-300
+              p-6
+              transition
+              ${
+                loading
+                  ? "cursor-not-allowed bg-gray-100 opacity-60"
+                  : "cursor-pointer hover:border-blue-500 hover:bg-blue-50/50"
+              }
+            `}
+          >
+            <Upload className="mb-2 h-6 w-6 text-gray-400" />
+
+            <span className="text-sm font-medium text-gray-700">
+              Clique para selecionar o arquivo
+            </span>
+
+            <span className="mt-1 text-xs text-gray-400">
+              PDF, planilhas, imagens ou documentos
+            </span>
+
             <input
               type="file"
+              disabled={
+                loading
+              }
               className="hidden"
-              onChange={(e) => {
-                if (e.target.files && e.target.files[0]) {
-                  setArquivo(e.target.files[0]);
+              onChange={(
+                event
+              ) => {
+                const arquivoSelecionado =
+                  event.target.files?.[0];
+
+                if (
+                  arquivoSelecionado
+                ) {
+                  setArquivo(
+                    arquivoSelecionado
+                  );
                 }
+
+                event.target.value =
+                  "";
               }}
             />
           </label>
         ) : (
-          <div className="flex items-center justify-between border rounded-lg p-3 bg-gray-50">
-            <div className="flex items-center space-x-2 truncate">
-              <FileText className="w-5 h-5 text-blue-600 flex-shrink-0" />
-              <span className="text-sm font-medium text-gray-800 truncate">{arquivo.name}</span>
+          <div className="flex items-center justify-between rounded-lg border bg-gray-50 p-3">
+            <div className="flex min-w-0 items-center space-x-2">
+              <FileText className="h-5 w-5 flex-shrink-0 text-blue-600" />
+
+              <span className="truncate text-sm font-medium text-gray-800">
+                {
+                  arquivo.name
+                }
+              </span>
             </div>
+
             <button
               type="button"
-              onClick={() => setArquivo(null)}
-              className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md transition"
+              onClick={() =>
+                setArquivo(
+                  null
+                )
+              }
+              disabled={
+                loading
+              }
+              className="rounded-md p-1 text-gray-400 transition hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-50"
               title="Remover arquivo"
             >
-              <X className="w-4 h-4" />
+              <X className="h-4 w-4" />
             </button>
           </div>
         )}
       </div>
 
       <button
-        onClick={enviar}
-        disabled={loading}
-        className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 transition w-full"
+        type="button"
+        onClick={
+          enviar
+        }
+        disabled={
+          loading
+        }
+        className="inline-flex w-full items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
       >
-        {loading ? "Enviando..." : "Salvar documento"}
+        {loading
+          ? "Enviando..."
+          : "Salvar documento"}
       </button>
     </div>
   );

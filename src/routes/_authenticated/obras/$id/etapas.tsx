@@ -61,6 +61,10 @@ type UsuarioOpcao = {
   setor_id: string | null;
 };
 
+type ObraPermissao = {
+  setor_id: string | null;
+};
+
 type EdicaoEtapa = {
   responsavel_id: string;
   status: StatusEtapaObra;
@@ -216,6 +220,13 @@ function EtapasObraPage() {
   );
 
   const [
+    obraSetorId,
+    setObraSetorId,
+  ] = useState<string | null>(
+    null
+  );
+
+  const [
     edicoes,
     setEdicoes,
   ] = useState<
@@ -303,6 +314,30 @@ function EtapasObraPage() {
     perfil?.setor_id ||
     null;
 
+  const obraNoSetorDoUsuario =
+    Boolean(
+      setorUsuarioId &&
+      obraSetorId ===
+        setorUsuarioId
+    );
+
+  const etapaDoSetorUsuarioJaExiste =
+    Boolean(
+      setorUsuarioId &&
+      etapas.some(
+        (etapa) =>
+          etapa.setor_id ===
+          setorUsuarioId
+      )
+    );
+
+  const podeCriarEtapa =
+    administrador ||
+    (
+      obraNoSetorDoUsuario &&
+      !etapaDoSetorUsuarioJaExiste
+    );
+
   const setoresDisponiveis =
     useMemo(
       () => {
@@ -314,6 +349,19 @@ function EtapasObraPage() {
             )
           );
 
+        if (
+          !administrador
+        ) {
+          return setores.filter(
+            (setor) =>
+              setor.id ===
+                setorUsuarioId &&
+              !setoresJaUtilizados.has(
+                setor.id
+              )
+          );
+        }
+
         return setores.filter(
           (setor) =>
             !setoresJaUtilizados.has(
@@ -322,7 +370,9 @@ function EtapasObraPage() {
         );
       },
       [
+        administrador,
         etapas,
+        setorUsuarioId,
         setores,
       ]
     );
@@ -350,6 +400,7 @@ function EtapasObraPage() {
         etapasEncontradas,
         respostaSetores,
         respostaUsuarios,
+        respostaObra,
       ] = await Promise.all([
         listarEtapasDaObra(
           obraId
@@ -388,6 +439,17 @@ function EtapasObraPage() {
                 true,
             }
           ),
+
+        supabase
+          .from("obras")
+          .select(
+            "setor_id"
+          )
+          .eq(
+            "id",
+            obraId
+          )
+          .single(),
       ]);
 
       if (
@@ -400,6 +462,12 @@ function EtapasObraPage() {
         respostaUsuarios.error
       ) {
         throw respostaUsuarios.error;
+      }
+
+      if (
+        respostaObra.error
+      ) {
+        throw respostaObra.error;
       }
 
       const setoresEncontrados =
@@ -424,6 +492,13 @@ function EtapasObraPage() {
 
       setUsuarios(
         usuariosEncontrados
+      );
+
+      const obraEncontrada =
+        respostaObra.data as ObraPermissao;
+
+      setObraSetorId(
+        obraEncontrada.setor_id
       );
 
       const novasEdicoes: Record<
@@ -477,22 +552,42 @@ function EtapasObraPage() {
       if (
         !novoSetorId
       ) {
+        const setoresJaUtilizados =
+          new Set(
+            etapasEncontradas.map(
+              (etapa) =>
+                etapa.setor_id
+            )
+          );
+
         if (
-          administrador &&
-          setoresDisponiveis.length >
-            0
+          administrador
         ) {
+          const primeiroSetorDisponivel =
+            setoresEncontrados.find(
+              (setor) =>
+                !setoresJaUtilizados.has(
+                  setor.id
+                )
+            );
+
           setNovoSetorId(
-            setoresDisponiveis[0]
-              ?.id ||
-              ""
+            primeiroSetorDisponivel?.id ||
+            ""
           );
         } else if (
-          setorUsuarioId
+          setorUsuarioId &&
+          obraEncontrada.setor_id ===
+            setorUsuarioId &&
+          !setoresJaUtilizados.has(
+            setorUsuarioId
+          )
         ) {
           setNovoSetorId(
             setorUsuarioId
           );
+        } else {
+          setNovoSetorId("");
         }
       }
     } catch (error) {
@@ -532,6 +627,7 @@ function EtapasObraPage() {
     return (
       administrador ||
       (
+        obraNoSetorDoUsuario &&
         Boolean(
           setorUsuarioId
         ) &&
@@ -574,6 +670,16 @@ function EtapasObraPage() {
     setErro("");
     setMensagem("");
 
+    if (
+      !podeCriarEtapa
+    ) {
+      setErro(
+        "Você não possui permissão para criar uma etapa nesta obra."
+      );
+
+      return;
+    }
+
     if (!novoSetorId) {
       setErro(
         "Selecione o setor da etapa."
@@ -584,11 +690,14 @@ function EtapasObraPage() {
 
     if (
       !administrador &&
-      novoSetorId !==
-        setorUsuarioId
+      (
+        !obraNoSetorDoUsuario ||
+        novoSetorId !==
+          setorUsuarioId
+      )
     ) {
       setErro(
-        "Você só pode criar uma etapa para o seu próprio setor."
+        "Você só pode criar uma etapa para o próprio setor enquanto a obra estiver nele."
       );
 
       return;
@@ -923,22 +1032,24 @@ function EtapasObraPage() {
             Atualizar
           </button>
 
-          <button
-            type="button"
-            onClick={() =>
-              setMostrandoFormulario(
-                (
-                  estadoAtual
-                ) =>
-                  !estadoAtual
-              )
-            }
-            className="flex cursor-pointer items-center gap-2 rounded-lg bg-slate-950 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800"
-          >
-            <Plus className="h-4 w-4" />
+          {podeCriarEtapa && (
+            <button
+              type="button"
+              onClick={() =>
+                setMostrandoFormulario(
+                  (
+                    estadoAtual
+                  ) =>
+                    !estadoAtual
+                )
+              }
+              className="flex cursor-pointer items-center gap-2 rounded-lg bg-slate-950 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800"
+            >
+              <Plus className="h-4 w-4" />
 
-            Nova etapa
-          </button>
+              Nova etapa
+            </button>
+          )}
         </div>
       </div>
 
@@ -956,7 +1067,8 @@ function EtapasObraPage() {
         </div>
       )}
 
-      {mostrandoFormulario && (
+      {mostrandoFormulario &&
+        podeCriarEtapa && (
         <form
           onSubmit={
             handleCriarEtapa
@@ -1018,7 +1130,7 @@ function EtapasObraPage() {
 
               {!administrador && (
                 <p className="text-xs text-muted-foreground">
-                  Usuários comuns podem criar etapas somente para o próprio setor.
+                  A etapa será criada somente para o seu setor, enquanto a obra estiver nele.
                 </p>
               )}
             </div>

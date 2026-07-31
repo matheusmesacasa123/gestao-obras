@@ -612,9 +612,23 @@ export function ObraCard({
         perfil.setor_id
     );
 
-  const podeGerenciar =
+  const possuiEtapaDoMeuSetor =
+    Boolean(
+      perfil?.setor_id &&
+      obra.etapas?.some(
+        (etapa) =>
+          etapa.setor_id ===
+          perfil.setor_id
+      )
+    );
+
+  const podeEditarObra =
     administrador ||
     mesmoSetor;
+
+  const podeTrabalharNaObra =
+    podeEditarObra ||
+    possuiEtapaDoMeuSetor;
 
   const statusInfo =
     getStatusGeralStyle(
@@ -670,7 +684,7 @@ export function ObraCard({
     event.preventDefault();
     event.stopPropagation();
 
-    if (!podeGerenciar) {
+    if (!podeEditarObra) {
       alert(
         "Você não possui permissão para excluir esta obra."
       );
@@ -847,7 +861,7 @@ export function ObraCard({
         </div>
       </div>
 
-      {podeGerenciar ? (
+      {podeEditarObra ? (
         <div className="flex items-center gap-3 pt-1">
           <Link
             to="/obras/$id/editar"
@@ -876,6 +890,14 @@ export function ObraCard({
               Excluir
             </button>
           )}
+        </div>
+      ) : podeTrabalharNaObra ? (
+        <div className="flex items-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-700">
+          <Layers3 className="h-4 w-4 shrink-0" />
+
+          <span>
+            Acesso às atividades do meu setor
+          </span>
         </div>
       ) : (
         <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600">

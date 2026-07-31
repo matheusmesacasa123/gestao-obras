@@ -9,6 +9,22 @@ export type PrioridadeDemanda =
   | "media"
   | "alta";
 
+export interface SetorDemanda {
+  id: string;
+  nome: string;
+}
+
+export interface ResponsavelDemanda {
+  id: string;
+  nome: string;
+  email: string;
+  setor_id: string | null;
+
+  setor:
+    | SetorDemanda
+    | null;
+}
+
 export interface Demanda {
   id: string;
 
@@ -20,17 +36,43 @@ export interface Demanda {
 
   status: StatusDemanda | null;
 
-  prioridade: PrioridadeDemanda | null;
+  prioridade:
+    | PrioridadeDemanda
+    | null;
 
-  responsavel_id: string | null;
+  setor_id:
+    | string
+    | null;
+
+  setor:
+    | SetorDemanda
+    | null;
+
+  responsavel_id:
+    | string
+    | null;
+
+  responsavel:
+    | ResponsavelDemanda
+    | null;
 
   prazo: string | null;
 
-  data_conclusao: string | null;
+  data_inicio:
+    | string
+    | null;
 
-  motivo_atraso: string | null;
+  data_conclusao:
+    | string
+    | null;
 
-  criado_por: string | null;
+  motivo_atraso:
+    | string
+    | null;
+
+  criado_por:
+    | string
+    | null;
 
   created_at: string;
 
