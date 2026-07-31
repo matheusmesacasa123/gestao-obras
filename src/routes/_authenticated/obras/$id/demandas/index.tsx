@@ -47,9 +47,6 @@ interface SetorFiltro {
   nome: string;
 }
 
-interface ObraPermissao {
-  setor_id: string | null;
-}
 
 export const Route =
   createFileRoute(
@@ -85,12 +82,6 @@ function DemandasPage() {
     []
   );
 
-  const [
-    obraSetorId,
-    setObraSetorId,
-  ] = useState<string | null>(
-    null
-  );
 
   const [
     setorSelecionadoId,
@@ -107,10 +98,6 @@ function DemandasPage() {
     setLoadingDemandas,
   ] = useState(true);
 
-  const [
-    carregandoPermissao,
-    setCarregandoPermissao,
-  ] = useState(true);
 
   const [
     atualizando,
@@ -127,10 +114,6 @@ function DemandasPage() {
     setErroSetores,
   ] = useState(false);
 
-  const [
-    erroPermissao,
-    setErroPermissao,
-  ] = useState(false);
 
   const [
     demandaParaEditar,
@@ -144,17 +127,11 @@ function DemandasPage() {
     perfil?.administrador ===
     true;
 
-  const usuarioMesmoSetorDaObra =
-    Boolean(
-      perfil?.setor_id &&
-      obraSetorId &&
-      perfil.setor_id ===
-        obraSetorId
-    );
-
   const podeCriarDemanda =
     administrador ||
-    usuarioMesmoSetorDaObra;
+    Boolean(
+      perfil?.setor_id
+    );
 
   const carregarSetores =
     useCallback(
@@ -206,66 +183,6 @@ function DemandasPage() {
         }
       },
       []
-    );
-
-  const carregarPermissaoObra =
-    useCallback(
-      async () => {
-        try {
-          setCarregandoPermissao(
-            true
-          );
-
-          setErroPermissao(
-            false
-          );
-
-          const {
-            data,
-            error,
-          } = await supabase
-            .from("obras")
-            .select(
-              "setor_id"
-            )
-            .eq(
-              "id",
-              id
-            )
-            .single();
-
-          if (error) {
-            throw error;
-          }
-
-          const obra =
-            data as ObraPermissao;
-
-          setObraSetorId(
-            obra.setor_id
-          );
-        } catch (error) {
-          console.error(
-            "Erro ao verificar setor atual da obra:",
-            error
-          );
-
-          setObraSetorId(
-            null
-          );
-
-          setErroPermissao(
-            true
-          );
-        } finally {
-          setCarregandoPermissao(
-            false
-          );
-        }
-      },
-      [
-        id,
-      ]
     );
 
   const carregarDemandas =
@@ -326,16 +243,12 @@ function DemandasPage() {
   const atualizarPagina =
     useCallback(
       async () => {
-        await Promise.all([
-          carregarDemandas(
-            false
-          ),
-          carregarPermissaoObra(),
-        ]);
+        await carregarDemandas(
+          false
+        );
       },
       [
         carregarDemandas,
-        carregarPermissaoObra,
       ]
     );
 
@@ -343,12 +256,10 @@ function DemandasPage() {
     Promise.all([
       carregarDemandas(),
       carregarSetores(),
-      carregarPermissaoObra(),
     ]);
   }, [
     carregarDemandas,
     carregarSetores,
-    carregarPermissaoObra,
   ]);
 
   useEffect(() => {
@@ -572,8 +483,7 @@ function DemandasPage() {
               Atualizar
             </button>
 
-            {!carregandoPermissao &&
-              podeCriarDemanda && (
+            {podeCriarDemanda && (
                 <button
                   type="button"
                   onClick={() =>
@@ -596,19 +506,6 @@ function DemandasPage() {
           </div>
         </div>
 
-        {erroPermissao && (
-          <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-            Não foi possível confirmar sua permissão para criar demandas nesta obra.
-          </div>
-        )}
-
-        {!carregandoPermissao &&
-          !podeCriarDemanda &&
-          !erroPermissao && (
-            <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
-              Você pode visualizar as demandas, mas somente o setor atual da obra ou um administrador pode criar novas demandas.
-            </div>
-          )}
 
         <div className="rounded-2xl border bg-white p-5 shadow-sm">
           <div className="flex flex-wrap items-end justify-between gap-4">
@@ -777,9 +674,6 @@ function DemandasPage() {
           obraId={
             id
           }
-          obraSetorId={
-            obraSetorId
-          }
           onDelete={() =>
             carregarDemandas(
               false
@@ -802,9 +696,6 @@ function DemandasPage() {
           }
           obraId={
             id
-          }
-          obraSetorId={
-            obraSetorId
           }
           onClose={() => {
             setDemandaParaEditar(

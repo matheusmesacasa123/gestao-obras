@@ -1313,20 +1313,33 @@ function NovaObraPage() {
                 Tipo de proposta
               </label>
 
-              <input
+              <select
                 id="tipo_proposta"
                 name="tipo_proposta"
-                placeholder="Ex.: Equipamentos"
                 value={
                   form.tipo_proposta
                 }
                 onChange={
                   handleChange
                 }
-                className={
-                  inputClassName
-                }
-              />
+                className={`${inputClassName} cursor-pointer`}
+              >
+                <option value="">
+                  Selecione o tipo de proposta
+                </option>
+
+                <option value="Simplificado">
+                  Simplificado
+                </option>
+
+                <option value="Detalhado">
+                  Detalhado
+                </option>
+
+                <option value="Preliminar">
+                  Preliminar
+                </option>
+              </select>
             </div>
 
             <div className="space-y-2">
@@ -1337,20 +1350,49 @@ function NovaObraPage() {
                 Tipo de orçamentação
               </label>
 
-              <input
+              <select
                 id="tipo_orcamentacao"
                 name="tipo_orcamentacao"
-                placeholder="Ex.: Completa"
                 value={
                   form.tipo_orcamentacao
                 }
                 onChange={
                   handleChange
                 }
-                className={
-                  inputClassName
-                }
-              />
+                className={`${inputClassName} cursor-pointer`}
+              >
+                <option value="">
+                  Selecione o tipo de orçamentação
+                </option>
+
+                <option value="Comp. Licitação">
+                  Comp. Licitação
+                </option>
+
+                <option value="Equipamentos">
+                  Equipamentos
+                </option>
+
+                <option value="ETA">
+                  ETA
+                </option>
+
+                <option value="Industrial">
+                  Industrial
+                </option>
+
+                <option value="Licitação">
+                  Licitação
+                </option>
+
+                <option value="Sanitário">
+                  Sanitário
+                </option>
+
+                <option value="Serviços">
+                  Serviços
+                </option>
+              </select>
             </div>
           </div>
 
@@ -1475,20 +1517,33 @@ function NovaObraPage() {
                 Complexidade
               </label>
 
-              <input
+              <select
                 id="complexidade"
                 name="complexidade"
-                placeholder="Ex.: Média"
                 value={
                   form.complexidade
                 }
                 onChange={
                   handleChange
                 }
-                className={
-                  inputClassName
-                }
-              />
+                className={`${inputClassName} cursor-pointer`}
+              >
+                <option value="">
+                  Selecione a complexidade
+                </option>
+
+                <option value="Baixa">
+                  Baixa
+                </option>
+
+                <option value="Média">
+                  Média
+                </option>
+
+                <option value="Alta">
+                  Alta
+                </option>
+              </select>
             </div>
           </div>
         </section>
@@ -1564,4 +1619,4 @@ function NovaObraPage() {
       </form>
     </div>
   );
-}
+  }

@@ -9,7 +9,6 @@ import type {
 interface DemandaListProps {
   demandas: Demanda[];
   obraId: string;
-  obraSetorId: string | null;
   onDelete?: () => void;
   onEdit?: (
     demanda: Demanda
@@ -19,7 +18,6 @@ interface DemandaListProps {
 export function DemandaList({
   demandas,
   obraId,
-  obraSetorId,
   onDelete,
   onEdit,
 }: DemandaListProps) {
@@ -62,9 +60,6 @@ export function DemandaList({
             }
             obraId={
               obraId
-            }
-            obraSetorId={
-              obraSetorId
             }
             onDelete={
               onDelete

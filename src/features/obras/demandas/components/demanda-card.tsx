@@ -36,7 +36,6 @@ import type {
 interface DemandaCardProps {
   demanda: Demanda;
   obraId: string;
-  obraSetorId: string | null;
   onDelete?: () => void;
   onEdit?: (
     demanda: Demanda
@@ -461,7 +460,6 @@ function IconeStatus({
 export function DemandaCard({
   demanda,
   obraId,
-  obraSetorId,
   onDelete,
   onEdit,
 }: DemandaCardProps) {
@@ -486,20 +484,9 @@ export function DemandaCard({
         demanda.setor_id
     );
 
-  const obraNoMeuSetor =
-    Boolean(
-      perfil?.setor_id &&
-      obraSetorId &&
-      perfil.setor_id ===
-        obraSetorId
-    );
-
   const podeGerenciar =
     administrador ||
-    (
-      demandaDoMeuSetor &&
-      obraNoMeuSetor
-    );
+    demandaDoMeuSetor;
 
   const statusVisual =
     obterStatusVisual(
@@ -540,41 +527,26 @@ export function DemandaCard({
     if (
       !administrador
     ) {
-      const [
-        respostaObra,
-        respostaDemanda,
-      ] = await Promise.all([
-        supabase
-          .from("obras")
-          .select(
-            "setor_id"
-          )
-          .eq(
-            "id",
-            obraId
-          )
-          .single(),
-
-        supabase
-          .from("demandas")
-          .select(
-            "setor_id"
-          )
-          .eq(
-            "id",
-            demanda.id
-          )
-          .single(),
-      ]);
+      const {
+        data: demandaAtual,
+        error: erroDemanda,
+      } = await supabase
+        .from("demandas")
+        .select(
+          "setor_id"
+        )
+        .eq(
+          "id",
+          demanda.id
+        )
+        .single();
 
       if (
-        respostaObra.error ||
-        respostaDemanda.error
+        erroDemanda
       ) {
         console.error(
           "Erro ao validar permissão para excluir demanda:",
-          respostaObra.error ||
-            respostaDemanda.error
+          erroDemanda
         );
 
         alert(
@@ -590,11 +562,7 @@ export function DemandaCard({
       const aindaPodeExcluir =
         Boolean(
           setorUsuarioId &&
-          respostaObra.data
-            .setor_id ===
-            setorUsuarioId &&
-          respostaDemanda.data
-            .setor_id ===
+          demandaAtual.setor_id ===
             setorUsuarioId
         );
 
@@ -602,7 +570,7 @@ export function DemandaCard({
         !aindaPodeExcluir
       ) {
         alert(
-          "A obra ou a demanda não pertence mais ao seu setor. Você não pode excluir esta demanda."
+          "Esta demanda não pertence mais ao seu setor. Você não pode excluí-la."
         );
 
         onDelete?.();

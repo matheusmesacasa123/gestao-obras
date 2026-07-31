@@ -108,6 +108,16 @@ function ObraLayoutPage() {
       exact:
         false,
     },
+    {
+      label:
+        "Histórico",
+
+      to:
+        "/obras/$id/historico",
+
+      exact:
+        false,
+    },
   ] as const;
 
   return (

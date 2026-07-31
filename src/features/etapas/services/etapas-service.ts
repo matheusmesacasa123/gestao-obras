@@ -16,6 +16,8 @@ export type EtapaObra = {
   setor_id: string;
   responsavel_id: string | null;
 
+  titulo: string | null;
+
   status: StatusEtapaObra;
 
   data_inicio: string | null;
@@ -46,24 +48,50 @@ export type CriarEtapaObraDados = {
   obra_id: string;
   setor_id: string;
   responsavel_id?: string | null;
+  titulo: string;
   status?: StatusEtapaObra;
   data_inicio?: string | null;
   prazo?: string | null;
   observacao?: string | null;
   obrigatoria?: boolean;
-  ordem?: number | null;
 };
 
 export type AtualizarEtapaObraDados = {
   responsavel_id?: string | null;
+  titulo?: string | null;
   status?: StatusEtapaObra;
   data_inicio?: string | null;
   prazo?: string | null;
   data_conclusao?: string | null;
   observacao?: string | null;
   obrigatoria?: boolean;
-  ordem?: number | null;
 };
+
+const selectEtapa = `
+  id,
+  obra_id,
+  setor_id,
+  responsavel_id,
+  titulo,
+  status,
+  data_inicio,
+  prazo,
+  data_conclusao,
+  observacao,
+  obrigatoria,
+  ordem,
+  created_at,
+  updated_at,
+  setor:setores (
+    id,
+    nome
+  ),
+  responsavel:usuarios (
+    id,
+    nome,
+    email
+  )
+`;
 
 export async function listarEtapasDaObra(
   obraId: string
@@ -73,30 +101,7 @@ export async function listarEtapasDaObra(
     error,
   } = await supabase
     .from("etapas_obras")
-    .select(`
-      id,
-      obra_id,
-      setor_id,
-      responsavel_id,
-      status,
-      data_inicio,
-      prazo,
-      data_conclusao,
-      observacao,
-      obrigatoria,
-      ordem,
-      created_at,
-      updated_at,
-      setor:setores (
-        id,
-        nome
-      ),
-      responsavel:usuarios (
-        id,
-        nome,
-        email
-      )
-    `)
+    .select(selectEtapa)
     .eq(
       "obra_id",
       obraId
@@ -132,6 +137,15 @@ export async function listarEtapasDaObra(
 export async function criarEtapaObra(
   dados: CriarEtapaObraDados
 ): Promise<EtapaObra> {
+  const titulo =
+    dados.titulo.trim();
+
+  if (!titulo) {
+    throw new Error(
+      "Informe o título da etapa."
+    );
+  }
+
   const payload = {
     obra_id:
       dados.obra_id,
@@ -142,6 +156,8 @@ export async function criarEtapaObra(
     responsavel_id:
       dados.responsavel_id ||
       null,
+
+    titulo,
 
     status:
       dados.status ||
@@ -162,10 +178,6 @@ export async function criarEtapaObra(
     obrigatoria:
       dados.obrigatoria ??
       true,
-
-    ordem:
-      dados.ordem ??
-      null,
   };
 
   const {
@@ -174,30 +186,7 @@ export async function criarEtapaObra(
   } = await supabase
     .from("etapas_obras")
     .insert(payload)
-    .select(`
-      id,
-      obra_id,
-      setor_id,
-      responsavel_id,
-      status,
-      data_inicio,
-      prazo,
-      data_conclusao,
-      observacao,
-      obrigatoria,
-      ordem,
-      created_at,
-      updated_at,
-      setor:setores (
-        id,
-        nome
-      ),
-      responsavel:usuarios (
-        id,
-        nome,
-        email
-      )
-    `)
+    .select(selectEtapa)
     .single();
 
   if (error) {
@@ -216,40 +205,52 @@ export async function atualizarEtapaObra(
   etapaId: string,
   dados: AtualizarEtapaObraDados
 ): Promise<EtapaObra> {
+  const payload: AtualizarEtapaObraDados = {
+    ...dados,
+  };
+
+  if (
+    Object.prototype.hasOwnProperty.call(
+      dados,
+      "titulo"
+    )
+  ) {
+    const titulo =
+      dados.titulo?.trim() ||
+      "";
+
+    if (!titulo) {
+      throw new Error(
+        "O título da etapa não pode ficar vazio."
+      );
+    }
+
+    payload.titulo =
+      titulo;
+  }
+
+  if (
+    Object.prototype.hasOwnProperty.call(
+      dados,
+      "observacao"
+    )
+  ) {
+    payload.observacao =
+      dados.observacao?.trim() ||
+      null;
+  }
+
   const {
     data,
     error,
   } = await supabase
     .from("etapas_obras")
-    .update(dados)
+    .update(payload)
     .eq(
       "id",
       etapaId
     )
-    .select(`
-      id,
-      obra_id,
-      setor_id,
-      responsavel_id,
-      status,
-      data_inicio,
-      prazo,
-      data_conclusao,
-      observacao,
-      obrigatoria,
-      ordem,
-      created_at,
-      updated_at,
-      setor:setores (
-        id,
-        nome
-      ),
-      responsavel:usuarios (
-        id,
-        nome,
-        email
-      )
-    `)
+    .select(selectEtapa)
     .single();
 
   if (error) {
@@ -262,6 +263,29 @@ export async function atualizarEtapaObra(
   }
 
   return data as unknown as EtapaObra;
+}
+
+export async function excluirEtapaObra(
+  etapaId: string
+): Promise<void> {
+  const {
+    error,
+  } = await supabase
+    .from("etapas_obras")
+    .delete()
+    .eq(
+      "id",
+      etapaId
+    );
+
+  if (error) {
+    console.error(
+      "Erro ao excluir etapa da obra:",
+      error
+    );
+
+    throw error;
+  }
 }
 
 export async function iniciarEtapaObra(

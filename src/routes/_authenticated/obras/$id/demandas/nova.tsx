@@ -304,17 +304,11 @@ function NovaDemandaPage() {
     perfil?.administrador ===
     true;
 
-  const usuarioMesmoSetorDaObra =
-    Boolean(
-      perfil?.setor_id &&
-      obra?.setor_id &&
-      perfil.setor_id ===
-        obra.setor_id
-    );
-
   const podeCriarDemanda =
     administrador ||
-    usuarioMesmoSetorDaObra;
+    Boolean(
+      perfil?.setor_id
+    );
 
   useEffect(() => {
     async function carregarPermissao() {
@@ -355,7 +349,7 @@ function NovaDemandaPage() {
         );
       } catch (error) {
         console.error(
-          "Erro ao verificar permissão da obra:",
+          "Erro ao carregar dados da obra:",
           error
         );
 
@@ -364,7 +358,7 @@ function NovaDemandaPage() {
         );
 
         setErroPermissao(
-          "Não foi possível verificar sua permissão para criar demandas nesta obra."
+          "Não foi possível carregar os dados da obra."
         );
       } finally {
         setCarregandoPermissao(
@@ -860,41 +854,6 @@ function NovaDemandaPage() {
       }
 
       const {
-        data: obraAtualizada,
-        error:
-          erroVerificacaoFinal,
-      } = await supabase
-        .from("obras")
-        .select(
-          "setor_id"
-        )
-        .eq(
-          "id",
-          id
-        )
-        .single();
-
-      if (
-        erroVerificacaoFinal
-      ) {
-        throw erroVerificacaoFinal;
-      }
-
-      const aindaPodeCriar =
-        administrador ||
-        Boolean(
-          perfil?.setor_id &&
-          obraAtualizada.setor_id ===
-            perfil.setor_id
-        );
-
-      if (!aindaPodeCriar) {
-        throw new Error(
-          "A obra foi encaminhada para outro setor. Você não pode mais criar demandas nela."
-        );
-      }
-
-      const {
         error,
       } = await supabase
         .from("demandas")
@@ -974,7 +933,7 @@ function NovaDemandaPage() {
         <div className="flex items-center gap-3 text-sm font-medium text-gray-600">
           <Loader2 className="h-5 w-5 animate-spin" />
 
-          Verificando permissão...
+          Carregando dados da obra...
         </div>
       </div>
     );
@@ -991,7 +950,7 @@ function NovaDemandaPage() {
 
           <div>
             <h1 className="text-xl font-bold text-red-900">
-              Não foi possível verificar a permissão
+              Não foi possível carregar a obra
             </h1>
 
             <p className="mt-1 text-sm text-red-700">
@@ -1030,12 +989,7 @@ function NovaDemandaPage() {
             </h1>
 
             <p className="mt-1 text-sm text-amber-800">
-              Esta obra está atualmente no setor{" "}
-              <strong>
-                {obra.setor?.nome ||
-                  "não informado"}
-              </strong>
-              . Somente usuários desse setor ou administradores podem criar novas demandas.
+              Para criar uma demanda, o usuário precisa estar vinculado a um setor. Administradores podem criar demandas para qualquer setor.
             </p>
           </div>
         </div>
@@ -1094,18 +1048,14 @@ function NovaDemandaPage() {
       <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
         A demanda será criada para o setor{" "}
         <strong>
-          {administrador
-            ? setores.find(
-                (
-                  setor
-                ) =>
-                  setor.id ===
-                  setorId
-              )?.nome ||
-              obra.setor?.nome ||
-              "selecionado"
-            : obra.setor?.nome ||
-              "atual da obra"}
+          {setores.find(
+            (setor) =>
+              setor.id ===
+              setorId
+          )?.nome ||
+            (administrador
+              ? "selecionado"
+              : "do usuário")}
         </strong>
         .
       </div>

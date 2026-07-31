@@ -39,8 +39,6 @@ import {
 
 interface ModalEditarDemandaProps {
   demanda: Demanda | null;
-  obraId: string;
-  obraSetorId: string | null;
   onClose: () => void;
   onSuccess: () => void;
 }
@@ -219,8 +217,6 @@ function obterStatusVisual(
 
 function ModalEditarDemanda({
   demanda,
-  obraId,
-  obraSetorId,
   onClose,
   onSuccess,
 }: ModalEditarDemandaProps) {
@@ -327,20 +323,9 @@ function ModalEditarDemanda({
         demanda.setor_id
     );
 
-  const obraNoMeuSetor =
-    Boolean(
-      perfil?.setor_id &&
-      obraSetorId &&
-      perfil.setor_id ===
-        obraSetorId
-    );
-
   const podeEditar =
     administrador ||
-    (
-      demandaDoMeuSetor &&
-      obraNoMeuSetor
-    );
+    demandaDoMeuSetor;
 
   useEffect(() => {
     if (!demanda) {
@@ -759,41 +744,24 @@ function ModalEditarDemanda({
       return false;
     }
 
-    const [
-      respostaObra,
-      respostaDemanda,
-    ] = await Promise.all([
-      supabase
-        .from("obras")
-        .select(
-          "setor_id"
-        )
-        .eq(
-          "id",
-          obraId
-        )
-        .single(),
+    const {
+      data,
+      error,
+    } = await supabase
+      .from("demandas")
+      .select(
+        "setor_id"
+      )
+      .eq(
+        "id",
+        demanda.id
+      )
+      .single();
 
-      supabase
-        .from("demandas")
-        .select(
-          "setor_id"
-        )
-        .eq(
-          "id",
-          demanda.id
-        )
-        .single(),
-    ]);
-
-    if (
-      respostaObra.error ||
-      respostaDemanda.error
-    ) {
+    if (error) {
       console.error(
         "Erro ao validar permissão da demanda:",
-        respostaObra.error ||
-          respostaDemanda.error
+        error
       );
 
       throw new Error(
@@ -801,17 +769,12 @@ function ModalEditarDemanda({
       );
     }
 
-    const obraAtual =
-      respostaObra.data as RegistroSetor;
-
     const demandaAtual =
-      respostaDemanda.data as RegistroSetor;
+      data as RegistroSetor;
 
     return (
-      obraAtual.setor_id ===
-        setorUsuarioId &&
       demandaAtual.setor_id ===
-        setorUsuarioId
+      setorUsuarioId
     );
   }
 
@@ -912,7 +875,7 @@ function ModalEditarDemanda({
         !permissaoAtual
       ) {
         alert(
-          "A obra ou a demanda não pertence mais ao seu setor. As alterações não foram salvas."
+          "A demanda não pertence mais ao seu setor. As alterações não foram salvas."
         );
 
         onClose();
@@ -1010,7 +973,7 @@ function ModalEditarDemanda({
                 </Dialog.Title>
 
                 <Dialog.Description className="mt-2 max-w-md text-sm text-gray-600">
-                  Você só pode alterar demandas do seu próprio setor enquanto a obra estiver atualmente nesse setor.
+                  Você só pode alterar demandas do seu próprio setor.
                 </Dialog.Description>
 
                 <button

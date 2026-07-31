@@ -6,6 +6,7 @@ import {
 import {
   ArrowRightLeft,
   Building2,
+  FileClock,
   FileText,
   LayoutDashboard,
   ShieldCheck,
@@ -56,6 +57,14 @@ export function Sidebar() {
         "/obras",
       icone:
         Building2,
+    },
+    {
+      nome:
+        "Histórico de Obras",
+      rota:
+        "/historico-obras",
+      icone:
+        FileClock,
     },
     {
       nome:

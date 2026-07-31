@@ -19,23 +19,25 @@ import {
   RefreshCw,
   RotateCcw,
   Save,
+  Trash2,
   UserRound,
 } from "lucide-react";
-
-import {
-  useAuth,
-} from "@/features/auth/auth-context";
 
 import {
   atualizarEtapaObra,
   concluirEtapaObra,
   criarEtapaObra,
+  excluirEtapaObra,
   iniciarEtapaObra,
   listarEtapasDaObra,
   reabrirEtapaObra,
   type EtapaObra,
   type StatusEtapaObra,
 } from "@/features/etapas/services/etapas-service";
+
+import {
+  useAuth,
+} from "@/features/auth/auth-context";
 
 import {
   supabase,
@@ -61,18 +63,14 @@ type UsuarioOpcao = {
   setor_id: string | null;
 };
 
-type ObraPermissao = {
-  setor_id: string | null;
-};
-
 type EdicaoEtapa = {
+  titulo: string;
   responsavel_id: string;
   status: StatusEtapaObra;
   data_inicio: string;
   prazo: string;
   observacao: string;
   obrigatoria: boolean;
-  ordem: string;
 };
 
 const opcoesStatus: {
@@ -198,6 +196,15 @@ function EtapasObraPage() {
     perfil,
   } = useAuth();
 
+  const administrador =
+    Boolean(
+      perfil?.administrador
+    );
+
+  const setorUsuarioId =
+    perfil?.setor_id ||
+    null;
+
   const [
     etapas,
     setEtapas,
@@ -217,13 +224,6 @@ function EtapasObraPage() {
     setUsuarios,
   ] = useState<UsuarioOpcao[]>(
     []
-  );
-
-  const [
-    obraSetorId,
-    setObraSetorId,
-  ] = useState<string | null>(
-    null
   );
 
   const [
@@ -266,6 +266,11 @@ function EtapasObraPage() {
   ] = useState(false);
 
   const [
+    novoTitulo,
+    setNovoTitulo,
+  ] = useState("");
+
+  const [
     novoSetorId,
     setNovoSetorId,
   ] = useState("");
@@ -286,11 +291,6 @@ function EtapasObraPage() {
   ] = useState("");
 
   const [
-    novaOrdem,
-    setNovaOrdem,
-  ] = useState("");
-
-  const [
     novaObrigatoria,
     setNovaObrigatoria,
   ] = useState(true);
@@ -305,77 +305,37 @@ function EtapasObraPage() {
     setErro,
   ] = useState("");
 
-  const administrador =
-    Boolean(
-      perfil?.administrador
-    );
-
-  const setorUsuarioId =
-    perfil?.setor_id ||
-    null;
-
-  const obraNoSetorDoUsuario =
-    Boolean(
-      setorUsuarioId &&
-      obraSetorId ===
-        setorUsuarioId
-    );
-
-  const etapaDoSetorUsuarioJaExiste =
-    Boolean(
-      setorUsuarioId &&
-      etapas.some(
-        (etapa) =>
-          etapa.setor_id ===
-          setorUsuarioId
-      )
-    );
-
-  const podeCriarEtapa =
-    administrador ||
-    (
-      obraNoSetorDoUsuario &&
-      !etapaDoSetorUsuarioJaExiste
-    );
-
   const setoresDisponiveis =
     useMemo(
       () => {
-        const setoresJaUtilizados =
-          new Set(
-            etapas.map(
-              (etapa) =>
-                etapa.setor_id
-            )
-          );
-
-        if (
-          !administrador
-        ) {
-          return setores.filter(
-            (setor) =>
-              setor.id ===
-                setorUsuarioId &&
-              !setoresJaUtilizados.has(
-                setor.id
-              )
-          );
+        if (administrador) {
+          return setores;
         }
 
         return setores.filter(
           (setor) =>
-            !setoresJaUtilizados.has(
-              setor.id
-            )
+            setor.id ===
+              setorUsuarioId
         );
       },
       [
         administrador,
-        etapas,
         setorUsuarioId,
         setores,
       ]
     );
+
+  const podeCriarEtapa =
+    administrador
+      ? setores.length > 0
+      : Boolean(
+          setorUsuarioId &&
+          setores.some(
+            (setor) =>
+              setor.id ===
+                setorUsuarioId
+          )
+        );
 
   const usuariosNovoSetor =
     useMemo(
@@ -400,7 +360,6 @@ function EtapasObraPage() {
         etapasEncontradas,
         respostaSetores,
         respostaUsuarios,
-        respostaObra,
       ] = await Promise.all([
         listarEtapasDaObra(
           obraId
@@ -440,16 +399,6 @@ function EtapasObraPage() {
             }
           ),
 
-        supabase
-          .from("obras")
-          .select(
-            "setor_id"
-          )
-          .eq(
-            "id",
-            obraId
-          )
-          .single(),
       ]);
 
       if (
@@ -464,11 +413,6 @@ function EtapasObraPage() {
         throw respostaUsuarios.error;
       }
 
-      if (
-        respostaObra.error
-      ) {
-        throw respostaObra.error;
-      }
 
       const setoresEncontrados =
         (
@@ -494,12 +438,6 @@ function EtapasObraPage() {
         usuariosEncontrados
       );
 
-      const obraEncontrada =
-        respostaObra.data as ObraPermissao;
-
-      setObraSetorId(
-        obraEncontrada.setor_id
-      );
 
       const novasEdicoes: Record<
         string,
@@ -513,6 +451,10 @@ function EtapasObraPage() {
         novasEdicoes[
           etapa.id
         ] = {
+          titulo:
+            etapa.titulo ||
+            "",
+
           responsavel_id:
             etapa.responsavel_id ||
             "",
@@ -534,14 +476,6 @@ function EtapasObraPage() {
 
           obrigatoria:
             etapa.obrigatoria,
-
-          ordem:
-            etapa.ordem !==
-            null
-              ? String(
-                  etapa.ordem
-                )
-              : "",
         };
       }
 
@@ -549,46 +483,25 @@ function EtapasObraPage() {
         novasEdicoes
       );
 
-      if (
-        !novoSetorId
-      ) {
-        const setoresJaUtilizados =
-          new Set(
-            etapasEncontradas.map(
-              (etapa) =>
-                etapa.setor_id
-            )
+      if (administrador) {
+        const setorAtualAindaExiste =
+          setoresEncontrados.some(
+            (setor) =>
+              setor.id ===
+                novoSetorId
           );
 
-        if (
-          administrador
-        ) {
-          const primeiroSetorDisponivel =
-            setoresEncontrados.find(
-              (setor) =>
-                !setoresJaUtilizados.has(
-                  setor.id
-                )
-            );
-
+        if (!setorAtualAindaExiste) {
           setNovoSetorId(
-            primeiroSetorDisponivel?.id ||
-            ""
+            setoresEncontrados[0]?.id ||
+              ""
           );
-        } else if (
-          setorUsuarioId &&
-          obraEncontrada.setor_id ===
-            setorUsuarioId &&
-          !setoresJaUtilizados.has(
-            setorUsuarioId
-          )
-        ) {
-          setNovoSetorId(
-            setorUsuarioId
-          );
-        } else {
-          setNovoSetorId("");
         }
+      } else {
+        setNovoSetorId(
+          setorUsuarioId ||
+            ""
+        );
       }
     } catch (error) {
       console.error(
@@ -626,14 +539,11 @@ function EtapasObraPage() {
   ) {
     return (
       administrador ||
-      (
-        obraNoSetorDoUsuario &&
-        Boolean(
-          setorUsuarioId
-        ) &&
+      Boolean(
+        setorUsuarioId
+      ) &&
         etapa.setor_id ===
           setorUsuarioId
-      )
     );
   }
 
@@ -670,11 +580,17 @@ function EtapasObraPage() {
     setErro("");
     setMensagem("");
 
-    if (
-      !podeCriarEtapa
-    ) {
+    if (!podeCriarEtapa) {
       setErro(
-        "Você não possui permissão para criar uma etapa nesta obra."
+        "Você não possui um setor válido para criar uma etapa."
+      );
+
+      return;
+    }
+
+    if (!novoTitulo.trim()) {
+      setErro(
+        "Informe o título da etapa."
       );
 
       return;
@@ -690,14 +606,11 @@ function EtapasObraPage() {
 
     if (
       !administrador &&
-      (
-        !obraNoSetorDoUsuario ||
-        novoSetorId !==
-          setorUsuarioId
-      )
+      novoSetorId !==
+        setorUsuarioId
     ) {
       setErro(
-        "Você só pode criar uma etapa para o próprio setor enquanto a obra estiver nele."
+        "Você só pode criar uma etapa para o próprio setor."
       );
 
       return;
@@ -712,6 +625,9 @@ function EtapasObraPage() {
 
         setor_id:
           novoSetorId,
+
+        titulo:
+          novoTitulo.trim(),
 
         responsavel_id:
           novoResponsavelId ||
@@ -730,17 +646,14 @@ function EtapasObraPage() {
 
         obrigatoria:
           novaObrigatoria,
-
-        ordem:
-          novaOrdem
-            ? Number(
-                novaOrdem
-              )
-            : null,
       });
 
       setMensagem(
         "Etapa criada com sucesso."
+      );
+
+      setNovoTitulo(
+        ""
       );
 
       setNovoResponsavelId(
@@ -752,10 +665,6 @@ function EtapasObraPage() {
       );
 
       setNovaObservacao(
-        ""
-      );
-
-      setNovaOrdem(
         ""
       );
 
@@ -816,6 +725,14 @@ function EtapasObraPage() {
       return;
     }
 
+    if (!edicao.titulo.trim()) {
+      setErro(
+        "O título da etapa não pode ficar vazio."
+      );
+
+      return;
+    }
+
     try {
       setErro("");
       setMensagem("");
@@ -827,6 +744,9 @@ function EtapasObraPage() {
       await atualizarEtapaObra(
         etapa.id,
         {
+          titulo:
+            edicao.titulo.trim(),
+
           responsavel_id:
             edicao.responsavel_id ||
             null,
@@ -861,13 +781,6 @@ function EtapasObraPage() {
 
           obrigatoria:
             edicao.obrigatoria,
-
-          ordem:
-            edicao.ordem
-              ? Number(
-                  edicao.ordem
-                )
-              : null,
         }
       );
 
@@ -918,10 +831,15 @@ function EtapasObraPage() {
     ) {
       const confirmado =
         window.confirm(
-          `Deseja concluir a etapa do setor "${
+          `Deseja concluir a Etapa ${
+            etapa.ordem ?? "sem número"
+          } — ${
             etapa.setor?.nome ||
-            "não informado"
-          }"?`
+            "Setor não informado"
+          } — ${
+            etapa.titulo ||
+            "Sem título"
+          }?`
         );
 
       if (!confirmado) {
@@ -986,6 +904,71 @@ function EtapasObraPage() {
       setErro(
         error?.message ||
           "Não foi possível alterar a etapa."
+      );
+    } finally {
+      setExecutandoAcaoId(
+        null
+      );
+    }
+  }
+
+  async function excluirEtapa(
+    etapa: EtapaObra
+  ) {
+    if (
+      !podeEditarEtapa(
+        etapa
+      )
+    ) {
+      setErro(
+        "Você não possui permissão para excluir esta etapa."
+      );
+
+      return;
+    }
+
+    const confirmado =
+      window.confirm(
+        `Deseja excluir a Etapa ${
+          etapa.ordem ?? "sem número"
+        } — ${
+          etapa.setor?.nome ||
+          "Setor não informado"
+        } — ${
+          etapa.titulo ||
+          "Sem título"
+        }? Esta ação não poderá ser desfeita.`
+      );
+
+    if (!confirmado) {
+      return;
+    }
+
+    try {
+      setErro("");
+      setMensagem("");
+      setExecutandoAcaoId(
+        etapa.id
+      );
+
+      await excluirEtapaObra(
+        etapa.id
+      );
+
+      setMensagem(
+        "Etapa excluída com sucesso."
+      );
+
+      await carregarDados();
+    } catch (error: any) {
+      console.error(
+        "Erro ao excluir etapa:",
+        error
+      );
+
+      setErro(
+        error?.message ||
+          "Não foi possível excluir a etapa."
       );
     } finally {
       setExecutandoAcaoId(
@@ -1081,11 +1064,34 @@ function EtapasObraPage() {
             </h3>
 
             <p className="mt-1 text-sm text-muted-foreground">
-              Adicione um setor ao fluxo desta obra.
+              Adicione uma nova etapa ao fluxo desta obra. A numeração será definida automaticamente.
             </p>
           </div>
 
           <div className="grid gap-5 md:grid-cols-2">
+            <div className="space-y-2 md:col-span-2">
+              <label className="text-sm font-medium">
+                Título da etapa *
+              </label>
+
+              <input
+                type="text"
+                value={
+                  novoTitulo
+                }
+                onChange={(
+                  event
+                ) =>
+                  setNovoTitulo(
+                    event.target.value
+                  )
+                }
+                placeholder="Ex.: Dimensionamento hidráulico"
+                required
+                className="h-11 w-full rounded-lg border px-3 text-sm outline-none focus:border-blue-500"
+              />
+            </div>
+
             <div className="space-y-2">
               <label className="text-sm font-medium">
                 Setor
@@ -1130,7 +1136,7 @@ function EtapasObraPage() {
 
               {!administrador && (
                 <p className="text-xs text-muted-foreground">
-                  A etapa será criada somente para o seu setor, enquanto a obra estiver nele.
+                  A etapa será criada para o seu setor.
                 </p>
               )}
             </div>
@@ -1198,28 +1204,6 @@ function EtapasObraPage() {
               />
             </div>
 
-            <div className="space-y-2">
-              <label className="text-sm font-medium">
-                Ordem
-              </label>
-
-              <input
-                type="number"
-                min="1"
-                value={
-                  novaOrdem
-                }
-                onChange={(
-                  event
-                ) =>
-                  setNovaOrdem(
-                    event.target.value
-                  )
-                }
-                placeholder="Ex.: 1"
-                className="h-11 w-full rounded-lg border px-3 text-sm outline-none focus:border-blue-500"
-              />
-            </div>
           </div>
 
           <div className="space-y-2">
@@ -1280,6 +1264,7 @@ function EtapasObraPage() {
               type="submit"
               disabled={
                 criando ||
+                !novoTitulo.trim() ||
                 !novoSetorId
               }
               className="flex cursor-pointer items-center gap-2 rounded-lg bg-slate-950 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
@@ -1363,9 +1348,9 @@ function EtapasObraPage() {
 
                         <div>
                           <h3 className="text-lg font-semibold">
-                            {etapa.setor
-                              ?.nome ||
-                              "Setor não informado"}
+                            Etapa {etapa.ordem ?? indice + 1} —{" "}
+                            {etapa.setor?.nome || "Setor não informado"} —{" "}
+                            {etapa.titulo || "Sem título"}
                           </h3>
 
                           <p className="mt-1 text-xs text-muted-foreground">
@@ -1433,6 +1418,33 @@ function EtapasObraPage() {
                   </div>
 
                   <div className="mt-5 grid gap-5 md:grid-cols-2">
+                    <div className="space-y-2 md:col-span-2">
+                      <label className="text-sm font-medium">
+                        Título da etapa *
+                      </label>
+
+                      <input
+                        type="text"
+                        value={
+                          edicao.titulo
+                        }
+                        onChange={(
+                          event
+                        ) =>
+                          atualizarEdicao(
+                            etapa.id,
+                            "titulo",
+                            event.target.value
+                          )
+                        }
+                        disabled={
+                          !podeEditar
+                        }
+                        required
+                        className="h-11 w-full rounded-lg border px-3 text-sm outline-none focus:border-blue-500 disabled:cursor-not-allowed disabled:bg-muted"
+                      />
+                    </div>
+
                     <div className="space-y-2">
                       <label className="text-sm font-medium">
                         Status
@@ -1582,33 +1594,6 @@ function EtapasObraPage() {
                       />
                     </div>
 
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">
-                        Ordem
-                      </label>
-
-                      <input
-                        type="number"
-                        min="1"
-                        value={
-                          edicao.ordem
-                        }
-                        onChange={(
-                          event
-                        ) =>
-                          atualizarEdicao(
-                            etapa.id,
-                            "ordem",
-                            event.target.value
-                          )
-                        }
-                        disabled={
-                          !podeEditar
-                        }
-                        className="h-11 w-full rounded-lg border px-3 text-sm outline-none focus:border-blue-500 disabled:cursor-not-allowed disabled:bg-muted"
-                      />
-                    </div>
-
                     <label className="flex cursor-pointer items-center gap-3 self-end pb-3 text-sm">
                       <input
                         type="checkbox"
@@ -1733,27 +1718,47 @@ function EtapasObraPage() {
                     )}
 
                     {podeEditar && (
-                      <button
-                        type="button"
-                        onClick={() =>
-                          salvarEtapa(
-                            etapa
-                          )
-                        }
-                        disabled={
-                          salvando ||
-                          executando
-                        }
-                        className="flex cursor-pointer items-center gap-2 rounded-lg bg-slate-950 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
-                      >
-                        {salvando ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <Save className="h-4 w-4" />
-                        )}
+                      <div className="flex flex-wrap items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            excluirEtapa(
+                              etapa
+                            )
+                          }
+                          disabled={
+                            salvando ||
+                            executando
+                          }
+                          className="flex cursor-pointer items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm font-medium text-red-700 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          <Trash2 className="h-4 w-4" />
 
-                        Salvar alterações
-                      </button>
+                          Excluir etapa
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() =>
+                            salvarEtapa(
+                              etapa
+                            )
+                          }
+                          disabled={
+                            salvando ||
+                            executando
+                          }
+                          className="flex cursor-pointer items-center gap-2 rounded-lg bg-slate-950 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          {salvando ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Save className="h-4 w-4" />
+                          )}
+
+                          Salvar alterações
+                        </button>
+                      </div>
                     )}
                   </div>
                 </article>
