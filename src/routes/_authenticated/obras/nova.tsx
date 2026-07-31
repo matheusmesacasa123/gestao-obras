@@ -15,6 +15,16 @@ import {
 import { criarObra } from "@/features/obras/services/obras-service";
 import { getClientes, type Cliente } from "@/features/clientes/services/clientes-service";
 
+type SetorObra = {
+  id: string;
+  nome: string;
+};
+
+type PerfilUsuarioObra = {
+  setor_id: string | null;
+  administrador: boolean;
+};
+
 export const Route = createFileRoute(
   "/_authenticated/obras/nova"
 )({
@@ -25,11 +35,16 @@ function NovaObraPage(){
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [clientesLista, setClientesLista] = useState<Cliente[]>([]);
+  const [setoresLista, setSetoresLista] = useState<SetorObra[]>([]);
   const [modoNovoCliente, setModoNovoCliente] = useState(false);
+  const [usuarioAdministrador, setUsuarioAdministrador] = useState(false);
+  const [carregandoPermissoes, setCarregandoPermissoes] = useState(true);
+  const [erroPermissoes, setErroPermissoes] = useState("");
 
   const [form, setForm] = useState({
     // Gerais
     codigo:"",
+    setor_id:"",
     cliente_id:"", // ID do cliente selecionado
     novoClienteNome:"", // Nome para cadastro rápido
     novoClienteTelefone:"", // Telefone para cadastro rápido
@@ -72,11 +87,102 @@ function NovaObraPage(){
     observacoes:"",
   });
 
-  // Busca a lista de clientes ao carregar a página
+  // Busca clientes, usuário atual e setores disponíveis ao carregar a página
   useEffect(() => {
-    getClientes()
-      .then(setClientesLista)
-      .catch((err) => console.error("Erro ao carregar clientes:", err));
+    async function carregarDadosIniciais() {
+      try {
+        setCarregandoPermissoes(true);
+        setErroPermissoes("");
+
+        const [clientes, respostaAuth] = await Promise.all([
+          getClientes(),
+          supabase.auth.getUser(),
+        ]);
+
+        setClientesLista(clientes);
+
+        const usuarioAuth = respostaAuth.data.user;
+
+        if (respostaAuth.error || !usuarioAuth) {
+          throw respostaAuth.error || new Error("Usuário não autenticado.");
+        }
+
+        const {
+          data: perfil,
+          error: erroPerfil,
+        } = await supabase
+          .from("usuarios")
+          .select("setor_id, administrador")
+          .eq("id", usuarioAuth.id)
+          .single();
+
+        if (erroPerfil) {
+          throw erroPerfil;
+        }
+
+        const perfilUsuario = perfil as PerfilUsuarioObra;
+        const administrador = Boolean(perfilUsuario.administrador);
+
+        setUsuarioAdministrador(administrador);
+
+        let consultaSetores = supabase
+          .from("setores")
+          .select("id, nome")
+          .eq("ativo", true)
+          .order("nome", {
+            ascending: true,
+          });
+
+        if (!administrador) {
+          if (!perfilUsuario.setor_id) {
+            setSetoresLista([]);
+            setErroPermissoes(
+              "Seu usuário ainda não possui um setor definido. Solicite o ajuste no painel administrativo."
+            );
+            return;
+          }
+
+          consultaSetores = consultaSetores.eq(
+            "id",
+            perfilUsuario.setor_id
+          );
+        }
+
+        const {
+          data: setores,
+          error: erroSetores,
+        } = await consultaSetores;
+
+        if (erroSetores) {
+          throw erroSetores;
+        }
+
+        const setoresEncontrados =
+          (setores || []) as SetorObra[];
+
+        setSetoresLista(setoresEncontrados);
+
+        if (!administrador && perfilUsuario.setor_id) {
+          setForm((estadoAtual) => ({
+            ...estadoAtual,
+            setor_id: perfilUsuario.setor_id || "",
+          }));
+        }
+      } catch (error) {
+        console.error(
+          "Erro ao carregar dados iniciais da obra:",
+          error
+        );
+
+        setErroPermissoes(
+          "Não foi possível carregar seu setor e as permissões para cadastrar a obra."
+        );
+      } finally {
+        setCarregandoPermissoes(false);
+      }
+    }
+
+    carregarDadosIniciais();
   }, []);
 
   function formatarCnpj(valor:string){
@@ -125,12 +231,18 @@ function NovaObraPage(){
   ){
     e.preventDefault();
 
+    if (!form.setor_id) {
+      alert("Selecione o setor responsável pela obra.");
+      return;
+    }
+
     try{
       setLoading(true);
 
       // Utiliza a função criarObra do service para tratar o cliente (existente ou novo)
       await criarObra({
         codigo: form.codigo || null,
+        setor_id: form.setor_id,
         cliente_id: form.cliente_id || null,
         novoClienteNome: modoNovoCliente ? form.novoClienteNome : undefined,
         novoClienteTelefone: modoNovoCliente ? form.novoClienteTelefone : undefined,
@@ -230,6 +342,56 @@ function NovaObraPage(){
               className="border rounded-lg p-3"
               required
             />
+
+            <div className="space-y-1">
+              <label
+                htmlFor="setor_id"
+                className="text-sm font-medium text-gray-700"
+              >
+                Setor responsável *
+              </label>
+
+              <select
+                id="setor_id"
+                name="setor_id"
+                value={form.setor_id}
+                onChange={handleChange}
+                disabled={
+                  carregandoPermissoes ||
+                  !usuarioAdministrador
+                }
+                required
+                className="border rounded-lg p-3 bg-white w-full disabled:cursor-not-allowed disabled:bg-gray-100"
+              >
+                <option value="">
+                  {carregandoPermissoes
+                    ? "Carregando setores..."
+                    : "Selecione o setor responsável..."}
+                </option>
+
+                {setoresLista.map((setor) => (
+                  <option
+                    key={setor.id}
+                    value={setor.id}
+                  >
+                    {setor.nome}
+                  </option>
+                ))}
+              </select>
+
+              {!usuarioAdministrador &&
+                form.setor_id && (
+                  <p className="text-xs text-muted-foreground">
+                    A obra será vinculada automaticamente ao seu setor.
+                  </p>
+                )}
+            </div>
+
+            {erroPermissoes && (
+              <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+                {erroPermissoes}
+              </div>
+            )}
 
             {/* Bloco condicional para Cliente: Select da lista (exibindo apenas o nome) ou Inputs de Cadastro Rápido */}
             {!modoNovoCliente ? (
@@ -485,7 +647,11 @@ function NovaObraPage(){
         />
 
         <button
-          disabled={loading}
+          disabled={
+            loading ||
+            carregandoPermissoes ||
+            !form.setor_id
+          }
           className="
             bg-black
             text-white

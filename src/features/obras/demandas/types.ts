@@ -4,15 +4,12 @@ export type StatusDemanda =
   | "concluida"
   | "cancelada";
 
-
 export type PrioridadeDemanda =
   | "baixa"
   | "media"
   | "alta";
 
-
 export interface Demanda {
-
   id: string;
 
   obra_id: string;
@@ -29,10 +26,13 @@ export interface Demanda {
 
   prazo: string | null;
 
+  data_conclusao: string | null;
+
+  motivo_atraso: string | null;
+
   criado_por: string | null;
 
   created_at: string;
 
   updated_at: string;
-
 }

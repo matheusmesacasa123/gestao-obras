@@ -10,14 +10,19 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as CadastroRouteImport } from './routes/cadastro'
 import { Route as ClientesRouteImport } from './routes/clientes'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as RelatoriosRouteImport } from './routes/relatorios'
+import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
+import { Route as AuthenticatedMinhaContaRouteImport } from './routes/_authenticated/minha-conta'
+import { Route as AuthenticatedTramitacoesRouteImport } from './routes/_authenticated/tramitacoes'
 import { Route as AuthenticatedObrasIndexRouteImport } from './routes/_authenticated/obras/index'
 import { Route as AuthenticatedObrasIdRouteImport } from './routes/_authenticated/obras/$id'
 import { Route as AuthenticatedObrasNovaRouteImport } from './routes/_authenticated/obras/nova'
 import { Route as AuthenticatedObrasIdIndexRouteImport } from './routes/_authenticated/obras/$id/index'
 import { Route as AuthenticatedObrasIdEditarRouteImport } from './routes/_authenticated/obras/$id/editar'
+import { Route as AuthenticatedObrasIdEtapasRouteImport } from './routes/_authenticated/obras/$id/etapas'
 import { Route as AuthenticatedObrasIdCronogramaIndexRouteImport } from './routes/_authenticated/obras/$id/cronograma/index'
 import { Route as AuthenticatedObrasIdDemandasIndexRouteImport } from './routes/_authenticated/obras/$id/demandas/index'
 import { Route as AuthenticatedObrasIdDemandasEditarRouteImport } from './routes/_authenticated/obras/$id/demandas/editar'
@@ -28,6 +33,11 @@ import { Route as AuthenticatedObrasIdEquipamentosIndexRouteImport } from './rou
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CadastroRoute = CadastroRouteImport.update({
+  id: '/cadastro',
+  path: '/cadastro',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ClientesRoute = ClientesRouteImport.update({
@@ -45,6 +55,22 @@ const RelatoriosRoute = RelatoriosRouteImport.update({
   path: '/relatorios',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
+  id: '/_authenticated/admin',
+  path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedMinhaContaRoute = AuthenticatedMinhaContaRouteImport.update({
+  id: '/_authenticated/minha-conta',
+  path: '/minha-conta',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedTramitacoesRoute =
+  AuthenticatedTramitacoesRouteImport.update({
+    id: '/_authenticated/tramitacoes',
+    path: '/tramitacoes',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AuthenticatedObrasIndexRoute = AuthenticatedObrasIndexRouteImport.update({
   id: '/_authenticated/obras/',
   path: '/obras/',
@@ -70,6 +96,12 @@ const AuthenticatedObrasIdEditarRoute =
   AuthenticatedObrasIdEditarRouteImport.update({
     id: '/editar',
     path: '/editar',
+    getParentRoute: () => AuthenticatedObrasIdRoute,
+  } as any)
+const AuthenticatedObrasIdEtapasRoute =
+  AuthenticatedObrasIdEtapasRouteImport.update({
+    id: '/etapas',
+    path: '/etapas',
     getParentRoute: () => AuthenticatedObrasIdRoute,
   } as any)
 const AuthenticatedObrasIdCronogramaIndexRoute =
@@ -111,13 +143,18 @@ const AuthenticatedObrasIdEquipamentosIndexRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/cadastro': typeof CadastroRoute
   '/clientes': typeof ClientesRoute
   '/login': typeof LoginRoute
   '/relatorios': typeof RelatoriosRoute
+  '/admin': typeof AuthenticatedAdminRoute
+  '/minha-conta': typeof AuthenticatedMinhaContaRoute
+  '/tramitacoes': typeof AuthenticatedTramitacoesRoute
   '/obras/$id': typeof AuthenticatedObrasIdRouteWithChildren
   '/obras/nova': typeof AuthenticatedObrasNovaRoute
   '/obras/': typeof AuthenticatedObrasIndexRoute
   '/obras/$id/editar': typeof AuthenticatedObrasIdEditarRoute
+  '/obras/$id/etapas': typeof AuthenticatedObrasIdEtapasRoute
   '/obras/$id/': typeof AuthenticatedObrasIdIndexRoute
   '/obras/$id/demandas/editar': typeof AuthenticatedObrasIdDemandasEditarRoute
   '/obras/$id/demandas/nova': typeof AuthenticatedObrasIdDemandasNovaRoute
@@ -128,12 +165,17 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/cadastro': typeof CadastroRoute
   '/clientes': typeof ClientesRoute
   '/login': typeof LoginRoute
   '/relatorios': typeof RelatoriosRoute
+  '/admin': typeof AuthenticatedAdminRoute
+  '/minha-conta': typeof AuthenticatedMinhaContaRoute
+  '/tramitacoes': typeof AuthenticatedTramitacoesRoute
   '/obras/nova': typeof AuthenticatedObrasNovaRoute
   '/obras': typeof AuthenticatedObrasIndexRoute
   '/obras/$id/editar': typeof AuthenticatedObrasIdEditarRoute
+  '/obras/$id/etapas': typeof AuthenticatedObrasIdEtapasRoute
   '/obras/$id': typeof AuthenticatedObrasIdIndexRoute
   '/obras/$id/demandas/editar': typeof AuthenticatedObrasIdDemandasEditarRoute
   '/obras/$id/demandas/nova': typeof AuthenticatedObrasIdDemandasNovaRoute
@@ -145,13 +187,18 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/cadastro': typeof CadastroRoute
   '/clientes': typeof ClientesRoute
   '/login': typeof LoginRoute
   '/relatorios': typeof RelatoriosRoute
+  '/_authenticated/admin': typeof AuthenticatedAdminRoute
+  '/_authenticated/minha-conta': typeof AuthenticatedMinhaContaRoute
+  '/_authenticated/tramitacoes': typeof AuthenticatedTramitacoesRoute
   '/_authenticated/obras/$id': typeof AuthenticatedObrasIdRouteWithChildren
   '/_authenticated/obras/nova': typeof AuthenticatedObrasNovaRoute
   '/_authenticated/obras/': typeof AuthenticatedObrasIndexRoute
   '/_authenticated/obras/$id/editar': typeof AuthenticatedObrasIdEditarRoute
+  '/_authenticated/obras/$id/etapas': typeof AuthenticatedObrasIdEtapasRoute
   '/_authenticated/obras/$id/': typeof AuthenticatedObrasIdIndexRoute
   '/_authenticated/obras/$id/demandas/editar': typeof AuthenticatedObrasIdDemandasEditarRoute
   '/_authenticated/obras/$id/demandas/nova': typeof AuthenticatedObrasIdDemandasNovaRoute
@@ -164,13 +211,18 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/cadastro'
     | '/clientes'
     | '/login'
     | '/relatorios'
+    | '/admin'
+    | '/minha-conta'
+    | '/tramitacoes'
     | '/obras/$id'
     | '/obras/nova'
     | '/obras/'
     | '/obras/$id/editar'
+    | '/obras/$id/etapas'
     | '/obras/$id/'
     | '/obras/$id/demandas/editar'
     | '/obras/$id/demandas/nova'
@@ -181,12 +233,17 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/cadastro'
     | '/clientes'
     | '/login'
     | '/relatorios'
+    | '/admin'
+    | '/minha-conta'
+    | '/tramitacoes'
     | '/obras/nova'
     | '/obras'
     | '/obras/$id/editar'
+    | '/obras/$id/etapas'
     | '/obras/$id'
     | '/obras/$id/demandas/editar'
     | '/obras/$id/demandas/nova'
@@ -197,13 +254,18 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/cadastro'
     | '/clientes'
     | '/login'
     | '/relatorios'
+    | '/_authenticated/admin'
+    | '/_authenticated/minha-conta'
+    | '/_authenticated/tramitacoes'
     | '/_authenticated/obras/$id'
     | '/_authenticated/obras/nova'
     | '/_authenticated/obras/'
     | '/_authenticated/obras/$id/editar'
+    | '/_authenticated/obras/$id/etapas'
     | '/_authenticated/obras/$id/'
     | '/_authenticated/obras/$id/demandas/editar'
     | '/_authenticated/obras/$id/demandas/nova'
@@ -215,9 +277,13 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  CadastroRoute: typeof CadastroRoute
   ClientesRoute: typeof ClientesRoute
   LoginRoute: typeof LoginRoute
   RelatoriosRoute: typeof RelatoriosRoute
+  AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
+  AuthenticatedMinhaContaRoute: typeof AuthenticatedMinhaContaRoute
+  AuthenticatedTramitacoesRoute: typeof AuthenticatedTramitacoesRoute
   AuthenticatedObrasIdRoute: typeof AuthenticatedObrasIdRouteWithChildren
   AuthenticatedObrasNovaRoute: typeof AuthenticatedObrasNovaRoute
   AuthenticatedObrasIndexRoute: typeof AuthenticatedObrasIndexRoute
@@ -230,6 +296,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cadastro': {
+      id: '/cadastro'
+      path: '/cadastro'
+      fullPath: '/cadastro'
+      preLoaderRoute: typeof CadastroRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/clientes': {
@@ -251,6 +324,27 @@ declare module '@tanstack/react-router' {
       path: '/relatorios'
       fullPath: '/relatorios'
       preLoaderRoute: typeof RelatoriosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/admin': {
+      id: '/_authenticated/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AuthenticatedAdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/minha-conta': {
+      id: '/_authenticated/minha-conta'
+      path: '/minha-conta'
+      fullPath: '/minha-conta'
+      preLoaderRoute: typeof AuthenticatedMinhaContaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/tramitacoes': {
+      id: '/_authenticated/tramitacoes'
+      path: '/tramitacoes'
+      fullPath: '/tramitacoes'
+      preLoaderRoute: typeof AuthenticatedTramitacoesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/obras/': {
@@ -286,6 +380,13 @@ declare module '@tanstack/react-router' {
       path: '/editar'
       fullPath: '/obras/$id/editar'
       preLoaderRoute: typeof AuthenticatedObrasIdEditarRouteImport
+      parentRoute: typeof AuthenticatedObrasIdRoute
+    }
+    '/_authenticated/obras/$id/etapas': {
+      id: '/_authenticated/obras/$id/etapas'
+      path: '/etapas'
+      fullPath: '/obras/$id/etapas'
+      preLoaderRoute: typeof AuthenticatedObrasIdEtapasRouteImport
       parentRoute: typeof AuthenticatedObrasIdRoute
     }
     '/_authenticated/obras/$id/cronograma/': {
@@ -335,6 +436,7 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedObrasIdRouteChildren {
   AuthenticatedObrasIdEditarRoute: typeof AuthenticatedObrasIdEditarRoute
+  AuthenticatedObrasIdEtapasRoute: typeof AuthenticatedObrasIdEtapasRoute
   AuthenticatedObrasIdIndexRoute: typeof AuthenticatedObrasIdIndexRoute
   AuthenticatedObrasIdDemandasEditarRoute: typeof AuthenticatedObrasIdDemandasEditarRoute
   AuthenticatedObrasIdDemandasNovaRoute: typeof AuthenticatedObrasIdDemandasNovaRoute
@@ -346,6 +448,7 @@ interface AuthenticatedObrasIdRouteChildren {
 
 const AuthenticatedObrasIdRouteChildren: AuthenticatedObrasIdRouteChildren = {
   AuthenticatedObrasIdEditarRoute: AuthenticatedObrasIdEditarRoute,
+  AuthenticatedObrasIdEtapasRoute: AuthenticatedObrasIdEtapasRoute,
   AuthenticatedObrasIdIndexRoute: AuthenticatedObrasIdIndexRoute,
   AuthenticatedObrasIdDemandasEditarRoute:
     AuthenticatedObrasIdDemandasEditarRoute,
@@ -365,9 +468,13 @@ const AuthenticatedObrasIdRouteWithChildren =
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  CadastroRoute: CadastroRoute,
   ClientesRoute: ClientesRoute,
   LoginRoute: LoginRoute,
   RelatoriosRoute: RelatoriosRoute,
+  AuthenticatedAdminRoute: AuthenticatedAdminRoute,
+  AuthenticatedMinhaContaRoute: AuthenticatedMinhaContaRoute,
+  AuthenticatedTramitacoesRoute: AuthenticatedTramitacoesRoute,
   AuthenticatedObrasIdRoute: AuthenticatedObrasIdRouteWithChildren,
   AuthenticatedObrasNovaRoute: AuthenticatedObrasNovaRoute,
   AuthenticatedObrasIndexRoute: AuthenticatedObrasIndexRoute,

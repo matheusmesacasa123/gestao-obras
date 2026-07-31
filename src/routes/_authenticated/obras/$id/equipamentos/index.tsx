@@ -1,34 +1,28 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import {
+  createFileRoute,
+} from "@tanstack/react-router";
 
-
-import { ObraModuleLayout } from "@/features/obras/components/obra-module-layout";
-
-import { useObra } from "@/features/obras/hooks/use-obra";
-
+import {
+  useCallback,
+  useEffect,
+  useState,
+} from "react";
 
 import {
   getEquipamentosPorObra,
 } from "@/features/obras/equipamentos/services/equipamentos-service";
 
-
 import {
   EquipamentoForm,
 } from "@/features/obras/equipamentos/components/equipamento-form";
-
 
 import {
   EquipamentoList,
 } from "@/features/obras/equipamentos/components/equipamento-list";
 
-
 import type {
   Equipamento,
 } from "@/features/obras/equipamentos/types";
-
-
-
-
 
 export const Route = createFileRoute(
   "/_authenticated/obras/$id/equipamentos/"
@@ -36,282 +30,75 @@ export const Route = createFileRoute(
   component: EquipamentosPage,
 });
 
-
-
-
-
-
-
-function EquipamentosPage(){
-
-
-
+function EquipamentosPage() {
   const { id } = Route.useParams();
 
+  const [equipamentos, setEquipamentos] =
+    useState<Equipamento[]>([]);
 
+  const [loading, setLoading] = useState(true);
+  const [erro, setErro] = useState(false);
 
+  const carregarEquipamentos = useCallback(async () => {
+    try {
+      setLoading(true);
+      setErro(false);
 
-  const {
-
-    obra,
-
-    loading: loadingObra,
-
-    error: errorObra,
-
-  } = useObra(id);
-
-
-
-
-
-
-  const [
-
-    equipamentos,
-
-    setEquipamentos
-
-  ] = useState<Equipamento[]>([]);
-
-
-
-
-
-
-  const [
-
-    loading,
-
-    setLoading
-
-  ] = useState(true);
-
-
-
-
-
-
-
-
-  async function carregarEquipamentos(){
-
-
-
-    try{
-
-
-
-      const data =
-
-        await getEquipamentosPorObra(id);
-
-
+      const data = await getEquipamentosPorObra(id);
 
       setEquipamentos(data);
-
-
-
-
-    }catch(error){
-
-
-
+    } catch (error) {
       console.error(
-
         "Erro ao buscar equipamentos:",
-
         error
-
       );
 
-
-
-
-    }finally{
-
-
-
+      setErro(true);
+    } finally {
       setLoading(false);
-
-
-
     }
+  }, [id]);
 
-
-
-  }
-
-
-
-
-
-
-
-
-  useEffect(()=>{
-
-
-
+  useEffect(() => {
     carregarEquipamentos();
+  }, [carregarEquipamentos]);
 
-
-
-  },[id]);
-
-
-
-
-
-
-
-
-
-  if(
-
-    loading ||
-
-    loadingObra
-
-  ){
-
-
-
+  if (loading) {
     return (
-
-      <div className="p-8">
-
+      <div className="border rounded-2xl p-8 bg-white shadow-sm">
         Carregando equipamentos...
-
       </div>
-
     );
-
-
-
   }
 
-
-
-
-
-
-
-
-
-  if(
-
-    errorObra ||
-
-    !obra
-
-  ){
-
-
-
+  if (erro) {
     return (
-
-      <div className="p-8">
-
-        Erro ao carregar obra.
-
+      <div className="border rounded-2xl p-8 bg-white shadow-sm">
+        Erro ao carregar equipamentos.
       </div>
-
     );
-
-
-
   }
-
-
-
-
-
-
-
-
 
   return (
+    <div className="space-y-8">
+      <div>
+        <h2 className="text-2xl font-bold">
+          Equipamentos
+        </h2>
 
-    <ObraModuleLayout obra={obra}>
-
-
-      <div className="space-y-8">
-
-
-
-
-
-
-        <div>
-
-
-          <h2 className="text-2xl font-bold">
-
-            Equipamentos
-
-          </h2>
-
-
-
-          <p className="text-muted-foreground">
-
-            Controle dos equipamentos previstos para a obra.
-
-          </p>
-
-
-
-        </div>
-
-
-
-
-
-
-
-
-
-        <EquipamentoForm
-
-
-          obraId={id}
-
-
-          onSuccess={carregarEquipamentos}
-
-
-        />
-
-
-
-
-
-
-
-
-
-        <EquipamentoList
-
-
-          equipamentos={equipamentos}
-
-
-        />
-
-
-
-
-
-
-
+        <p className="text-muted-foreground">
+          Controle dos equipamentos previstos para a obra.
+        </p>
       </div>
 
+      <EquipamentoForm
+        obraId={id}
+        onSuccess={carregarEquipamentos}
+      />
 
-    </ObraModuleLayout>
-
+      <EquipamentoList
+        equipamentos={equipamentos}
+      />
+    </div>
   );
-
-
-
 }

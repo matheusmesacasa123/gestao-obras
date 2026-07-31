@@ -1,9 +1,12 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import {
+  createFileRoute,
+} from "@tanstack/react-router";
 
-import { ObraModuleLayout } from "@/features/obras/components/obra-module-layout";
-
-import { useObra } from "@/features/obras/hooks/use-obra";
+import {
+  useCallback,
+  useEffect,
+  useState,
+} from "react";
 
 import {
   getDocumentosPorObra,
@@ -30,86 +33,71 @@ export const Route = createFileRoute(
 function DocumentosPage() {
   const { id } = Route.useParams();
 
-  const {
-    obra,
-    loading: loadingObra,
-    error: errorObra,
-  } = useObra(id);
+  const [documentos, setDocumentos] = useState<Documento[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [erro, setErro] = useState(false);
 
-  const [
-    documentos,
-    setDocumentos,
-  ] = useState<Documento[]>([]);
-
-  const [
-    loading,
-    setLoading,
-  ] = useState(true);
-
-  async function carregarDocumentos() {
+  const carregarDocumentos = useCallback(async () => {
     try {
-      const data =
-        await getDocumentosPorObra(id);
+      setLoading(true);
+      setErro(false);
+
+      const data = await getDocumentosPorObra(id);
+
       setDocumentos(data);
-    } catch(error) {
+    } catch (error) {
       console.error(
         "Erro ao buscar documentos:",
         error
       );
+
+      setErro(true);
     } finally {
       setLoading(false);
     }
-  }
+  }, [id]);
 
-  useEffect(()=>{
+  useEffect(() => {
     carregarDocumentos();
-  },[id]);
+  }, [carregarDocumentos]);
 
-  if(
-    loading ||
-    loadingObra
-  ){
+  if (loading) {
     return (
-      <div className="p-8">
+      <div className="border rounded-2xl p-8 bg-white shadow-sm">
         Carregando documentos...
       </div>
     );
   }
 
-  if(
-    errorObra ||
-    !obra
-  ){
+  if (erro) {
     return (
-      <div className="p-8">
-        Erro ao carregar obra.
+      <div className="border rounded-2xl p-8 bg-white shadow-sm">
+        Erro ao carregar documentos.
       </div>
     );
   }
 
   return (
-    <ObraModuleLayout obra={obra}>
-      <div className="space-y-8">
-        <div>
-          <h2 className="text-2xl font-bold">
-            Documentos
-          </h2>
+    <div className="space-y-8">
+      <div>
+        <h2 className="text-2xl font-bold">
+          Documentos
+        </h2>
 
-          <p className="text-muted-foreground">
-            Controle dos documentos da obra.
-          </p>
-        </div>
-
-        <DocumentoForm
-          obraId={id}
-          onSuccess={carregarDocumentos}
-        />
-
-        <DocumentoList
-          documentos={documentos}
-          onDelete={carregarDocumentos}
-        />
+        <p className="text-muted-foreground">
+          Controle dos documentos da obra.
+        </p>
       </div>
-    </ObraModuleLayout>
+
+      <DocumentoForm
+        obraId={id}
+        onSuccess={carregarDocumentos}
+      />
+
+      <DocumentoList
+        documentos={documentos}
+        onDelete={carregarDocumentos}
+      />
+    </div>
   );
 }

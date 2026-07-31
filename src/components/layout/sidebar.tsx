@@ -1,412 +1,230 @@
-import { Link, useRouterState } from "@tanstack/react-router";
+import {
+  Link,
+  useRouterState,
+} from "@tanstack/react-router";
 
 import {
-  LayoutDashboard,
+  ArrowRightLeft,
   Building2,
-  Users,
   FileText,
+  LayoutDashboard,
+  ShieldCheck,
+  Users,
 } from "lucide-react";
 
+import {
+  useAuth,
+} from "@/features/auth/auth-context";
 
-
-
+type MenuItem = {
+  nome: string;
+  rota: string;
+  icone: React.ElementType;
+};
 
 export function Sidebar() {
+  const {
+    perfil,
+  } = useAuth();
 
+  const pathname =
+    useRouterState({
+      select: (
+        state
+      ) =>
+        state.location.pathname,
+    });
 
+  const administrador =
+    Boolean(
+      perfil?.administrador
+    );
 
-  const pathname = useRouterState({
-
-    select:(state)=>
-      state.location.pathname,
-
-  });
-
-
-
-
-
-
-  const menus = [
-
-
+  const menus: MenuItem[] = [
     {
-      nome:"Dashboard",
-      rota:"/",
-      icone:LayoutDashboard,
+      nome:
+        "Dashboard",
+      rota:
+        "/",
+      icone:
+        LayoutDashboard,
     },
-
-
     {
-      nome:"Obras",
-      rota:"/obras",
-      icone:Building2,
+      nome:
+        "Obras",
+      rota:
+        "/obras",
+      icone:
+        Building2,
     },
-
-
     {
-      nome:"Clientes",
-      rota:"/clientes",
-      icone:Users,
+      nome:
+        "Tramitação",
+      rota:
+        "/tramitacoes",
+      icone:
+        ArrowRightLeft,
     },
-
-
     {
-      nome:"Relatórios",
-      rota:"/relatorios",
-      icone:FileText,
+      nome:
+        "Clientes",
+      rota:
+        "/clientes",
+      icone:
+        Users,
     },
-
-
+    {
+      nome:
+        "Relatórios",
+      rota:
+        "/relatorios",
+      icone:
+        FileText,
+    },
   ];
 
+  function estaAtiva(
+    rota: string
+  ) {
+    if (
+      rota === "/"
+    ) {
+      return (
+        pathname === "/"
+      );
+    }
 
-
-
-
-
-
-
+    return pathname.startsWith(
+      rota
+    );
+  }
 
   return (
-
-
-
-    <aside
-
-      className="
-        w-64
-        min-h-screen
-        bg-slate-950
-        text-white
-        flex
-        flex-col
-        p-6
-      "
-
-    >
-
-
-
-
-
-
-
+    <aside className="flex min-h-screen w-64 flex-col bg-slate-950 p-6 text-white">
       <div className="mb-10">
-
-
-
-
-
-        <div
-
-          className="
-            flex
-            items-center
-            mb-4
-          "
-
-        >
-
-
-
+        <div className="mb-4 flex items-center">
           <img
-
             src="/kemia-logo.png"
-
             alt="Kemia"
-
-            className="
-              h-14
-              w-auto
-              object-contain
-            "
-
+            className="h-14 w-auto object-contain"
           />
-
-
-
         </div>
 
-
-
-
-
-
-
-        <p
-
-          className="
-            text-sm
-            text-white
-            font-medium
-          "
-
-        >
-
+        <p className="text-sm font-medium text-white">
           Gestão de Obras
-
-
         </p>
-
-
-
-
-
       </div>
-
-
-
-
-
-
-
-
 
       <div className="mb-3">
-
-
-        <p
-
-          className="
-            text-xs
-            uppercase
-            tracking-wider
-            text-slate-500
-          "
-
-        >
-
+        <p className="text-xs uppercase tracking-wider text-slate-500">
           Menu
-
-
         </p>
-
-
       </div>
 
-
-
-
-
-
-
-
-
-      <nav
-
-        className="
-          flex
-          flex-col
-          gap-2
-        "
-
-      >
-
-
-
-
-
-        {
-
-          menus.map((menu)=>{
-
-
+      <nav className="flex flex-col gap-2">
+        {menus.map(
+          (
+            menu
+          ) => {
+            const Icon =
+              menu.icone;
 
             const ativa =
-
-              menu.rota === "/"
-
-              ?
-
-              pathname === "/"
-
-              :
-
-              pathname.startsWith(menu.rota);
-
-
-
-
-
-
-
-            const Icon = menu.icone;
-
-
-
-
-
-
+              estaAtiva(
+                menu.rota
+              );
 
             return (
-
-
-
               <Link
-
-
-
-                key={menu.nome}
-
-
-
-                to={menu.rota}
-
-
-
+                key={
+                  menu.nome
+                }
+                to={
+                  menu.rota
+                }
                 className={`
-
                   flex
-
-                  items-center
-
-                  gap-3
-
-                  px-4
-
-                  py-3
-
-                  rounded-xl
-
-                  text-sm
-
                   cursor-pointer
-
+                  items-center
+                  gap-3
+                  rounded-xl
+                  px-4
+                  py-3
+                  text-sm
                   transition
-
-
                   ${
-
                     ativa
-
-                    ?
-
-                    "bg-white text-slate-950 font-semibold"
-
-                    :
-
-                    "text-slate-300 hover:bg-slate-800 hover:text-white"
-
+                      ? "bg-white font-semibold text-slate-950"
+                      : "text-slate-300 hover:bg-slate-800 hover:text-white"
                   }
-
-
                 `}
-
-
-
               >
-
-
-
-
                 <Icon
-
-                  size={18}
-
+                  size={
+                    18
+                  }
                 />
 
-
-
-
-
-                {menu.nome}
-
-
-
-
-
+                {
+                  menu.nome
+                }
               </Link>
-
-
-
             );
-
-
-
-          })
-
-        }
-
-
-
-
-
-
-
+          }
+        )}
       </nav>
 
+      <div className="mt-auto space-y-6">
+        {administrador && (
+          <div className="border-t border-slate-800 pt-6">
+            <p className="mb-3 text-xs uppercase tracking-wider text-slate-500">
+              Administração
+            </p>
 
+            <Link
+              to="/admin"
+              className={`
+                flex
+                cursor-pointer
+                items-center
+                gap-3
+                rounded-xl
+                px-4
+                py-3
+                text-sm
+                transition
+                ${
+                  pathname.startsWith(
+                    "/admin"
+                  )
+                    ? "bg-white font-semibold text-slate-950"
+                    : "text-slate-300 hover:bg-slate-800 hover:text-white"
+                }
+              `}
+            >
+              <ShieldCheck
+                size={
+                  18
+                }
+              />
 
+              Painel administrativo
+            </Link>
+          </div>
+        )}
 
+        <div className="border-t border-slate-800 pt-6">
+          <p className="text-xs text-slate-400">
+            Sistema interno
+          </p>
 
-
-
-
-
-      <div
-
-        className="
-          mt-auto
-          pt-6
-          border-t
-          border-slate-800
-        "
-
-      >
-
-
-
-
-
-        <p
-
-          className="
-            text-xs
-            text-slate-400
-          "
-
-        >
-
-          Sistema interno
-
-
-        </p>
-
-
-
-
-        <p
-
-          className="
-            text-xs
-            text-slate-600
-            mt-1
-          "
-
-        >
-
-          Kemia Engenharia
-
-
-        </p>
-
-
-
-
-
+          <p className="mt-1 text-xs text-slate-600">
+            Kemia Engenharia
+          </p>
+        </div>
       </div>
-
-
-
-
-
-
-
     </aside>
-
-
   );
-
-
 }
+
+export default Sidebar;

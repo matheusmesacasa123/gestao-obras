@@ -1,8 +1,20 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import {
+  createFileRoute,
+  useNavigate,
+} from "@tanstack/react-router";
 
-import { supabase } from "@/integrations/supabase/client";
+import {
+  useState,
+  type FormEvent,
+} from "react";
 
+import {
+  supabase,
+} from "@/integrations/supabase/client";
+
+import type {
+  PrioridadeDemanda,
+} from "@/features/obras/demandas/types";
 
 export const Route = createFileRoute(
   "/_authenticated/obras/$id/demandas/nova"
@@ -10,406 +22,231 @@ export const Route = createFileRoute(
   component: NovaDemandaPage,
 });
 
-
-
-function NovaDemandaPage(){
-
-
+function NovaDemandaPage() {
   const { id } = Route.useParams();
-
   const navigate = useNavigate();
 
+  const [titulo, setTitulo] =
+    useState("");
 
+  const [descricao, setDescricao] =
+    useState("");
 
-  const [titulo,setTitulo] = useState("");
+  const [prioridade, setPrioridade] =
+    useState<PrioridadeDemanda>(
+      "media"
+    );
 
-  const [descricao,setDescricao] = useState("");
+  const [prazo, setPrazo] =
+    useState("");
 
-  const [prioridade,setPrioridade] = useState<
-    "baixa" | "media" | "alta"
-  >("media");
+  const [loading, setLoading] =
+    useState(false);
 
-  const [prazo,setPrazo] = useState("");
+  async function criarDemanda(
+    event: FormEvent<HTMLFormElement>
+  ) {
+    event.preventDefault();
 
-  const [loading,setLoading] = useState(false);
-
-
-
-
-
-  async function criarDemanda(){
-
-
-    if(!titulo){
-
-      alert("Informe o título da demanda");
+    if (!titulo.trim()) {
+      alert(
+        "Informe o título da demanda."
+      );
 
       return;
-
     }
 
-
-
-    try{
-
-
+    try {
       setLoading(true);
-
-
 
       const { error } = await supabase
         .from("demandas")
         .insert({
-
           obra_id: id,
 
-          titulo: titulo,
+          titulo:
+            titulo.trim(),
 
-          descricao: descricao || null,
+          descricao:
+            descricao.trim() || null,
 
-          prioridade: prioridade,
+          status: "aberta",
 
-          prazo: prazo || null,
+          prioridade,
 
+          prazo:
+            prazo || null,
+
+          data_conclusao: null,
+
+          motivo_atraso: null,
         });
 
-
-
-
-
-      if(error){
-
-
+      if (error) {
         console.error(
-          "ERRO SUPABASE:",
+          "Erro Supabase:",
           error
         );
 
-
         alert(error.message);
-
-
         return;
-
-
       }
 
-
-
-
-
       navigate({
-
-        to:"/obras/$id/demandas",
-
-        params:{
+        to: "/obras/$id/demandas",
+        params: {
           id,
         },
-
       });
-
-
-
-    }catch(error){
-
-
+    } catch (error) {
       console.error(
-        "ERRO GERAL:",
+        "Erro ao criar demanda:",
         error
       );
 
-
-    }finally{
-
-
+      alert(
+        "Erro ao criar a demanda."
+      );
+    } finally {
       setLoading(false);
-
-
     }
-
-
   }
 
-
-
-
-
-
-
-
   return (
-
     <div className="p-8 space-y-8">
-
-
-
       <button
-
-        onClick={()=>navigate({
-
-          to:"/obras/$id/demandas",
-
-          params:{
-            id,
-          },
-
-        })}
-
+        type="button"
+        onClick={() =>
+          navigate({
+            to: "/obras/$id/demandas",
+            params: {
+              id,
+            },
+          })
+        }
         className="text-sm underline"
-
       >
-
         ← Voltar para demandas
-
       </button>
 
-
-
-
-
-
       <div>
-
-
         <h1 className="text-3xl font-bold">
-
-          Nova Demanda
-
+          Nova demanda
         </h1>
 
-
         <p className="text-muted-foreground">
-
-          Cadastre uma nova atividade para esta obra.
-
+          Cadastre uma nova atividade
+          para esta obra.
         </p>
-
-
       </div>
 
-
-
-
-
-
-
-
-      <div className="
-        border
-        rounded-xl
-        p-6
-        space-y-5
-        max-w-2xl
-      ">
-
-
-
-
-
+      <form
+        onSubmit={criarDemanda}
+        className="max-w-2xl space-y-5 rounded-xl border p-6"
+      >
         <div className="space-y-2">
-
-
-          <label className="font-medium">
-
+          <label
+            htmlFor="nova-demanda-titulo"
+            className="font-medium"
+          >
             Título
-
           </label>
-
 
           <input
-
+            id="nova-demanda-titulo"
             value={titulo}
-
-            onChange={(e)=>setTitulo(e.target.value)}
-
-            className="
-              w-full
-              border
-              rounded-lg
-              px-3
-              py-2
-            "
-
-            placeholder="Ex: Projeto hidráulico"
-
+            onChange={(event) =>
+              setTitulo(event.target.value)
+            }
+            className="w-full rounded-lg border px-3 py-2"
+            placeholder="Ex.: Projeto hidráulico"
+            required
           />
-
-
         </div>
 
-
-
-
-
-
-
         <div className="space-y-2">
-
-
-          <label className="font-medium">
-
+          <label
+            htmlFor="nova-demanda-descricao"
+            className="font-medium"
+          >
             Descrição
-
           </label>
-
 
           <textarea
-
+            id="nova-demanda-descricao"
             value={descricao}
-
-            onChange={(e)=>setDescricao(e.target.value)}
-
-            className="
-              w-full
-              border
-              rounded-lg
-              px-3
-              py-2
-              min-h-32
-            "
-
-          />
-
-        </div>
-
-
-
-
-
-
-
-
-        <div className="space-y-2">
-
-
-          <label className="font-medium">
-
-            Prioridade
-
-          </label>
-
-
-          <select
-
-            value={prioridade}
-
-            onChange={(e)=>
-              setPrioridade(
-                e.target.value as
-                "baixa" | "media" | "alta"
+            onChange={(event) =>
+              setDescricao(
+                event.target.value
               )
             }
+            className="min-h-32 w-full rounded-lg border px-3 py-2"
+            placeholder="Descreva a atividade..."
+          />
+        </div>
 
-            className="
-              w-full
-              border
-              rounded-lg
-              px-3
-              py-2
-            "
-
+        <div className="space-y-2">
+          <label
+            htmlFor="nova-demanda-prioridade"
+            className="font-medium"
           >
+            Prioridade
+          </label>
 
+          <select
+            id="nova-demanda-prioridade"
+            value={prioridade}
+            onChange={(event) =>
+              setPrioridade(
+                event.target
+                  .value as PrioridadeDemanda
+              )
+            }
+            className="w-full rounded-lg border px-3 py-2"
+          >
             <option value="baixa">
               Baixa
             </option>
-
 
             <option value="media">
               Média
             </option>
 
-
             <option value="alta">
               Alta
             </option>
-
-
           </select>
-
-
         </div>
-
-
-
-
-
-
-
 
         <div className="space-y-2">
-
-
-          <label className="font-medium">
-
+          <label
+            htmlFor="nova-demanda-prazo"
+            className="font-medium"
+          >
             Prazo
-
           </label>
 
-
           <input
-
+            id="nova-demanda-prazo"
             type="date"
-
             value={prazo}
-
-            onChange={(e)=>setPrazo(e.target.value)}
-
-            className="
-              w-full
-              border
-              rounded-lg
-              px-3
-              py-2
-            "
-
+            onChange={(event) =>
+              setPrazo(event.target.value)
+            }
+            className="w-full rounded-lg border px-3 py-2"
           />
-
-
         </div>
 
-
-
-
-
-
-
-
         <button
-
+          type="submit"
           disabled={loading}
-
-          onClick={criarDemanda}
-
-          className="
-            border
-            rounded-lg
-            px-5
-            py-2
-            hover:bg-muted
-          "
-
+          className="rounded-lg border px-5 py-2 transition hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
         >
-
-          {
-            loading
+          {loading
             ? "Salvando..."
-            : "Criar Demanda"
-          }
-
-
+            : "Criar demanda"}
         </button>
-
-
-
-
-
-      </div>
-
-
-
+      </form>
     </div>
-
   );
-
 }

@@ -3,15 +3,15 @@ import {
 } from "@tanstack/react-router";
 
 import {
-  LoginForm,
-} from "@/features/auth/login-form";
+  CadastroForm,
+} from "@/features/auth/cadastro-form";
 
 export const Route =
-  createFileRoute("/login")({
-    component: LoginPage,
+  createFileRoute("/cadastro")({
+    component: CadastroPage,
   });
 
-function LoginPage() {
+function CadastroPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-slate-100 p-6">
       <div className="w-full max-w-sm">
@@ -27,7 +27,7 @@ function LoginPage() {
           </p>
         </div>
 
-        <LoginForm />
+        <CadastroForm />
       </div>
     </div>
   );

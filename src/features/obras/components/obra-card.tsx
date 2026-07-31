@@ -1,217 +1,891 @@
-// src/features/obras/components/obra-card.tsx
+import {
+  Link,
+  useNavigate,
+} from "@tanstack/react-router";
 
-import { Link, useNavigate } from "@tanstack/react-router";
-import { deletarObra } from "../services/obras-service";
+import {
+  Building2,
+  CalendarDays,
+  Eye,
+  Layers3,
+} from "lucide-react";
 
-export interface Obra {
-  id: string;
-  codigo?: string | null;
-  cliente?: string | null;
-  tipo_projeto?: string | null;
-  vazao?: number | null;
-  status?: string | null;
-  progresso?: number | null;
-  data_entrega_esperada?: string | null;
-  data_entrega?: string | null;
-}
+import {
+  useAuth,
+} from "@/features/auth/auth-context";
+
+import {
+  deletarObra,
+} from "../services/obras-service";
+
+import type {
+  EtapaObraResumo,
+  Obra,
+  StatusEtapaObra,
+} from "../types";
 
 interface ObraCardProps {
   obra: Obra;
   onDelete?: () => void;
 }
 
-function getStatusStyle(
-  status?: string | null,
-  dataEntregaEsperada?: string | null,
-  dataEntrega?: string | null
+function parseData(
+  data?: string | null
 ) {
-  const hoje = new Date();
-  hoje.setHours(0, 0, 0, 0);
-
-  const parseData = (d?: string | null) => {
-    if (!d) return null;
-    const [ano, mes, dia] = d.split("-").map(Number);
-    return new Date(ano, mes - 1, dia);
-  };
-
-  const dataEsperada = parseData(dataEntregaEsperada);
-  const dataFinal = parseData(dataEntrega);
-
-  if (status === "concluida" || dataFinal) {
-    if (dataEsperada && dataFinal && dataFinal > dataEsperada) {
-      return {
-        label: "Finalizada com atraso",
-        className: "bg-amber-100 text-amber-800 border-amber-300",
-      };
-    }
-
-    return {
-      label: "Finalizada",
-      className: "bg-green-100 text-green-800 border-green-300",
-    };
+  if (!data) {
+    return null;
   }
 
-  if (dataEsperada) {
-    const diffEmTempo = dataEsperada.getTime() - hoje.getTime();
-    const diffEmDias = Math.ceil(diffEmTempo / (1000 * 3600 * 24));
+  const [
+    ano,
+    mes,
+    dia,
+  ] = data
+    .split("-")
+    .map(Number);
 
-    if (diffEmDias < 0) {
-      return {
-        label: "Em andamento (Atrasada)",
-        className: "bg-red-100 text-red-800 border-red-300",
-      };
-    }
+  const dataFormatada =
+    new Date(
+      ano,
+      mes - 1,
+      dia
+    );
 
-    if (diffEmDias <= 3) {
-      return {
-        label: "Em andamento (Atrasando)",
-        className: "bg-red-100 text-red-800 border-red-300",
-      };
-    }
+  if (
+    Number.isNaN(
+      dataFormatada.getTime()
+    )
+  ) {
+    return null;
   }
 
+  dataFormatada.setHours(
+    0,
+    0,
+    0,
+    0
+  );
+
+  return dataFormatada;
+}
+
+function formatarData(
+  data?: string | null
+) {
+  const dataFormatada =
+    parseData(data);
+
+  if (!dataFormatada) {
+    return "Não informado";
+  }
+
+  return new Intl.DateTimeFormat(
+    "pt-BR"
+  ).format(
+    dataFormatada
+  );
+}
+
+function getEtapaStatusInfo(
+  status?: StatusEtapaObra | null
+) {
   switch (status) {
-    case "em_desenvolvimento":
     case "em_andamento":
       return {
-        label: "Em andamento",
-        className: "bg-blue-100 text-blue-800 border-blue-300",
+        label:
+          "Em andamento",
+
+        className:
+          "border-blue-200 bg-blue-50 text-blue-700",
       };
-    case "em_analise":
+
+    case "aguardando_outro_setor":
       return {
-        label: "Em análise",
-        className: "bg-amber-100 text-amber-800 border-amber-300",
+        label:
+          "Aguardando outro setor",
+
+        className:
+          "border-purple-200 bg-purple-50 text-purple-700",
       };
+
     case "aguardando_cliente":
       return {
-        label: "Aguardando cliente",
-        className: "bg-orange-100 text-orange-800 border-orange-300",
+        label:
+          "Aguardando cliente",
+
+        className:
+          "border-orange-200 bg-orange-50 text-orange-700",
       };
+
+    case "bloqueada":
+      return {
+        label:
+          "Bloqueada",
+
+        className:
+          "border-red-200 bg-red-50 text-red-700",
+      };
+
+    case "concluida":
+      return {
+        label:
+          "Concluída",
+
+        className:
+          "border-green-200 bg-green-50 text-green-700",
+      };
+
     default:
       return {
-        label: "Recebida",
-        className: "bg-gray-100 text-gray-800 border-gray-300",
+        label:
+          "Não iniciada",
+
+        className:
+          "border-slate-200 bg-slate-50 text-slate-700",
       };
   }
 }
 
-export function ObraCard({ obra, onDelete }: ObraCardProps) {
-  const navigate = useNavigate();
+function getStatusGeralStyle(
+  obra: Obra
+) {
+  const etapas =
+    obra.etapas ||
+    [];
 
-  const statusInfo = getStatusStyle(
-    obra.status,
-    obra.data_entrega_esperada,
-    obra.data_entrega
+  if (
+    etapas.length ===
+    0
+  ) {
+    if (
+      obra.status ===
+        "concluida" ||
+      obra.data_entrega
+    ) {
+      const dataEsperada =
+        parseData(
+          obra.data_entrega_esperada
+        );
+
+      const dataFinal =
+        parseData(
+          obra.data_entrega
+        );
+
+      if (
+        dataEsperada &&
+        dataFinal &&
+        dataFinal >
+          dataEsperada
+      ) {
+        return {
+          label:
+            "Finalizada com atraso",
+
+          className:
+            "border-amber-300 bg-amber-100 text-amber-800",
+        };
+      }
+
+      return {
+        label:
+          "Finalizada",
+
+        className:
+          "border-green-300 bg-green-100 text-green-800",
+      };
+    }
+
+    switch (
+      obra.status
+    ) {
+      case "em_desenvolvimento":
+        return {
+          label:
+            "Em andamento",
+
+          className:
+            "border-blue-300 bg-blue-100 text-blue-800",
+        };
+
+      case "em_analise":
+        return {
+          label:
+            "Em análise",
+
+          className:
+            "border-amber-300 bg-amber-100 text-amber-800",
+        };
+
+      case "aguardando_cliente":
+        return {
+          label:
+            "Aguardando cliente",
+
+          className:
+            "border-orange-300 bg-orange-100 text-orange-800",
+        };
+
+      default:
+        return {
+          label:
+            "Recebida",
+
+          className:
+            "border-gray-300 bg-gray-100 text-gray-800",
+        };
+    }
+  }
+
+  const etapasObrigatorias =
+    etapas.filter(
+      (etapa) =>
+        etapa.obrigatoria
+    );
+
+  const etapasConsideradas =
+    etapasObrigatorias.length >
+    0
+      ? etapasObrigatorias
+      : etapas;
+
+  const todasConcluidas =
+    etapasConsideradas.every(
+      (etapa) =>
+        etapa.status ===
+        "concluida"
+    );
+
+  if (todasConcluidas) {
+    const dataEsperada =
+      parseData(
+        obra.data_entrega_esperada
+      );
+
+    const datasConclusao =
+      etapasConsideradas
+        .map(
+          (etapa) =>
+            parseData(
+              etapa.data_conclusao
+            )
+        )
+        .filter(
+          (
+            data
+          ): data is Date =>
+            Boolean(data)
+        );
+
+    const dataConclusaoMaisRecente =
+      datasConclusao.length >
+      0
+        ? new Date(
+            Math.max(
+              ...datasConclusao.map(
+                (data) =>
+                  data.getTime()
+              )
+            )
+          )
+        : null;
+
+    if (
+      dataEsperada &&
+      dataConclusaoMaisRecente &&
+      dataConclusaoMaisRecente >
+        dataEsperada
+    ) {
+      return {
+        label:
+          "Finalizada com atraso",
+
+        className:
+          "border-amber-300 bg-amber-100 text-amber-800",
+      };
+    }
+
+    return {
+      label:
+        "Finalizada",
+
+      className:
+        "border-green-300 bg-green-100 text-green-800",
+    };
+  }
+
+  const hoje =
+    new Date();
+
+  hoje.setHours(
+    0,
+    0,
+    0,
+    0
   );
 
-  const progressoValor =
-    obra.progresso ?? (obra.status === "concluida" || obra.data_entrega ? 100 : 0);
+  const possuiEtapaAtrasada =
+    etapasConsideradas.some(
+      (etapa) => {
+        if (
+          etapa.status ===
+            "concluida" ||
+          !etapa.prazo
+        ) {
+          return false;
+        }
 
-  const handleCardClick = () => {
-    navigate({
-      to: "/obras/$id",
-      params: { id: obra.id },
-    });
-  };
+        const prazo =
+          parseData(
+            etapa.prazo
+          );
 
-  async function handleExcluir(e: React.MouseEvent<HTMLButtonElement>) {
-    e.preventDefault();
-    e.stopPropagation();
-
-    const confirmado = window.confirm(
-      `Tem certeza que deseja excluir a obra ${obra.codigo || "sem código"}?`
+        return Boolean(
+          prazo &&
+          prazo <
+            hoje
+        );
+      }
     );
+
+  if (
+    possuiEtapaAtrasada
+  ) {
+    return {
+      label:
+        "Etapa atrasada",
+
+      className:
+        "border-red-300 bg-red-100 text-red-800",
+    };
+  }
+
+  const possuiBloqueada =
+    etapasConsideradas.some(
+      (etapa) =>
+        etapa.status ===
+        "bloqueada"
+    );
+
+  if (
+    possuiBloqueada
+  ) {
+    return {
+      label:
+        "Bloqueada",
+
+      className:
+        "border-red-300 bg-red-100 text-red-800",
+    };
+  }
+
+  const possuiAguardando =
+    etapasConsideradas.some(
+      (etapa) =>
+        etapa.status ===
+          "aguardando_cliente" ||
+        etapa.status ===
+          "aguardando_outro_setor"
+    );
+
+  if (
+    possuiAguardando
+  ) {
+    return {
+      label:
+        "Aguardando",
+
+      className:
+        "border-orange-300 bg-orange-100 text-orange-800",
+    };
+  }
+
+  const possuiEmAndamento =
+    etapasConsideradas.some(
+      (etapa) =>
+        etapa.status ===
+        "em_andamento"
+    );
+
+  if (
+    possuiEmAndamento
+  ) {
+    return {
+      label:
+        "Em andamento",
+
+      className:
+        "border-blue-300 bg-blue-100 text-blue-800",
+    };
+  }
+
+  return {
+    label:
+      "Recebida",
+
+    className:
+      "border-gray-300 bg-gray-100 text-gray-800",
+  };
+}
+
+function calcularProgressoEtapas(
+  obra: Obra
+) {
+  const etapas =
+    obra.etapas ||
+    [];
+
+  if (
+    etapas.length ===
+    0
+  ) {
+    const progresso =
+      obra.progresso ??
+      (
+        obra.status ===
+          "concluida" ||
+        obra.data_entrega
+          ? 100
+          : 0
+      );
+
+    return {
+      progresso:
+        Math.min(
+          100,
+          Math.max(
+            0,
+            progresso
+          )
+        ),
+
+      concluidas:
+        progresso >= 100
+          ? 1
+          : 0,
+
+      total:
+        0,
+
+      possuiEtapas:
+        false,
+    };
+  }
+
+  const etapasObrigatorias =
+    etapas.filter(
+      (etapa) =>
+        etapa.obrigatoria
+    );
+
+  const etapasConsideradas =
+    etapasObrigatorias.length >
+    0
+      ? etapasObrigatorias
+      : etapas;
+
+  const concluidas =
+    etapasConsideradas.filter(
+      (etapa) =>
+        etapa.status ===
+        "concluida"
+    ).length;
+
+  const total =
+    etapasConsideradas.length;
+
+  const progresso =
+    total > 0
+      ? Math.round(
+          (
+            concluidas /
+            total
+          ) *
+            100
+        )
+      : 0;
+
+  return {
+    progresso,
+    concluidas,
+    total,
+    possuiEtapas:
+      true,
+  };
+}
+
+function encontrarEtapaExibida(
+  obra: Obra,
+  setorUsuarioId?: string | null,
+  administrador = false
+): EtapaObraResumo | null {
+  const etapas =
+    obra.etapas ||
+    [];
+
+  if (
+    etapas.length ===
+    0
+  ) {
+    return null;
+  }
+
+  if (
+    !administrador &&
+    setorUsuarioId
+  ) {
+    const etapaUsuario =
+      etapas.find(
+        (etapa) =>
+          etapa.setor_id ===
+          setorUsuarioId
+      );
+
+    if (etapaUsuario) {
+      return etapaUsuario;
+    }
+  }
+
+  if (obra.setor_id) {
+    const etapaSetorAtual =
+      etapas.find(
+        (etapa) =>
+          etapa.setor_id ===
+          obra.setor_id
+      );
+
+    if (
+      etapaSetorAtual
+    ) {
+      return etapaSetorAtual;
+    }
+  }
+
+  const etapaEmAndamento =
+    etapas.find(
+      (etapa) =>
+        etapa.status ===
+        "em_andamento"
+    );
+
+  if (
+    etapaEmAndamento
+  ) {
+    return etapaEmAndamento;
+  }
+
+  const etapaPendente =
+    etapas.find(
+      (etapa) =>
+        etapa.status !==
+        "concluida"
+    );
+
+  return (
+    etapaPendente ||
+    etapas[0] ||
+    null
+  );
+}
+
+export function ObraCard({
+  obra,
+  onDelete,
+}: ObraCardProps) {
+  const navigate =
+    useNavigate();
+
+  const {
+    perfil,
+  } = useAuth();
+
+  const administrador =
+    Boolean(
+      perfil?.administrador
+    );
+
+  const mesmoSetor =
+    Boolean(
+      obra.setor_id &&
+      perfil?.setor_id &&
+      obra.setor_id ===
+        perfil.setor_id
+    );
+
+  const podeGerenciar =
+    administrador ||
+    mesmoSetor;
+
+  const statusInfo =
+    getStatusGeralStyle(
+      obra
+    );
+
+  const progressoEtapas =
+    calcularProgressoEtapas(
+      obra
+    );
+
+  const etapaExibida =
+    encontrarEtapaExibida(
+      obra,
+      perfil?.setor_id,
+      administrador
+    );
+
+  const etapaStatusInfo =
+    getEtapaStatusInfo(
+      etapaExibida?.status
+    );
+
+  const nomeCliente =
+    obra.clientes?.nome ||
+    obra.cliente ||
+    "Cliente não informado";
+
+  const nomeSetor =
+    obra.setor?.nome ||
+    "Setor não atribuído";
+
+  const tituloEtapa =
+    administrador
+      ? "Etapa do setor atual"
+      : "Etapa do meu setor";
+
+  function handleCardClick() {
+    navigate({
+      to:
+        "/obras/$id",
+
+      params: {
+        id:
+          obra.id,
+      },
+    });
+  }
+
+  async function handleExcluir(
+    event: React.MouseEvent<HTMLButtonElement>
+  ) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (!podeGerenciar) {
+      alert(
+        "Você não possui permissão para excluir esta obra."
+      );
+
+      return;
+    }
+
+    const confirmado =
+      window.confirm(
+        `Tem certeza que deseja excluir a obra ${
+          obra.codigo ||
+          "sem código"
+        }?`
+      );
 
     if (!confirmado) {
       return;
     }
 
     try {
-      await deletarObra(obra.id);
-      if (onDelete) {
-        onDelete();
-      }
-    } catch (error: any) {
-      console.error("Erro ao excluir obra:", error);
-      alert(`Erro ao excluir obra: ${error?.message || "Erro desconhecido"}`);
+      await deletarObra(
+        obra.id
+      );
+
+      onDelete?.();
+    } catch (error) {
+      console.error(
+        "Erro ao excluir obra:",
+        error
+      );
+
+      const mensagem =
+        error instanceof Error
+          ? error.message
+          : "Erro desconhecido";
+
+      alert(
+        `Erro ao excluir obra: ${mensagem}`
+      );
     }
   }
 
   return (
     <div
-      onClick={handleCardClick}
-      className="border rounded-2xl p-6 bg-white shadow-sm hover:shadow-md transition-all cursor-pointer space-y-5"
+      onClick={
+        handleCardClick
+      }
+      className="flex h-full cursor-pointer flex-col gap-5 rounded-2xl border bg-white p-6 shadow-sm transition-all hover:shadow-md"
     >
-      <div className="flex items-start justify-between">
-        <div>
-          <h3 className="text-xl font-bold tracking-tight text-gray-900">
-            {obra.codigo || "Sem código"}
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <h3 className="truncate text-xl font-bold tracking-tight text-gray-900">
+            {obra.codigo ||
+              "Sem código"}
           </h3>
-          <p className="text-sm font-medium text-gray-600">
-            {obra.cliente || "Cliente não informado"}
+
+          <p className="truncate text-sm font-medium text-gray-600">
+            {nomeCliente}
           </p>
         </div>
 
         <span
-          className={`text-xs font-semibold px-3 py-1 rounded-full border ${statusInfo.className}`}
+          className={`shrink-0 rounded-full border px-3 py-1 text-xs font-semibold ${statusInfo.className}`}
         >
-          {statusInfo.label}
+          {
+            statusInfo.label
+          }
         </span>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
-        <div className="border rounded-xl p-3 bg-gray-50/50">
-          <span className="text-xs font-medium text-gray-500 block">
-            Projeto
-          </span>
-          <span className="text-sm font-bold text-gray-800">
-            {obra.tipo_projeto || "—"}
-          </span>
-        </div>
+      <div className="flex items-center gap-3 rounded-xl border bg-slate-50 px-4 py-3">
+        <Building2 className="h-5 w-5 shrink-0 text-slate-500" />
 
-        <div className="border rounded-xl p-3 bg-gray-50/50">
-          <span className="text-xs font-medium text-gray-500 block">
-            Vazão
+        <div className="min-w-0">
+          <span className="block text-xs font-medium text-slate-500">
+            Setor atual
           </span>
-          <span className="text-sm font-bold text-gray-800">
-            {obra.vazao ? `${obra.vazao} m³/dia` : "—"}
+
+          <span className="block truncate text-sm font-semibold text-slate-800">
+            {nomeSetor}
           </span>
         </div>
       </div>
 
-      <div className="space-y-1.5">
-        <div className="flex items-center justify-between text-xs font-medium text-gray-600">
-          <span>Progresso</span>
-          <span>{progressoValor}%</span>
+      <div className="grid grid-cols-2 gap-3">
+        <div className="rounded-xl border bg-gray-50/50 p-3">
+          <div className="flex items-center gap-2">
+            <Layers3 className="h-4 w-4 shrink-0 text-slate-500" />
+
+            <span className="block text-xs font-medium text-gray-500">
+              {tituloEtapa}
+            </span>
+          </div>
+
+          {etapaExibida ? (
+            <div className="mt-2 space-y-1">
+              <span
+                className={`inline-flex rounded-full border px-2 py-0.5 text-xs font-semibold ${etapaStatusInfo.className}`}
+              >
+                {
+                  etapaStatusInfo.label
+                }
+              </span>
+
+              <p className="truncate text-xs text-gray-500">
+                {etapaExibida.setor?.nome ||
+                  "Setor não informado"}
+              </p>
+            </div>
+          ) : (
+            <p className="mt-2 text-sm font-semibold text-gray-800">
+              Não cadastrada
+            </p>
+          )}
         </div>
-        <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
+
+        <div className="rounded-xl border bg-gray-50/50 p-3">
+          <div className="flex items-center gap-2">
+            <CalendarDays className="h-4 w-4 shrink-0 text-slate-500" />
+
+            <span className="block text-xs font-medium text-gray-500">
+              Prazo da etapa
+            </span>
+          </div>
+
+          <span className="mt-2 block text-sm font-bold text-gray-800">
+            {etapaExibida
+              ? formatarData(
+                  etapaExibida.prazo
+                )
+              : "Não informado"}
+          </span>
+        </div>
+      </div>
+
+      <div className="mt-auto space-y-1.5">
+        <div className="flex items-center justify-between gap-3 text-xs font-medium text-gray-600">
+          <div>
+            <span className="block">
+              Progresso geral
+            </span>
+
+            {progressoEtapas.possuiEtapas ? (
+              <span className="mt-0.5 block text-[11px] text-gray-500">
+                {
+                  progressoEtapas.concluidas
+                } de{" "}
+                {
+                  progressoEtapas.total
+                } etapas concluídas
+              </span>
+            ) : (
+              <span className="mt-0.5 block text-[11px] text-transparent">
+                Nenhuma etapa cadastrada
+              </span>
+            )}
+          </div>
+
+          <span className="shrink-0">
+            {
+              progressoEtapas.progresso
+            }%
+          </span>
+        </div>
+
+        <div className="h-2 w-full overflow-hidden rounded-full bg-gray-100">
           <div
-            className="bg-emerald-500 h-2 rounded-full transition-all duration-300"
-            style={{ width: `${progressoValor}%` }}
+            className="h-2 rounded-full bg-emerald-500 transition-all duration-300"
+            style={{
+              width:
+                `${progressoEtapas.progresso}%`,
+            }}
           />
         </div>
       </div>
 
-      <div className="flex items-center gap-3 pt-1">
-        <Link
-          to="/obras/$id/editar"
-          params={{ id: obra.id }}
-          onClick={(e) => e.stopPropagation()}
-          className="border rounded-xl px-4 py-2 text-sm font-semibold hover:bg-gray-50 text-gray-800 transition-colors"
-        >
-          Editar
-        </Link>
-
-        {onDelete && (
-          <button
-            type="button"
-            onClick={handleExcluir}
-            className="border border-red-200 text-red-600 rounded-xl px-4 py-2 text-sm font-semibold hover:bg-red-50 transition-colors z-10 relative"
+      {podeGerenciar ? (
+        <div className="flex items-center gap-3 pt-1">
+          <Link
+            to="/obras/$id/editar"
+            params={{
+              id:
+                obra.id,
+            }}
+            onClick={(
+              event
+            ) =>
+              event.stopPropagation()
+            }
+            className="rounded-xl border px-4 py-2 text-sm font-semibold text-gray-800 transition-colors hover:bg-gray-50"
           >
-            Excluir
-          </button>
-        )}
-      </div>
+            Editar
+          </Link>
+
+          {onDelete && (
+            <button
+              type="button"
+              onClick={
+                handleExcluir
+              }
+              className="relative z-10 rounded-xl border border-red-200 px-4 py-2 text-sm font-semibold text-red-600 transition-colors hover:bg-red-50"
+            >
+              Excluir
+            </button>
+          )}
+        </div>
+      ) : (
+        <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600">
+          <Eye className="h-4 w-4 shrink-0" />
+
+          <span>
+            Somente visualização
+          </span>
+        </div>
+      )}
     </div>
   );
 }
