@@ -1,6 +1,7 @@
 import {
   createFileRoute,
   useNavigate,
+  useSearch,
 } from "@tanstack/react-router";
 
 import {
@@ -18,8 +19,10 @@ import {
   CirclePause,
   Clock3,
   Loader2,
+  Plus,
   ShieldAlert,
   Layers3,
+  Trash2,
   UserRound,
   XCircle,
 } from "lucide-react";
@@ -52,10 +55,12 @@ interface UsuarioOpcao {
 interface EtapaOpcao {
   id: string;
   obra_id: string;
+  obra_revisao_id: string;
   setor_id: string;
   titulo: string | null;
   ordem: number | null;
   status: string;
+  prazo: string | null;
   setor:
     | {
         id: string;
@@ -75,6 +80,12 @@ interface ObraPermissao {
         nome: string;
       }
     | null;
+}
+
+interface NovoItemChecklist {
+  idTemporario: string;
+  titulo: string;
+  concluido: boolean;
 }
 
 export const Route =
@@ -208,6 +219,13 @@ function NovaDemandaPage() {
     useNavigate();
 
   const {
+    obraRevisaoId,
+  } = useSearch({
+    from:
+      "/_authenticated/obras/$id",
+  });
+
+  const {
     perfil,
   } = useAuth();
 
@@ -279,9 +297,12 @@ function NovaDemandaPage() {
     );
 
   const [
-    prazo,
-    setPrazo,
-  ] = useState("");
+    numeroRevisaoObra,
+    setNumeroRevisaoObra,
+  ] = useState<number | null>(
+    null
+  );
+
 
   const [
     dataInicio,
@@ -307,6 +328,18 @@ function NovaDemandaPage() {
     loading,
     setLoading,
   ] = useState(false);
+
+  const [
+    itensChecklist,
+    setItensChecklist,
+  ] = useState<NovoItemChecklist[]>(
+    []
+  );
+
+  const [
+    novoItemChecklist,
+    setNovoItemChecklist,
+  ] = useState("");
 
   const [
     carregandoPermissao,
@@ -527,56 +560,109 @@ function NovaDemandaPage() {
   ]);
 
   useEffect(() => {
-    async function carregarEtapas() {
+    async function carregarEtapasDaRevisao() {
       try {
         setCarregandoEtapas(
           true
         );
 
-        const {
-          data,
-          error,
-        } = await supabase
-          .from("etapas_obras")
-          .select(`
-            id,
-            obra_id,
-            setor_id,
-            titulo,
-            ordem,
-            status,
-            setor:setores (
-              id,
-              nome
-            )
-          `)
-          .eq(
-            "obra_id",
-            id
-          )
-          .order(
-            "ordem",
-            {
-              ascending:
-                true,
-            }
+        setErroOpcoes("");
+
+        if (!obraRevisaoId) {
+          setEtapas([]);
+          setEtapaId("");
+          setNumeroRevisaoObra(
+            null
           );
 
-        if (error) {
-          throw error;
+          setErroOpcoes(
+            "Selecione uma revisão da obra no cabeçalho."
+          );
+
+          return;
         }
+
+        const [
+          respostaRevisao,
+          respostaEtapas,
+        ] = await Promise.all([
+          supabase
+            .from("obra_revisoes")
+            .select(
+              "id, obra_id, numero_revisao, status"
+            )
+            .eq(
+              "id",
+              obraRevisaoId
+            )
+            .eq(
+              "obra_id",
+              id
+            )
+            .single(),
+
+          supabase
+            .from("etapas_obras")
+            .select(`
+              id,
+              obra_id,
+              obra_revisao_id,
+              setor_id,
+              titulo,
+              ordem,
+              status,
+              prazo,
+              setor:setores (
+                id,
+                nome
+              )
+            `)
+            .eq(
+              "obra_id",
+              id
+            )
+            .eq(
+              "obra_revisao_id",
+              obraRevisaoId
+            )
+            .order(
+              "ordem",
+              {
+                ascending:
+                  true,
+              }
+            ),
+        ]);
+
+        if (
+          respostaRevisao.error
+        ) {
+          throw respostaRevisao.error;
+        }
+
+        if (
+          respostaEtapas.error
+        ) {
+          throw respostaEtapas.error;
+        }
+
+        setNumeroRevisaoObra(
+          respostaRevisao.data.numero_revisao
+        );
 
         const etapasEncontradas =
           (
-            data ??
+            respostaEtapas.data ??
             []
-          ) as EtapaOpcao[];
+          ) as unknown as EtapaOpcao[];
 
         const etapasPermitidas =
           administrador
             ? etapasEncontradas
             : etapasEncontradas.filter(
-                (etapa) =>
+                (
+                  etapa
+                ) =>
                   etapa.setor_id ===
                   perfil?.setor_id
               );
@@ -585,31 +671,72 @@ function NovaDemandaPage() {
           etapasPermitidas
         );
 
+        setEtapaId(
+          (
+            etapaAtual
+          ) => {
+            const etapaAindaExiste =
+              etapasPermitidas.some(
+                (
+                  etapa
+                ) =>
+                  etapa.id ===
+                  etapaAtual
+              );
+
+            if (
+              etapaAindaExiste
+            ) {
+              return etapaAtual;
+            }
+
+            return (
+              etapasPermitidas[0]?.id ||
+              ""
+            );
+          }
+        );
+
+        const primeiraEtapa =
+          etapasPermitidas[0];
+
+        if (
+          primeiraEtapa
+        ) {
+          setSetorId(
+            primeiraEtapa.setor_id
+          );
+        } else {
+          setSetorId("");
+        }
+
         if (
           etapasPermitidas.length ===
-          1
+          0
         ) {
-          const etapaUnica =
-            etapasPermitidas[0];
-
-          setEtapaId(
-            etapaUnica.id
-          );
-
-          setSetorId(
-            etapaUnica.setor_id
+          setErroOpcoes(
+            administrador
+              ? "Nenhuma etapa foi cadastrada nesta revisão da obra."
+              : "Nenhuma etapa desta revisão está disponível para o seu setor."
           );
         }
       } catch (error) {
         console.error(
-          "Erro ao carregar etapas da obra:",
+          "Erro ao carregar etapas da revisão da obra:",
           error
         );
 
         setEtapas([]);
+        setEtapaId("");
+        setSetorId("");
+        setNumeroRevisaoObra(
+          null
+        );
 
         setErroOpcoes(
-          "Não foi possível carregar as etapas da obra."
+          error instanceof Error
+            ? error.message
+            : "Não foi possível carregar as etapas da revisão selecionada."
         );
       } finally {
         setCarregandoEtapas(
@@ -618,12 +745,14 @@ function NovaDemandaPage() {
       }
     }
 
-    carregarEtapas();
+    carregarEtapasDaRevisao();
   }, [
     id,
+    obraRevisaoId,
     administrador,
     perfil?.setor_id,
   ]);
+
 
   useEffect(() => {
     if (!setorId) {
@@ -744,11 +873,28 @@ function NovaDemandaPage() {
   const StatusIcon =
     statusVisual.icone;
 
+  const prazoEtapaSelecionada =
+    useMemo(
+      () =>
+        etapas.find(
+          (
+            etapa
+          ) =>
+            etapa.id ===
+            etapaId
+        )?.prazo ||
+        "",
+      [
+        etapas,
+        etapaId,
+      ]
+    );
+
   const finalizadaComAtraso =
     useMemo(() => {
       const dataPrazo =
         converterParaDataLocal(
-          prazo
+          prazoEtapaSelecionada
         );
 
       const dataFinal =
@@ -763,7 +909,7 @@ function NovaDemandaPage() {
             dataPrazo
       );
     }, [
-      prazo,
+      prazoEtapaSelecionada,
       dataConclusao,
     ]);
 
@@ -780,7 +926,7 @@ function NovaDemandaPage() {
 
       const dataPrazo =
         converterParaDataLocal(
-          prazo
+          prazoEtapaSelecionada
         );
 
       if (!dataPrazo) {
@@ -802,13 +948,101 @@ function NovaDemandaPage() {
         hoje
       );
     }, [
-      prazo,
+      prazoEtapaSelecionada,
       statusAutomatico,
     ]);
 
   const deveInformarMotivo =
     demandaAtrasada ||
     finalizadaComAtraso;
+
+  const totalItensChecklist =
+    itensChecklist.length;
+
+  const totalItensConcluidos =
+    itensChecklist.filter(
+      (
+        item
+      ) =>
+        item.concluido
+    ).length;
+
+  const checklistCompleto =
+    totalItensChecklist ===
+      0 ||
+    totalItensConcluidos ===
+      totalItensChecklist;
+
+  function adicionarItemChecklist() {
+    const tituloTratado =
+      novoItemChecklist.trim();
+
+    if (!tituloTratado) {
+      return;
+    }
+
+    setItensChecklist(
+      (
+        itensAtuais
+      ) => [
+        ...itensAtuais,
+        {
+          idTemporario:
+            crypto.randomUUID(),
+
+          titulo:
+            tituloTratado,
+
+          concluido:
+            false,
+        },
+      ]
+    );
+
+    setNovoItemChecklist(
+      ""
+    );
+  }
+
+  function alternarItemChecklist(
+    idTemporario: string
+  ) {
+    setItensChecklist(
+      (
+        itensAtuais
+      ) =>
+        itensAtuais.map(
+          (
+            item
+          ) =>
+            item.idTemporario ===
+              idTemporario
+              ? {
+                  ...item,
+                  concluido:
+                    !item.concluido,
+                }
+              : item
+        )
+    );
+  }
+
+  function removerItemChecklist(
+    idTemporario: string
+  ) {
+    setItensChecklist(
+      (
+        itensAtuais
+      ) =>
+        itensAtuais.filter(
+          (
+            item
+          ) =>
+            item.idTemporario !==
+            idTemporario
+        )
+    );
+  }
 
   function voltarParaDemandas() {
     navigate({
@@ -817,6 +1051,10 @@ function NovaDemandaPage() {
 
       params: {
         id,
+      },
+
+      search: {
+        obraRevisaoId,
       },
     });
   }
@@ -942,6 +1180,14 @@ function NovaDemandaPage() {
       return;
     }
 
+    if (!obraRevisaoId) {
+      alert(
+        "Selecione uma revisão da obra no cabeçalho."
+      );
+
+      return;
+    }
+
     if (!etapaId) {
       alert(
         "Selecione a etapa à qual esta demanda pertence."
@@ -953,6 +1199,20 @@ function NovaDemandaPage() {
     if (!setorId) {
       alert(
         "A etapa selecionada não possui um setor válido."
+      );
+
+      return;
+    }
+
+    if (
+      dataConclusao &&
+      !checklistCompleto
+    ) {
+      alert(
+        `Conclua todos os itens do checklist antes de criar a demanda como finalizada. Restam ${
+          totalItensChecklist -
+          totalItensConcluidos
+        } item(ns).`
       );
 
       return;
@@ -1019,6 +1279,7 @@ function NovaDemandaPage() {
       }
 
       const {
+        data: demandaCriada,
         error,
       } = await supabase
         .from("demandas")
@@ -1028,6 +1289,9 @@ function NovaDemandaPage() {
 
           etapa_id:
             etapaId,
+
+          obra_revisao_id:
+            obraRevisaoId,
 
           titulo:
             titulo.trim(),
@@ -1048,10 +1312,6 @@ function NovaDemandaPage() {
             responsavelId ||
             null,
 
-          prazo:
-            prazo ||
-            null,
-
           data_inicio:
             dataInicio ||
             null,
@@ -1067,10 +1327,79 @@ function NovaDemandaPage() {
 
           criado_por:
             respostaAuth.user.id,
-        });
+        })
+        .select(
+          "id"
+        )
+        .single();
 
-      if (error) {
-        throw error;
+      if (
+        error ||
+        !demandaCriada
+      ) {
+        throw (
+          error ||
+          new Error(
+            "A demanda foi criada sem retornar um identificador."
+          )
+        );
+      }
+
+      if (
+        itensChecklist.length >
+        0
+      ) {
+        const agora =
+          new Date()
+            .toISOString()
+            .slice(
+              0,
+              10
+            );
+
+        const {
+          error:
+            erroItens,
+        } = await supabase
+          .from("demanda_itens")
+          .insert(
+            itensChecklist.map(
+              (
+                item,
+                indice
+              ) => ({
+                demanda_id:
+                  demandaCriada.id,
+
+                titulo:
+                  item.titulo,
+
+                concluido:
+                  item.concluido,
+
+                ordem:
+                  indice +
+                  1,
+
+                data_conclusao:
+                  item.concluido
+                    ? agora
+                    : null,
+              })
+            )
+          );
+
+        if (erroItens) {
+          await supabase
+            .from("demandas")
+            .delete()
+            .eq(
+              "id",
+              demandaCriada.id
+            );
+
+          throw erroItens;
+        }
       }
 
       voltarParaDemandas();
@@ -1214,7 +1543,29 @@ function NovaDemandaPage() {
       </div>
 
       <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
-        A demanda será criada para o setor{" "}
+        A demanda será criada na{" "}
+        <strong>
+          Rev.{" "}
+          {String(
+            numeroRevisaoObra ??
+              0
+          ).padStart(
+            2,
+            "0"
+          )}
+        </strong>
+        {" "}da obra, vinculada à etapa{" "}
+        <strong>
+          {etapas.find(
+            (
+              etapa
+            ) =>
+              etapa.id ===
+              etapaId
+          )?.titulo ||
+            "selecionada"}
+        </strong>
+        {" "}e ao setor{" "}
         <strong>
           {setores.find(
             (setor) =>
@@ -1329,7 +1680,9 @@ function NovaDemandaPage() {
                   )
                 }
                 disabled={
-                  carregandoEtapas
+                  carregandoEtapas ||
+                  etapas.length ===
+                    0
                 }
                 required
                 className="h-11 w-full cursor-pointer rounded-xl border border-gray-300 bg-white px-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-gray-100"
@@ -1367,7 +1720,7 @@ function NovaDemandaPage() {
               </select>
 
               <p className="text-xs text-gray-500">
-                O setor responsável será definido automaticamente pela etapa escolhida.
+                Selecione uma das etapas cadastradas na revisão atual da obra.
               </p>
             </div>
 
@@ -1550,6 +1903,149 @@ function NovaDemandaPage() {
         </section>
 
         <section className="space-y-5 rounded-2xl border bg-white p-6 shadow-sm">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h2 className="text-xl font-semibold text-gray-900">
+                Checklist da demanda
+              </h2>
+
+              <p className="mt-1 text-sm text-gray-500">
+                Adicione as tarefas menores que fazem parte desta demanda.
+              </p>
+            </div>
+
+            <span
+              className={`rounded-full border px-3 py-1 text-xs font-semibold ${
+                checklistCompleto &&
+                totalItensChecklist >
+                  0
+                  ? "border-green-200 bg-green-50 text-green-700"
+                  : "border-slate-200 bg-slate-50 text-slate-700"
+              }`}
+            >
+              {totalItensConcluidos} de {totalItensChecklist} concluído(s)
+            </span>
+          </div>
+
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <input
+              type="text"
+              value={
+                novoItemChecklist
+              }
+              onChange={(
+                event
+              ) =>
+                setNovoItemChecklist(
+                  event.target.value
+                )
+              }
+              onKeyDown={(
+                event
+              ) => {
+                if (
+                  event.key ===
+                  "Enter"
+                ) {
+                  event.preventDefault();
+
+                  adicionarItemChecklist();
+                }
+              }}
+              placeholder="Ex.: Calcular bombas"
+              className="h-11 flex-1 rounded-xl border border-gray-300 bg-white px-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+            />
+
+            <button
+              type="button"
+              onClick={
+                adicionarItemChecklist
+              }
+              disabled={
+                !novoItemChecklist.trim()
+              }
+              className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-slate-950 px-4 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <Plus className="h-4 w-4" />
+
+              Adicionar item
+            </button>
+          </div>
+
+          {itensChecklist.length ===
+          0 ? (
+            <div className="rounded-xl border border-dashed bg-slate-50 p-5 text-center text-sm text-gray-500">
+              Nenhum item adicionado. O checklist é opcional.
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {itensChecklist.map(
+                (
+                  item,
+                  indice
+                ) => (
+                  <div
+                    key={
+                      item.idTemporario
+                    }
+                    className="flex items-center gap-3 rounded-xl border bg-slate-50 px-3 py-3"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={
+                        item.concluido
+                      }
+                      onChange={() =>
+                        alternarItemChecklist(
+                          item.idTemporario
+                        )
+                      }
+                      className="h-4 w-4 cursor-pointer"
+                    />
+
+                    <span className="text-xs font-semibold text-gray-400">
+                      {indice +
+                        1}.
+                    </span>
+
+                    <span
+                      className={`min-w-0 flex-1 text-sm ${
+                        item.concluido
+                          ? "text-gray-400 line-through"
+                          : "font-medium text-gray-800"
+                      }`}
+                    >
+                      {item.titulo}
+                    </span>
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        removerItemChecklist(
+                          item.idTemporario
+                        )
+                      }
+                      title="Excluir item"
+                      className="rounded-lg p-2 text-gray-400 transition hover:bg-red-50 hover:text-red-600"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                )
+              )}
+            </div>
+          )}
+
+          {totalItensChecklist >
+            0 &&
+            !checklistCompleto && (
+              <p className="text-xs font-medium text-amber-700">
+                Depois de criada, a demanda só poderá ser finalizada quando todos os itens forem concluídos.
+              </p>
+            )}
+        </section>
+
+        <section className="space-y-5 rounded-2xl border bg-white p-6 shadow-sm">
           <div>
             <h2 className="text-xl font-semibold text-gray-900">
               Execução e prazos
@@ -1560,7 +2056,7 @@ function NovaDemandaPage() {
             </p>
           </div>
 
-          <div className="grid gap-5 md:grid-cols-3">
+          <div className="grid gap-5 md:grid-cols-2">
             <div className="space-y-2">
               <label
                 htmlFor="nova-demanda-data-inicio"
@@ -1579,31 +2075,6 @@ function NovaDemandaPage() {
                   event
                 ) =>
                   handleAlterarInicio(
-                    event.target.value
-                  )
-                }
-                className="h-11 w-full rounded-xl border border-gray-300 bg-white px-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label
-                htmlFor="nova-demanda-prazo"
-                className="text-sm font-semibold text-gray-700"
-              >
-                Prazo
-              </label>
-
-              <input
-                id="nova-demanda-prazo"
-                type="date"
-                value={
-                  prazo
-                }
-                onChange={(
-                  event
-                ) =>
-                  setPrazo(
                     event.target.value
                   )
                 }
@@ -1635,6 +2106,22 @@ function NovaDemandaPage() {
                 className="h-11 w-full rounded-xl border border-gray-300 bg-white px-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
               />
             </div>
+          </div>
+
+          <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-800">
+            <span className="font-semibold">
+              Prazo da demanda:
+            </span>{" "}
+            será definido automaticamente pelo prazo da etapa selecionada
+            {prazoEtapaSelecionada
+              ? ` (${new Intl.DateTimeFormat(
+                  "pt-BR"
+                ).format(
+                  converterParaDataLocal(
+                    prazoEtapaSelecionada
+                  )!
+                )})`
+              : "."}
           </div>
 
           <label className="flex cursor-pointer items-start gap-3 rounded-xl border bg-slate-50 p-4">

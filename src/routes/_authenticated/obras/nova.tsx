@@ -122,8 +122,6 @@ function NovaObraPage() {
     estado: "",
 
     numero_proposta: "",
-    revisao: "",
-    motivo_revisao: "",
 
     vendedor_id: "",
     vendedor: "",
@@ -584,17 +582,6 @@ function NovaObraPage() {
 
         numero_proposta:
           form.numero_proposta ||
-          null,
-
-        revisao:
-          form.revisao
-            ? Number(
-                form.revisao
-              )
-            : 0,
-
-        motivo_revisao:
-          form.motivo_revisao ||
           null,
 
         vendedor_id:
@@ -1126,32 +1113,6 @@ function NovaObraPage() {
 
             <div className="space-y-2">
               <label
-                htmlFor="revisao"
-                className="text-sm font-semibold text-gray-700"
-              >
-                Revisão
-              </label>
-
-              <input
-                id="revisao"
-                name="revisao"
-                type="number"
-                min="0"
-                placeholder="Ex.: 0"
-                value={
-                  form.revisao
-                }
-                onChange={
-                  handleChange
-                }
-                className={
-                  inputClassName
-                }
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label
                 htmlFor="vendedor_id"
                 className="text-sm font-semibold text-gray-700"
               >
@@ -1344,31 +1305,6 @@ function NovaObraPage() {
                 </option>
               </select>
             </div>
-          </div>
-
-          <div className="space-y-2">
-            <label
-              htmlFor="motivo_revisao"
-              className="text-sm font-semibold text-gray-700"
-            >
-              Motivo da revisão
-            </label>
-
-            <textarea
-              id="motivo_revisao"
-              name="motivo_revisao"
-              placeholder="Descreva o motivo da revisão"
-              value={
-                form.motivo_revisao
-              }
-              onChange={
-                handleChange
-              }
-              rows={3}
-              className={
-                textareaClassName
-              }
-            />
           </div>
         </section>
 

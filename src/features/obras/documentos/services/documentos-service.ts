@@ -8,11 +8,37 @@ import type {
   SetorDocumento,
 } from "../types";
 
+export interface DocumentoComentario {
+  id: string;
+  documento_id: string;
+  usuario_id: string;
+  comentario: string;
+  created_at: string;
+  updated_at: string;
+
+  usuario?:
+    | {
+        id: string;
+        nome: string;
+        email: string;
+      }
+    | null;
+}
+
 const consultaDocumento = `
   *,
+  revisao:obra_revisoes!documentos_revisao_obra_fkey (
+    id,
+    obra_id,
+    numero_revisao,
+    status,
+    motivo_revisao,
+    observacao
+  ),
   etapa:etapas_obras!documentos_etapa_id_fkey (
     id,
     obra_id,
+    obra_revisao_id,
     setor_id,
     titulo,
     ordem,
@@ -30,31 +56,57 @@ const consultaDocumento = `
     id,
     nome,
     email
+  ),
+  comentarios:documento_comentarios (
+    id,
+    documento_id,
+    usuario_id,
+    comentario,
+    created_at,
+    updated_at,
+    usuario:usuarios (
+      id,
+      nome,
+      email
+    )
   )
 `;
 
 export async function getDocumentosPorObra(
-  obraId: string
+  obraId: string,
+  obraRevisaoId?: string | null
 ): Promise<Documento[]> {
+  let consulta =
+    supabase
+      .from("documentos")
+      .select(
+        consultaDocumento
+      )
+      .eq(
+        "obra_id",
+        obraId
+      );
+
+  if (
+    obraRevisaoId
+  ) {
+    consulta =
+      consulta.eq(
+        "obra_revisao_id",
+        obraRevisaoId
+      );
+  }
+
   const {
     data,
     error,
-  } = await supabase
-    .from("documentos")
-    .select(
-      consultaDocumento
-    )
-    .eq(
-      "obra_id",
-      obraId
-    )
-    .order(
-      "created_at",
-      {
-        ascending:
-          false,
-      }
-    );
+  } = await consulta.order(
+    "created_at",
+    {
+      ascending:
+        false,
+    }
+  );
 
   if (error) {
     console.error(
@@ -65,43 +117,86 @@ export async function getDocumentosPorObra(
     throw error;
   }
 
-  return (
-    data ??
-    []
-  ) as Documento[];
+  const documentos =
+    (
+      data ??
+      []
+    ) as unknown as Array<
+      Documento & {
+        comentarios?: DocumentoComentario[];
+      }
+    >;
+
+  for (
+    const documento
+    of documentos
+  ) {
+    documento.comentarios =
+      (
+        documento.comentarios ??
+        []
+      ).sort(
+        (
+          comentarioA,
+          comentarioB
+        ) =>
+          new Date(
+            comentarioA.created_at
+          ).getTime() -
+          new Date(
+            comentarioB.created_at
+          ).getTime()
+      );
+  }
+
+  return documentos as Documento[];
 }
 
 export async function getEtapasDocumentosPorObra(
-  obraId: string
+  obraId: string,
+  obraRevisaoId?: string | null
 ): Promise<EtapaDocumento[]> {
+  let consulta =
+    supabase
+      .from("etapas_obras")
+      .select(`
+        id,
+        obra_id,
+        obra_revisao_id,
+        setor_id,
+        titulo,
+        ordem,
+        status,
+        setor:setores (
+          id,
+          nome
+        )
+      `)
+      .eq(
+        "obra_id",
+        obraId
+      );
+
+  if (
+    obraRevisaoId
+  ) {
+    consulta =
+      consulta.eq(
+        "obra_revisao_id",
+        obraRevisaoId
+      );
+  }
+
   const {
     data,
     error,
-  } = await supabase
-    .from("etapas_obras")
-    .select(`
-      id,
-      obra_id,
-      setor_id,
-      titulo,
-      ordem,
-      status,
-      setor:setores (
-        id,
-        nome
-      )
-    `)
-    .eq(
-      "obra_id",
-      obraId
-    )
-    .order(
-      "ordem",
-      {
-        ascending:
-          true,
-      }
-    );
+  } = await consulta.order(
+    "ordem",
+    {
+      ascending:
+        true,
+    }
+  );
 
   if (error) {
     console.error(
@@ -116,6 +211,44 @@ export async function getEtapasDocumentosPorObra(
     data ??
     []
   ) as EtapaDocumento[];
+}
+
+export type ContextoRevisaoDocumento = {
+  id: string;
+  obra_id: string;
+  numero_revisao: number;
+  status: string;
+  motivo_revisao: string | null;
+  observacao: string | null;
+};
+
+export async function getContextoRevisaoDocumento(
+  obraRevisaoId: string
+): Promise<ContextoRevisaoDocumento> {
+  const {
+    data,
+    error,
+  } = await supabase
+    .from("obra_revisoes")
+    .select(
+      "id, obra_id, numero_revisao, status, motivo_revisao, observacao"
+    )
+    .eq(
+      "id",
+      obraRevisaoId
+    )
+    .single();
+
+  if (error) {
+    console.error(
+      "Erro ao buscar revisão selecionada:",
+      error
+    );
+
+    throw error;
+  }
+
+  return data as ContextoRevisaoDocumento;
 }
 
 export async function getSetoresDocumentos(): Promise<
@@ -154,19 +287,17 @@ export async function getSetoresDocumentos(): Promise<
 
 export interface AtualizarDocumentoDados {
   nome: string;
-  categoria:
-    | string
-    | null;
   etapa_id: string;
   setor_id: string;
+  obra_revisao_id?: string;
 }
 
 export async function uploadDocumento(
   obraId: string,
   etapaId: string,
+  obraRevisaoId: string,
   arquivo: File,
   nome: string,
-  categoria: string,
   setorId: string
 ): Promise<Documento> {
   const {
@@ -226,6 +357,9 @@ export async function uploadDocumento(
         etapa_id:
           etapaId,
 
+        obra_revisao_id:
+          obraRevisaoId,
+
         setor_id:
           setorId,
 
@@ -233,10 +367,6 @@ export async function uploadDocumento(
           usuarioData.user.id,
 
         nome,
-
-        categoria:
-          categoria ||
-          null,
 
         arquivo_url:
           urlData.publicUrl,
@@ -340,7 +470,6 @@ export async function deletarDocumento(
   }
 }
 
-
 export async function atualizarDocumento(
   documento: Documento,
   dados: AtualizarDocumentoDados,
@@ -398,14 +527,15 @@ export async function atualizarDocumento(
         nome:
           dados.nome,
 
-        categoria:
-          dados.categoria,
-
         etapa_id:
           dados.etapa_id,
 
         setor_id:
           dados.setor_id,
+
+        obra_revisao_id:
+          dados.obra_revisao_id ||
+          documento.obra_revisao_id,
 
         arquivo_url:
           novaUrl,
@@ -474,6 +604,98 @@ export async function atualizarDocumento(
         );
       }
     }
+
+    throw error;
+  }
+}
+
+export async function criarComentarioDocumento(
+  documentoId: string,
+  comentario: string
+): Promise<DocumentoComentario> {
+  const comentarioTratado =
+    comentario.trim();
+
+  if (!comentarioTratado) {
+    throw new Error(
+      "Escreva um comentário."
+    );
+  }
+
+  const {
+    data: usuarioData,
+    error: usuarioError,
+  } = await supabase.auth.getUser();
+
+  if (
+    usuarioError ||
+    !usuarioData.user
+  ) {
+    throw new Error(
+      "Não foi possível identificar o usuário autenticado."
+    );
+  }
+
+  const {
+    data,
+    error,
+  } = await supabase
+    .from("documento_comentarios")
+    .insert({
+      documento_id:
+        documentoId,
+
+      usuario_id:
+        usuarioData.user.id,
+
+      comentario:
+        comentarioTratado,
+    })
+    .select(`
+      id,
+      documento_id,
+      usuario_id,
+      comentario,
+      created_at,
+      updated_at,
+      usuario:usuarios (
+        id,
+        nome,
+        email
+      )
+    `)
+    .single();
+
+  if (error) {
+    console.error(
+      "Erro ao criar comentário:",
+      error
+    );
+
+    throw error;
+  }
+
+  return data as unknown as DocumentoComentario;
+}
+
+export async function deletarComentarioDocumento(
+  comentarioId: string
+): Promise<void> {
+  const {
+    error,
+  } = await supabase
+    .from("documento_comentarios")
+    .delete()
+    .eq(
+      "id",
+      comentarioId
+    );
+
+  if (error) {
+    console.error(
+      "Erro ao excluir comentário:",
+      error
+    );
 
     throw error;
   }

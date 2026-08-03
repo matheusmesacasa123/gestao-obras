@@ -14,6 +14,7 @@ import {
 } from "react";
 
 import {
+  getContextoRevisaoDocumento,
   getDocumentosPorObra,
   getEtapasDocumentosPorObra,
   getSetoresDocumentos,
@@ -66,6 +67,10 @@ function DocumentosPage() {
     id,
   } = Route.useParams();
 
+  const {
+    obraRevisaoId,
+  } = Route.useSearch();
+
   const [
     documentos,
     setDocumentos,
@@ -78,6 +83,13 @@ function DocumentosPage() {
     setEtapas,
   ] = useState<EtapaDocumento[]>(
     []
+  );
+
+  const [
+    numeroRevisao,
+    setNumeroRevisao,
+  ] = useState<number | null>(
+    null
   );
 
   const [
@@ -102,11 +114,6 @@ function DocumentosPage() {
   const [
     setorFiltro,
     setSetorFiltro,
-  ] = useState("");
-
-  const [
-    etapaFiltro,
-    setEtapaFiltro,
   ] = useState("");
 
   const [
@@ -135,21 +142,38 @@ function DocumentosPage() {
             false
           );
 
+          if (
+            !obraRevisaoId
+          ) {
+            setDocumentos([]);
+            setEtapas([]);
+            setSetores([]);
+            setNumeroRevisao(null);
+            return;
+          }
+
           const [
             documentosData,
             etapasData,
             setoresData,
+            contextoRevisao,
           ] =
             await Promise.all([
               getDocumentosPorObra(
-                id
+                id,
+                obraRevisaoId
               ),
 
               getEtapasDocumentosPorObra(
-                id
+                id,
+                obraRevisaoId
               ),
 
               getSetoresDocumentos(),
+
+              getContextoRevisaoDocumento(
+                obraRevisaoId
+              ),
             ]);
 
           setDocumentos(
@@ -162,6 +186,10 @@ function DocumentosPage() {
 
           setSetores(
             setoresData
+          );
+
+          setNumeroRevisao(
+            contextoRevisao.numero_revisao
           );
         } catch (error) {
           console.error(
@@ -180,6 +208,7 @@ function DocumentosPage() {
       },
       [
         id,
+        obraRevisaoId,
       ]
     );
 
@@ -189,7 +218,8 @@ function DocumentosPage() {
         try {
           const data =
             await getDocumentosPorObra(
-              id
+              id,
+              obraRevisaoId
             );
 
           setDocumentos(
@@ -208,6 +238,7 @@ function DocumentosPage() {
       },
       [
         id,
+        obraRevisaoId,
       ]
     );
 
@@ -234,14 +265,8 @@ function DocumentosPage() {
               documento.setor_id ===
                 setorFiltro;
 
-            const correspondeEtapa =
-              !etapaFiltro ||
-              documento.etapa_id ===
-                etapaFiltro;
-
             if (
-              !correspondeSetor ||
-              !correspondeEtapa
+              !correspondeSetor
             ) {
               return false;
             }
@@ -280,7 +305,6 @@ function DocumentosPage() {
         documentos,
         pesquisa,
         setorFiltro,
-        etapaFiltro,
       ]
     );
 
@@ -308,13 +332,46 @@ function DocumentosPage() {
         </h2>
 
         <p className="text-muted-foreground">
-          Controle dos documentos da obra.
+          Documentos da revisão selecionada da obra.
         </p>
       </div>
+
+      {!obraRevisaoId ? (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-800">
+          Selecione uma revisão da obra no cabeçalho para visualizar e cadastrar documentos.
+        </div>
+      ) : (
+        <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3">
+          <p className="text-sm font-semibold text-blue-950">
+            Rev.{" "}
+            {String(
+              numeroRevisao ??
+                0
+            ).padStart(
+              2,
+              "0"
+            )}
+            {" — "}
+            {etapas.length}{" "}
+            {etapas.length ===
+            1
+              ? "etapa disponível"
+              : "etapas disponíveis"}
+          </p>
+
+          <p className="mt-1 text-xs text-blue-700">
+            A listagem e os novos documentos pertencem somente a esta revisão da obra.
+          </p>
+        </div>
+      )}
 
       <DocumentoForm
         obraId={
           id
+        }
+        obraRevisaoId={
+          obraRevisaoId ||
+          ""
         }
         etapas={
           etapas
@@ -334,11 +391,11 @@ function DocumentosPage() {
           </h3>
 
           <p className="mt-1 text-sm text-gray-500">
-            Pesquise por nome, categoria, etapa, setor responsável ou usuário.
+            Pesquise por nome, setor responsável ou usuário.
           </p>
         </div>
 
-        <div className="grid gap-3 lg:grid-cols-[1fr_260px_260px]">
+        <div className="grid gap-3 lg:grid-cols-[1fr_260px]">
           <label className="relative block">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
 
@@ -358,45 +415,6 @@ function DocumentosPage() {
               className="h-11 w-full rounded-xl border bg-white pl-10 pr-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
             />
           </label>
-
-          <select
-            value={
-              etapaFiltro
-            }
-            onChange={(
-              event
-            ) =>
-              setEtapaFiltro(
-                event.target.value
-              )
-            }
-            className="h-11 w-full cursor-pointer rounded-xl border bg-white px-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-          >
-            <option value="">
-              Todas as etapas
-            </option>
-
-            {etapas.map(
-              (
-                etapa
-              ) => (
-                <option
-                  key={
-                    etapa.id
-                  }
-                  value={
-                    etapa.id
-                  }
-                >
-                  Etapa{" "}
-                  {etapa.ordem ??
-                    "?"} —{" "}
-                  {etapa.titulo ||
-                    "Sem título"}
-                </option>
-              )
-            )}
-          </select>
 
           <select
             value={

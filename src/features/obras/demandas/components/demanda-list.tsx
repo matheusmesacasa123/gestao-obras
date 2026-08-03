@@ -13,6 +13,7 @@ interface DemandaListProps {
   onEdit?: (
     demanda: Demanda
   ) => void;
+  onStatusChange?: () => void;
 }
 
 export function DemandaList({
@@ -20,6 +21,7 @@ export function DemandaList({
   obraId,
   onDelete,
   onEdit,
+  onStatusChange,
 }: DemandaListProps) {
   if (
     demandas.length ===
@@ -66,6 +68,9 @@ export function DemandaList({
             }
             onEdit={
               onEdit
+            }
+            onStatusChange={
+              onStatusChange
             }
           />
         )

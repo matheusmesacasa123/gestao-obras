@@ -178,6 +178,8 @@ export async function criarObra(
   delete dadosObraLimpos.novoClienteCnpj;
   delete dadosObraLimpos.novoClienteEmail;
   delete dadosObraLimpos.novoClienteTelefone;
+  delete dadosObraLimpos.revisao;
+  delete dadosObraLimpos.motivo_revisao;
 
   const payloadTratado =
     Object.fromEntries(
@@ -310,13 +312,20 @@ export async function atualizarObra(
     clientes,
     etapas,
     progresso,
+    revisao,
+    motivo_revisao,
     ...dadosAtualizacao
-  } = obra;
+  } = obra as Partial<Obra> & {
+    revisao?: number | null;
+    motivo_revisao?: string | null;
+  };
 
   void setor;
   void clientes;
   void etapas;
   void progresso;
+  void revisao;
+  void motivo_revisao;
 
   const {
     data,

@@ -75,8 +75,6 @@ export interface Obra {
   tipo_efluente: string | null;
 
   numero_proposta: string | null;
-  revisao: number | null;
-  motivo_revisao: string | null;
   vendedor: string | null;
   data_entrada: string | null;
   data_entrega_esperada: string | null;
@@ -113,7 +111,6 @@ export interface HistoricoValoresObra {
   id: string;
   obra_id: string;
 
-  revisao: number | null;
 
   valor_orcado_anterior: number | null;
   valor_orcado_novo: number | null;

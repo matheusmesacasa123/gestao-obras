@@ -1,6 +1,5 @@
 import {
   useEffect,
-  useMemo,
   useState,
 } from "react";
 
@@ -10,10 +9,6 @@ import {
   Upload,
   X,
 } from "lucide-react";
-
-import {
-  useAuth,
-} from "@/features/auth/auth-context";
 
 import {
   uploadDocumento,
@@ -26,6 +21,7 @@ import type {
 
 interface DocumentoFormProps {
   obraId: string;
+  obraRevisaoId: string;
   etapas: EtapaDocumento[];
   setores: SetorDocumento[];
   onSuccess: () => void;
@@ -33,22 +29,14 @@ interface DocumentoFormProps {
 
 export function DocumentoForm({
   obraId,
+  obraRevisaoId,
   etapas,
   setores,
   onSuccess,
 }: DocumentoFormProps) {
-  const {
-    perfil,
-  } = useAuth();
-
   const [
     nome,
     setNome,
-  ] = useState("");
-
-  const [
-    categoria,
-    setCategoria,
   ] = useState("");
 
   const [
@@ -73,65 +61,64 @@ export function DocumentoForm({
     setLoading,
   ] = useState(false);
 
-  const administrador =
-    perfil?.administrador ===
-    true;
+  useEffect(() => {
+    setEtapaId(
+      (
+        etapaAtual
+      ) => {
+        const etapaAindaExiste =
+          etapas.some(
+            (
+              etapa
+            ) =>
+              etapa.id ===
+              etapaAtual
+          );
 
-  const etapasDisponiveis =
-    useMemo(
-      () => {
-        if (administrador) {
-          return etapas;
+        if (
+          etapaAindaExiste
+        ) {
+          return etapaAtual;
         }
 
-        return etapas.filter(
-          (etapa) =>
-            etapa.setor_id ===
-            perfil?.setor_id
-        );
-      },
-      [
-        administrador,
-        etapas,
-        perfil?.setor_id,
-      ]
+        return "";
+      }
     );
 
-  useEffect(() => {
-    if (
-      etapaId &&
-      etapasDisponiveis.some(
-        (etapa) =>
-          etapa.id ===
-          etapaId
-      )
-    ) {
-      return;
-    }
+    setSetorId(
+      (
+        setorAtual
+      ) => {
+        const etapaAtual =
+          etapas.find(
+            (
+              etapa
+            ) =>
+              etapa.id ===
+              etapaId
+          );
 
-    if (
-      etapasDisponiveis.length ===
-      1
-    ) {
-      const etapaUnica =
-        etapasDisponiveis[0];
+        if (
+          etapaAtual
+        ) {
+          return etapaAtual.setor_id;
+        }
 
-      setEtapaId(
-        etapaUnica.id
-      );
-
-      setSetorId(
-        etapaUnica.setor_id
-      );
-
-      return;
-    }
-
-    setEtapaId("");
-    setSetorId("");
+        return setorAtual &&
+          etapas.some(
+            (
+              etapa
+            ) =>
+              etapa.setor_id ===
+              setorAtual
+          )
+          ? setorAtual
+          : "";
+      }
+    );
   }, [
+    etapas,
     etapaId,
-    etapasDisponiveis,
   ]);
 
   function handleAlterarEtapa(
@@ -142,20 +129,17 @@ export function DocumentoForm({
     );
 
     const etapaSelecionada =
-      etapasDisponiveis.find(
-        (etapa) =>
+      etapas.find(
+        (
+          etapa
+        ) =>
           etapa.id ===
           novaEtapaId
       );
 
-    if (!etapaSelecionada) {
-      setSetorId("");
-
-      return;
-    }
-
     setSetorId(
-      etapaSelecionada.setor_id
+      etapaSelecionada?.setor_id ||
+      ""
     );
   }
 
@@ -164,6 +148,7 @@ export function DocumentoForm({
       !nome.trim() ||
       !arquivo ||
       !etapaId ||
+      !obraRevisaoId ||
       !setorId
     ) {
       alert(
@@ -181,14 +166,13 @@ export function DocumentoForm({
       await uploadDocumento(
         obraId,
         etapaId,
+        obraRevisaoId,
         arquivo,
         nome.trim(),
-        categoria.trim(),
         setorId
       );
 
       setNome("");
-      setCategoria("");
       setArquivo(null);
       setEtapaId("");
       setSetorId("");
@@ -212,6 +196,16 @@ export function DocumentoForm({
     }
   }
 
+  const etapaSelecionada =
+    etapas.find(
+      (
+        etapa
+      ) =>
+        etapa.id ===
+        etapaId
+    ) ||
+    null;
+
   return (
     <div className="space-y-4 rounded-xl border bg-white p-5 shadow-sm">
       <div>
@@ -224,61 +218,35 @@ export function DocumentoForm({
         </p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <label className="space-y-2">
-          <span className="block text-sm font-semibold text-gray-700">
-            Nome do documento
-          </span>
+      <label className="block space-y-2">
+        <span className="block text-sm font-semibold text-gray-700">
+          Nome do documento
+        </span>
 
-          <input
-            value={
-              nome
-            }
-            onChange={(
-              event
-            ) =>
-              setNome(
-                event.target.value
-              )
-            }
-            disabled={
-              loading
-            }
-            placeholder="Ex.: Memorial descritivo"
-            className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:bg-gray-100"
-          />
-        </label>
-
-        <label className="space-y-2">
-          <span className="block text-sm font-semibold text-gray-700">
-            Categoria
-          </span>
-
-          <input
-            value={
-              categoria
-            }
-            onChange={(
-              event
-            ) =>
-              setCategoria(
-                event.target.value
-              )
-            }
-            disabled={
-              loading
-            }
-            placeholder="Ex.: Projeto, proposta, contrato..."
-            className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:bg-gray-100"
-          />
-        </label>
-      </div>
+        <input
+          value={
+            nome
+          }
+          onChange={(
+            event
+          ) =>
+            setNome(
+              event.target.value
+            )
+          }
+          disabled={
+            loading
+          }
+          placeholder="Ex.: Memorial descritivo"
+          className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:bg-gray-100"
+        />
+      </label>
 
       <label className="block space-y-2">
         <span className="flex items-center gap-2 text-sm font-semibold text-gray-700">
           <Layers3 className="h-4 w-4 text-gray-500" />
 
-          Etapa da obra *
+          Etapa da obra
         </span>
 
         <select
@@ -294,19 +262,22 @@ export function DocumentoForm({
           }
           disabled={
             loading ||
-            etapasDisponiveis.length ===
+            !obraRevisaoId ||
+            etapas.length ===
               0
           }
-          className="w-full rounded-lg border bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:bg-gray-100"
+          className="w-full cursor-pointer rounded-lg border bg-white px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:bg-gray-100"
         >
           <option value="">
-            {etapasDisponiveis.length ===
-            0
-              ? "Nenhuma etapa disponível"
-              : "Selecione a etapa"}
+            {!obraRevisaoId
+              ? "Selecione uma revisão da obra"
+              : etapas.length ===
+                  0
+                ? "Nenhuma etapa disponível nesta revisão"
+                : "Selecione a etapa"}
           </option>
 
-          {etapasDisponiveis.map(
+          {etapas.map(
             (
               etapa
             ) => (
@@ -320,9 +291,11 @@ export function DocumentoForm({
               >
                 Etapa{" "}
                 {etapa.ordem ??
-                  "?"} —{" "}
+                  "?"}{" "}
+                —{" "}
                 {etapa.setor?.nome ||
-                  "Setor não informado"} —{" "}
+                  "Setor não informado"}{" "}
+                —{" "}
                 {etapa.titulo ||
                   "Sem título"}
               </option>
@@ -331,9 +304,29 @@ export function DocumentoForm({
         </select>
 
         <p className="text-xs text-gray-500">
-          O setor responsável será definido automaticamente pela etapa escolhida.
+          São exibidas somente as etapas da revisão selecionada no cabeçalho da obra.
         </p>
       </label>
+
+      {etapaSelecionada && (
+        <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3">
+          <p className="text-sm font-semibold text-blue-950">
+            Etapa{" "}
+            {etapaSelecionada.ordem ??
+              "?"}{" "}
+            —{" "}
+            {etapaSelecionada.setor?.nome ||
+              "Setor não informado"}{" "}
+            —{" "}
+            {etapaSelecionada.titulo ||
+              "Sem título"}
+          </p>
+
+          <p className="mt-1 text-xs text-blue-700">
+            O documento será vinculado a esta etapa e à revisão selecionada da obra.
+          </p>
+        </div>
+      )}
 
       <label className="block space-y-2">
         <span className="block text-sm font-semibold text-gray-700">
@@ -370,6 +363,10 @@ export function DocumentoForm({
             )
           )}
         </select>
+
+        <p className="text-xs text-gray-500">
+          O setor é definido automaticamente conforme a etapa selecionada.
+        </p>
       </label>
 
       <div className="space-y-2">
@@ -466,8 +463,11 @@ export function DocumentoForm({
         }
         disabled={
           loading ||
-          etapasDisponiveis.length ===
-            0
+          !nome.trim() ||
+          !arquivo ||
+          !obraRevisaoId ||
+          !etapaId ||
+          !setorId
         }
         className="inline-flex w-full items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
       >

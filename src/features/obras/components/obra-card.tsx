@@ -628,10 +628,6 @@ export function ObraCard({
     obra.codigo ||
     "Sem número";
 
-  const revisaoFormatada =
-    String(
-      obra.revisao ?? 0
-    ).padStart(2, "0");
 
   const nomeCliente =
     obra.clientes?.nome ||
@@ -721,10 +717,6 @@ export function ObraCard({
             <h3 className="truncate text-xl font-bold tracking-tight text-gray-900">
               {numeroExibido}
             </h3>
-
-            <span className="shrink-0 rounded-md border border-slate-200 bg-slate-50 px-2 py-0.5 text-xs font-semibold text-slate-600">
-              Rev. {revisaoFormatada}
-            </span>
           </div>
 
           <p className="truncate text-sm font-medium text-gray-600">

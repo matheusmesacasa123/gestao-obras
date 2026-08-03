@@ -13,6 +13,8 @@ import {
   Clock3,
   ShieldAlert,
   Layers3,
+  Plus,
+  Trash2,
   UserRound,
   X,
   XCircle,
@@ -35,7 +37,12 @@ import type {
 } from "../types";
 
 import {
+  atualizarItemDemanda,
+  criarItemDemanda,
+  excluirItemDemanda,
+  listarItensDemanda,
   updateDemanda,
+  type DemandaItem,
 } from "../services/demandas-service";
 
 interface ModalEditarDemandaProps {
@@ -63,6 +70,7 @@ interface EtapaOpcao {
   titulo: string | null;
   ordem: number | null;
   status: string;
+  prazo: string | null;
   setor:
     | {
         id: string;
@@ -314,10 +322,6 @@ function ModalEditarDemanda({
     setErroOpcoes,
   ] = useState("");
 
-  const [
-    prazo,
-    setPrazo,
-  ] = useState("");
 
   const [
     dataInicio,
@@ -342,6 +346,35 @@ function ModalEditarDemanda({
   const [
     salvando,
     setSalvando,
+  ] = useState(false);
+
+  const [
+    itensChecklist,
+    setItensChecklist,
+  ] = useState<DemandaItem[]>(
+    []
+  );
+
+  const [
+    novoItemTitulo,
+    setNovoItemTitulo,
+  ] = useState("");
+
+  const [
+    carregandoChecklist,
+    setCarregandoChecklist,
+  ] = useState(false);
+
+  const [
+    salvandoItemId,
+    setSalvandoItemId,
+  ] = useState<string | null>(
+    null
+  );
+
+  const [
+    adicionandoItem,
+    setAdicionandoItem,
   ] = useState(false);
 
   const administrador =
@@ -398,12 +431,6 @@ function ModalEditarDemanda({
         ""
     );
 
-    setPrazo(
-      obterSomenteData(
-        demanda.prazo
-      )
-    );
-
     setDataInicio(
       obterSomenteData(
         demanda.data_inicio
@@ -425,6 +452,50 @@ function ModalEditarDemanda({
       demanda.status ===
         "cancelada"
     );
+  }, [
+    demanda,
+  ]);
+
+  useEffect(() => {
+    if (!demanda) {
+      setItensChecklist(
+        []
+      );
+
+      return;
+    }
+
+    async function carregarChecklist() {
+      try {
+        setCarregandoChecklist(
+          true
+        );
+
+        const itens =
+          await listarItensDemanda(
+            demanda.id
+          );
+
+        setItensChecklist(
+          itens
+        );
+      } catch (error) {
+        console.error(
+          "Erro ao carregar checklist da demanda:",
+          error
+        );
+
+        setErroOpcoes(
+          "Não foi possível carregar o checklist da demanda."
+        );
+      } finally {
+        setCarregandoChecklist(
+          false
+        );
+      }
+    }
+
+    carregarChecklist();
   }, [
     demanda,
   ]);
@@ -457,6 +528,7 @@ function ModalEditarDemanda({
             titulo,
             ordem,
             status,
+            prazo,
             setor:setores (
               id,
               nome
@@ -741,11 +813,37 @@ function ModalEditarDemanda({
   const StatusIcon =
     statusVisual.icone;
 
+  const prazoEtapaSelecionada =
+    useMemo(
+      () =>
+        etapas.find(
+          (
+            etapa
+          ) =>
+            etapa.id ===
+            etapaId
+        )?.prazo ||
+        (
+          demanda?.etapa as
+            | {
+                prazo?: string | null;
+              }
+            | null
+            | undefined
+        )?.prazo ||
+        "",
+      [
+        etapas,
+        etapaId,
+        demanda?.etapa?.prazo,
+      ]
+    );
+
   const finalizadaComAtraso =
     useMemo(() => {
       const dataPrazo =
         converterParaDataLocal(
-          prazo
+          prazoEtapaSelecionada
         );
 
       const dataFinal =
@@ -760,7 +858,7 @@ function ModalEditarDemanda({
             dataPrazo
       );
     }, [
-      prazo,
+      prazoEtapaSelecionada,
       dataConclusao,
     ]);
 
@@ -777,7 +875,7 @@ function ModalEditarDemanda({
 
       const dataPrazo =
         converterParaDataLocal(
-          prazo
+          prazoEtapaSelecionada
         );
 
       if (!dataPrazo) {
@@ -799,7 +897,7 @@ function ModalEditarDemanda({
         hoje
       );
     }, [
-      prazo,
+      prazoEtapaSelecionada,
       statusAutomatico,
     ]);
 
@@ -880,6 +978,168 @@ function ModalEditarDemanda({
     ) {
       setDataInicio(
         valor
+      );
+    }
+  }
+
+  const totalItensChecklist =
+    itensChecklist.length;
+
+  const totalItensConcluidos =
+    itensChecklist.filter(
+      (
+        item
+      ) =>
+        item.concluido
+    ).length;
+
+  const checklistCompleto =
+    totalItensChecklist ===
+      0 ||
+    totalItensConcluidos ===
+      totalItensChecklist;
+
+  async function adicionarItemChecklist() {
+    if (
+      !demanda ||
+      !novoItemTitulo.trim()
+    ) {
+      return;
+    }
+
+    try {
+      setAdicionandoItem(
+        true
+      );
+
+      const itemCriado =
+        await criarItemDemanda(
+          demanda.id,
+          novoItemTitulo
+        );
+
+      setItensChecklist(
+        (
+          itensAtuais
+        ) => [
+          ...itensAtuais,
+          itemCriado,
+        ]
+      );
+
+      setNovoItemTitulo(
+        ""
+      );
+    } catch (error) {
+      console.error(
+        "Erro ao adicionar item ao checklist:",
+        error
+      );
+
+      alert(
+        error instanceof Error
+          ? error.message
+          : "Não foi possível adicionar o item."
+      );
+    } finally {
+      setAdicionandoItem(
+        false
+      );
+    }
+  }
+
+  async function alternarItemChecklist(
+    item: DemandaItem
+  ) {
+    try {
+      setSalvandoItemId(
+        item.id
+      );
+
+      const itemAtualizado =
+        await atualizarItemDemanda(
+          item.id,
+          {
+            concluido:
+              !item.concluido,
+          }
+        );
+
+      setItensChecklist(
+        (
+          itensAtuais
+        ) =>
+          itensAtuais.map(
+            (
+              itemAtual
+            ) =>
+              itemAtual.id ===
+                item.id
+                ? itemAtualizado
+                : itemAtual
+          )
+      );
+    } catch (error) {
+      console.error(
+        "Erro ao atualizar item do checklist:",
+        error
+      );
+
+      alert(
+        "Não foi possível atualizar o item."
+      );
+    } finally {
+      setSalvandoItemId(
+        null
+      );
+    }
+  }
+
+  async function removerItemChecklist(
+    item: DemandaItem
+  ) {
+    const confirmou =
+      window.confirm(
+        `Deseja excluir o item "${item.titulo}"?`
+      );
+
+    if (!confirmou) {
+      return;
+    }
+
+    try {
+      setSalvandoItemId(
+        item.id
+      );
+
+      await excluirItemDemanda(
+        item.id
+      );
+
+      setItensChecklist(
+        (
+          itensAtuais
+        ) =>
+          itensAtuais.filter(
+            (
+              itemAtual
+            ) =>
+              itemAtual.id !==
+              item.id
+          )
+      );
+    } catch (error) {
+      console.error(
+        "Erro ao excluir item do checklist:",
+        error
+      );
+
+      alert(
+        "Não foi possível excluir o item."
+      );
+    } finally {
+      setSalvandoItemId(
+        null
       );
     }
   }
@@ -992,6 +1252,20 @@ function ModalEditarDemanda({
     }
 
     if (
+      dataConclusao &&
+      !checklistCompleto
+    ) {
+      alert(
+        `Conclua todos os itens do checklist antes de finalizar a demanda. Restam ${
+          totalItensChecklist -
+          totalItensConcluidos
+        } item(ns).`
+      );
+
+      return;
+    }
+
+    if (
       dataInicio &&
       dataConclusao
     ) {
@@ -1074,10 +1348,6 @@ function ModalEditarDemanda({
 
           responsavel_id:
             responsavelId ||
-            null,
-
-          prazo:
-            prazo ||
             null,
 
           data_inicio:
@@ -1505,6 +1775,161 @@ function ModalEditarDemanda({
                   </div>
                 </section>
 
+                <section className="space-y-4 rounded-2xl border bg-white p-5">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <h3 className="font-semibold text-gray-900">
+                        Checklist da demanda
+                      </h3>
+
+                      <p className="mt-1 text-xs text-gray-500">
+                        Divida a demanda em tarefas menores e acompanhe o progresso.
+                      </p>
+                    </div>
+
+                    <span
+                      className={`rounded-full border px-3 py-1 text-xs font-semibold ${
+                        checklistCompleto &&
+                        totalItensChecklist >
+                          0
+                          ? "border-green-200 bg-green-50 text-green-700"
+                          : "border-slate-200 bg-slate-50 text-slate-700"
+                      }`}
+                    >
+                      {totalItensConcluidos} de {totalItensChecklist} concluído(s)
+                    </span>
+                  </div>
+
+                  <div className="flex flex-col gap-2 sm:flex-row">
+                    <input
+                      type="text"
+                      value={
+                        novoItemTitulo
+                      }
+                      onChange={(
+                        event
+                      ) =>
+                        setNovoItemTitulo(
+                          event.target.value
+                        )
+                      }
+                      onKeyDown={(
+                        event
+                      ) => {
+                        if (
+                          event.key ===
+                          "Enter"
+                        ) {
+                          event.preventDefault();
+
+                          adicionarItemChecklist();
+                        }
+                      }}
+                      placeholder="Ex.: Calcular bombas"
+                      disabled={
+                        adicionandoItem
+                      }
+                      className="h-11 flex-1 rounded-xl border border-gray-300 bg-white px-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:cursor-not-allowed disabled:opacity-50"
+                    />
+
+                    <button
+                      type="button"
+                      onClick={
+                        adicionarItemChecklist
+                      }
+                      disabled={
+                        adicionandoItem ||
+                        !novoItemTitulo.trim()
+                      }
+                      className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-slate-950 px-4 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      <Plus className="h-4 w-4" />
+
+                      {adicionandoItem
+                        ? "Adicionando..."
+                        : "Adicionar item"}
+                    </button>
+                  </div>
+
+                  {carregandoChecklist ? (
+                    <p className="text-sm text-gray-500">
+                      Carregando checklist...
+                    </p>
+                  ) : itensChecklist.length ===
+                    0 ? (
+                    <div className="rounded-xl border border-dashed bg-slate-50 p-5 text-center text-sm text-gray-500">
+                      Nenhum item adicionado. Demandas sem checklist podem ser concluídas normalmente.
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {itensChecklist.map(
+                        (
+                          item
+                        ) => (
+                          <div
+                            key={
+                              item.id
+                            }
+                            className="flex items-center gap-3 rounded-xl border bg-slate-50 px-3 py-3"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={
+                                item.concluido
+                              }
+                              onChange={() =>
+                                alternarItemChecklist(
+                                  item
+                                )
+                              }
+                              disabled={
+                                salvandoItemId ===
+                                item.id
+                              }
+                              className="h-4 w-4 cursor-pointer disabled:cursor-not-allowed"
+                            />
+
+                            <span
+                              className={`min-w-0 flex-1 text-sm ${
+                                item.concluido
+                                  ? "text-gray-400 line-through"
+                                  : "font-medium text-gray-800"
+                              }`}
+                            >
+                              {item.titulo}
+                            </span>
+
+                            <button
+                              type="button"
+                              onClick={() =>
+                                removerItemChecklist(
+                                  item
+                                )
+                              }
+                              disabled={
+                                salvandoItemId ===
+                                item.id
+                              }
+                              title="Excluir item"
+                              className="rounded-lg p-2 text-gray-400 transition hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </div>
+                        )
+                      )}
+                    </div>
+                  )}
+
+                  {totalItensChecklist >
+                    0 &&
+                    !checklistCompleto && (
+                      <p className="text-xs font-medium text-amber-700">
+                        A demanda só poderá ser finalizada depois que todos os itens forem concluídos.
+                      </p>
+                    )}
+                </section>
+
                 <section className="space-y-4 rounded-2xl border bg-slate-50/60 p-5">
                   <div>
                     <h3 className="font-semibold text-gray-900">
@@ -1516,7 +1941,7 @@ function ModalEditarDemanda({
                     </p>
                   </div>
 
-                  <div className="grid gap-4 sm:grid-cols-3">
+                  <div className="grid gap-4 sm:grid-cols-2">
                     <div className="space-y-2">
                       <label
                         htmlFor="editar-demanda-data-inicio"
@@ -1535,31 +1960,6 @@ function ModalEditarDemanda({
                           event
                         ) =>
                           handleAlterarInicio(
-                            event.target.value
-                          )
-                        }
-                        className="h-11 w-full rounded-xl border border-gray-300 bg-white px-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <label
-                        htmlFor="editar-demanda-prazo"
-                        className="text-sm font-semibold text-gray-700"
-                      >
-                        Prazo
-                      </label>
-
-                      <input
-                        id="editar-demanda-prazo"
-                        type="date"
-                        value={
-                          prazo
-                        }
-                        onChange={(
-                          event
-                        ) =>
-                          setPrazo(
                             event.target.value
                           )
                         }
@@ -1591,6 +1991,22 @@ function ModalEditarDemanda({
                         className="h-11 w-full rounded-xl border border-gray-300 bg-white px-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                       />
                     </div>
+                  </div>
+
+                  <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-800">
+                    <span className="font-semibold">
+                      Prazo da demanda:
+                    </span>{" "}
+                    definido automaticamente pelo prazo da etapa selecionada
+                    {prazoEtapaSelecionada
+                      ? ` (${new Intl.DateTimeFormat(
+                          "pt-BR"
+                        ).format(
+                          converterParaDataLocal(
+                            prazoEtapaSelecionada
+                          )!
+                        )})`
+                      : "."}
                   </div>
 
                   <label className="flex cursor-pointer items-start gap-3 rounded-xl border bg-white p-4">

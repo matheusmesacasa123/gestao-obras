@@ -12,6 +12,7 @@ import {
 import {
   CalendarDays,
   CheckCircle2,
+  ChevronDown,
   CirclePlay,
   Clock3,
   Loader2,
@@ -72,6 +73,13 @@ type EdicaoEtapa = {
   prazo: string;
   observacao: string;
   obrigatoria: boolean;
+};
+
+type ResumoDemandasEtapa = {
+  total: number;
+  concluidas: number;
+  todasConcluidas: boolean;
+  maiorDataConclusao: string | null;
 };
 
 const opcoesStatus: {
@@ -230,14 +238,14 @@ function normalizarTexto(
     .toLowerCase();
 }
 
-function etapaEhEngenhariaAplicacao(
+function etapaEhEngenhariaComercial(
   etapa: EtapaObra
 ) {
   return (
     normalizarTexto(
       etapa.setor?.nome
     ) ===
-    "engenharia de aplicacao"
+    "engenharia comercial"
   );
 }
 
@@ -330,6 +338,10 @@ function EtapasObraPage() {
   } = Route.useParams();
 
   const {
+    obraRevisaoId,
+  } = Route.useSearch();
+
+  const {
     perfil,
   } = useAuth();
 
@@ -347,6 +359,13 @@ function EtapasObraPage() {
     setEtapas,
   ] = useState<EtapaObra[]>(
     []
+  );
+
+  const [
+    etapaExpandidaId,
+    setEtapaExpandidaId,
+  ] = useState<string | null>(
+    null
   );
 
   const [
@@ -370,6 +389,16 @@ function EtapasObraPage() {
     Record<
       string,
       EdicaoEtapa
+    >
+  >({});
+
+  const [
+    resumoDemandasPorEtapa,
+    setResumoDemandasPorEtapa,
+  ] = useState<
+    Record<
+      string,
+      ResumoDemandasEtapa
     >
   >({});
 
@@ -517,13 +546,21 @@ function EtapasObraPage() {
       setCarregando(true);
       setErro("");
 
+      if (!obraRevisaoId) {
+        setEtapas([]);
+        setResumoDemandasPorEtapa({});
+        return;
+      }
+
       const [
         etapasEncontradas,
         respostaSetores,
         respostaUsuarios,
+        respostaDemandas,
       ] = await Promise.all([
         listarEtapasDaObra(
-          obraId
+          obraId,
+          obraRevisaoId
         ),
 
         supabase
@@ -560,6 +597,19 @@ function EtapasObraPage() {
             }
           ),
 
+        supabase
+          .from("demandas")
+          .select(
+            "etapa_id, status, data_conclusao"
+          )
+          .eq(
+            "obra_id",
+            obraId
+          )
+          .eq(
+            "obra_revisao_id",
+            obraRevisaoId
+          ),
       ]);
 
       if (
@@ -574,6 +624,11 @@ function EtapasObraPage() {
         throw respostaUsuarios.error;
       }
 
+      if (
+        respostaDemandas.error
+      ) {
+        throw respostaDemandas.error;
+      }
 
       const setoresEncontrados =
         (
@@ -599,6 +654,92 @@ function EtapasObraPage() {
         usuariosEncontrados
       );
 
+      const novoResumoDemandas: Record<
+        string,
+        ResumoDemandasEtapa
+      > = {};
+
+      for (
+        const demanda
+        of respostaDemandas.data ||
+        []
+      ) {
+        if (!demanda.etapa_id) {
+          continue;
+        }
+
+        if (
+          !novoResumoDemandas[
+            demanda.etapa_id
+          ]
+        ) {
+          novoResumoDemandas[
+            demanda.etapa_id
+          ] = {
+            total:
+              0,
+
+            concluidas:
+              0,
+
+            todasConcluidas:
+              false,
+
+            maiorDataConclusao:
+              null,
+          };
+        }
+
+        novoResumoDemandas[
+          demanda.etapa_id
+        ].total +=
+          1;
+
+        if (
+          demanda.status ===
+          "concluida"
+        ) {
+          novoResumoDemandas[
+            demanda.etapa_id
+          ].concluidas +=
+            1;
+
+          if (
+            demanda.data_conclusao &&
+            (
+              !novoResumoDemandas[
+                demanda.etapa_id
+              ].maiorDataConclusao ||
+              demanda.data_conclusao >
+                novoResumoDemandas[
+                  demanda.etapa_id
+                ].maiorDataConclusao!
+            )
+          ) {
+            novoResumoDemandas[
+              demanda.etapa_id
+            ].maiorDataConclusao =
+              demanda.data_conclusao;
+          }
+        }
+      }
+
+      for (
+        const resumo
+        of Object.values(
+          novoResumoDemandas
+        )
+      ) {
+        resumo.todasConcluidas =
+          resumo.total >
+            0 &&
+          resumo.concluidas ===
+            resumo.total;
+      }
+
+      setResumoDemandasPorEtapa(
+        novoResumoDemandas
+      );
 
       const novasEdicoes: Record<
         string,
@@ -682,6 +823,7 @@ function EtapasObraPage() {
     carregarDados();
   }, [
     obraId,
+    obraRevisaoId,
     perfil?.id,
     perfil?.setor_id,
     perfil?.administrador,
@@ -784,6 +926,9 @@ function EtapasObraPage() {
         obra_id:
           obraId,
 
+        obra_revisao_id:
+          obraRevisaoId,
+
         setor_id:
           novoSetorId,
 
@@ -872,7 +1017,13 @@ function EtapasObraPage() {
       etapa
     );
 
+    const maiorDataConclusao =
+      resumoDemandasPorEtapa[
+        etapa.id
+      ]?.maiorDataConclusao;
+
     setDataConclusaoEscolhida(
+      maiorDataConclusao ||
       obterDataHoje()
     );
 
@@ -953,13 +1104,22 @@ function EtapasObraPage() {
       await carregarDados();
     } catch (error: any) {
       console.error(
-        "Erro ao concluir etapa da Engenharia de Aplicação:",
+        "Erro ao concluir etapa da Engenharia Comercial:",
         error
       );
 
-      setErro(
+      const mensagemErro =
         error?.message ||
-          "Não foi possível concluir a etapa."
+        error?.details ||
+        error?.hint ||
+        "Não foi possível concluir a etapa.";
+
+      setErro(
+        mensagemErro
+      );
+
+      window.alert(
+        `Erro ao concluir etapa: ${mensagemErro}`
       );
     } finally {
       setSalvandoConclusao(false);
@@ -998,8 +1158,37 @@ function EtapasObraPage() {
       return;
     }
 
+    const resumoDemandas =
+      resumoDemandasPorEtapa[
+        etapa.id
+      ];
+
+    const podeConcluirPorDemandas =
+      Boolean(
+        resumoDemandas?.todasConcluidas
+      );
+
     if (
-      etapaEhEngenhariaAplicacao(
+      edicao.status ===
+        "concluida" &&
+      etapa.status !==
+        "concluida" &&
+      !podeConcluirPorDemandas
+    ) {
+      setErro(
+        resumoDemandas?.total
+          ? `Conclua todas as demandas desta etapa antes de finalizá-la. Restam ${
+              resumoDemandas.total -
+              resumoDemandas.concluidas
+            } demanda(s).`
+          : "Cadastre e conclua ao menos uma demanda nesta etapa antes de finalizá-la."
+      );
+
+      return;
+    }
+
+    if (
+      etapaEhEngenhariaComercial(
         etapa
       ) &&
       edicao.status ===
@@ -1108,8 +1297,33 @@ function EtapasObraPage() {
 
     if (
       acao ===
+      "concluir"
+    ) {
+      const resumoDemandas =
+        resumoDemandasPorEtapa[
+          etapa.id
+        ];
+
+      if (
+        !resumoDemandas?.todasConcluidas
+      ) {
+        setErro(
+          resumoDemandas?.total
+            ? `Conclua todas as demandas desta etapa antes de finalizá-la. Restam ${
+                resumoDemandas.total -
+                resumoDemandas.concluidas
+              } demanda(s).`
+            : "Cadastre e conclua ao menos uma demanda nesta etapa antes de finalizá-la."
+        );
+
+        return;
+      }
+    }
+
+    if (
+      acao ===
         "concluir" &&
-      etapaEhEngenhariaAplicacao(
+      etapaEhEngenhariaComercial(
         etapa
       )
     ) {
@@ -1407,7 +1621,7 @@ function EtapasObraPage() {
                   !administrador
                 }
                 required
-                className="h-11 w-full rounded-lg border bg-white px-3 text-sm outline-none focus:border-blue-500 disabled:cursor-not-allowed disabled:bg-muted"
+                className="h-10 w-full rounded-lg border bg-white px-3 text-sm outline-none focus:border-blue-500 disabled:cursor-not-allowed disabled:bg-muted"
               >
                 <option value="">
                   Selecione o setor
@@ -1455,7 +1669,7 @@ function EtapasObraPage() {
                 disabled={
                   !novoSetorId
                 }
-                className="h-11 w-full rounded-lg border bg-white px-3 text-sm outline-none focus:border-blue-500 disabled:cursor-not-allowed disabled:bg-muted"
+                className="h-10 w-full rounded-lg border bg-white px-3 text-sm outline-none focus:border-blue-500 disabled:cursor-not-allowed disabled:bg-muted"
               >
                 <option value="">
                   Sem responsável definido
@@ -1517,7 +1731,7 @@ function EtapasObraPage() {
                   event.target.value
                 )
               }
-              rows={3}
+              rows={2}
               placeholder="Informações sobre esta etapa..."
               className="w-full resize-none rounded-lg border p-3 text-sm outline-none focus:border-blue-500"
             />
@@ -1590,7 +1804,7 @@ function EtapasObraPage() {
           </p>
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-2">
           {etapas.map(
             (
               etapa,
@@ -1610,6 +1824,12 @@ function EtapasObraPage() {
                   etapa
                 );
 
+              const visualizandoRevisaoAtual =
+                true;
+
+              const etapaExibida: EtapaObra =
+                etapa;
+
               const usuariosDoSetor =
                 usuarios.filter(
                   (usuario) =>
@@ -1626,104 +1846,185 @@ function EtapasObraPage() {
                 etapa.id;
 
               const destinoPostIt =
-                etapaEhEngenhariaAplicacao(
-                  etapa
+                etapaEhEngenhariaComercial(
+                  etapaExibida
                 )
                   ? obterDestinoPostIt(
-                      etapa
+                      etapaExibida
                     )
                   : null;
+
+              const resumoDemandas =
+                resumoDemandasPorEtapa[
+                  etapa.id
+                ] || {
+                  total:
+                    0,
+
+                  concluidas:
+                    0,
+
+                  todasConcluidas:
+                    false,
+
+                  maiorDataConclusao:
+                    null,
+                };
+
+              const podeConcluirPorDemandas =
+                resumoDemandas.todasConcluidas;
+
+              const expandida =
+                etapaExpandidaId ===
+                etapa.id;
 
               return (
                 <article
                   key={
                     etapa.id
                   }
-                  className="rounded-2xl border bg-white p-6 shadow-sm"
+                  className={`overflow-hidden rounded-xl border shadow-sm ${
+                    etapaExibida.status ===
+                    "concluida"
+                      ? "border-green-300 bg-green-50/40"
+                      : "bg-white"
+                  }`}
                 >
-                  <div className="flex flex-wrap items-start justify-between gap-4">
-                    <div>
-                      <div className="flex flex-wrap items-center gap-3">
-                        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-950 text-sm font-bold text-white">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setEtapaExpandidaId(
+                        expandida
+                          ? null
+                          : etapa.id
+                      )
+                    }
+                    className="flex w-full cursor-pointer items-center gap-4 px-4 py-3 text-left transition hover:bg-slate-50/80"
+                    aria-expanded={
+                      expandida
+                    }
+                  >
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                        <h3 className="truncate text-base font-bold text-gray-950">
+                          {etapa.titulo ||
+                            "Sem título"}
+                        </h3>
+
+                        <span className="text-xs font-medium text-gray-400">
+                          Etapa{" "}
                           {etapa.ordem ??
                             indice +
                               1}
                         </span>
 
-                        <div>
-                          <h3 className="text-lg font-semibold">
-                            Etapa {etapa.ordem ?? indice + 1} —{" "}
-                            {etapa.setor?.nome || "Setor não informado"} —{" "}
-                            {etapa.titulo || "Sem título"}
-                          </h3>
+                        <span className="text-xs text-gray-300">
+                          •
+                        </span>
 
-                          <p className="mt-1 text-xs text-muted-foreground">
-                            {etapa.obrigatoria
-                              ? "Etapa obrigatória"
-                              : "Etapa opcional"}
-                          </p>
-                        </div>
+                        <span className="text-xs font-medium text-gray-500">
+                          {etapa.setor?.nome ||
+                            "Setor não informado"}
+                        </span>
+
+                        {etapa.obrigatoria && (
+                          <>
+                            <span className="text-xs text-gray-300">
+                              •
+                            </span>
+
+                            <span className="text-xs font-medium text-gray-500">
+                              Obrigatória
+                            </span>
+                          </>
+                        )}
+                      </div>
+
+                      <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-500">
+                        <span className="inline-flex items-center gap-1.5">
+                          <CalendarDays className="h-3.5 w-3.5" />
+
+                          Início:{" "}
+                          <strong className="font-semibold text-gray-700">
+                            {formatarData(
+                              etapaExibida.data_inicio
+                            )}
+                          </strong>
+                        </span>
+
+                        <span className="inline-flex items-center gap-1.5">
+                          <Clock3 className="h-3.5 w-3.5" />
+
+                          Prazo:{" "}
+                          <strong className="font-semibold text-gray-700">
+                            {formatarData(
+                              etapaExibida.prazo
+                            )}
+                          </strong>
+                        </span>
+
+                        {etapaExibida.status ===
+                          "concluida" && (
+                          <span className="inline-flex items-center gap-1.5 text-green-700">
+                            <CheckCircle2 className="h-3.5 w-3.5" />
+
+                            Conclusão:{" "}
+                            <strong className="font-semibold">
+                              {formatarData(
+                                etapaExibida.data_conclusao
+                              )}
+                            </strong>
+                          </span>
+                        )}
                       </div>
                     </div>
 
-                    <span
-                      className={`rounded-full border px-3 py-1 text-xs font-semibold ${obterClasseStatus(
-                        etapa.status
+                    <div
+                      className={`hidden shrink-0 items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-bold uppercase tracking-wide sm:flex ${obterClasseStatus(
+                        etapaExibida.status
                       )}`}
                     >
-                      {obterLabelStatus(
-                        etapa.status
+                      {etapaExibida.status ===
+                        "concluida" && (
+                        <CheckCircle2 className="h-3.5 w-3.5" />
                       )}
-                    </span>
-                  </div>
 
-                  <div className="mt-5 grid gap-4 md:grid-cols-3">
-                    <div className="rounded-xl border bg-slate-50 p-4">
-                      <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
-                        <CalendarDays className="h-4 w-4" />
-
-                        Início
-                      </div>
-
-                      <p className="mt-2 text-sm font-semibold">
-                        {formatarData(
-                          etapa.data_inicio
-                        )}
-                      </p>
+                      {obterLabelStatus(
+                        etapaExibida.status
+                      )}
                     </div>
 
-                    <div className="rounded-xl border bg-slate-50 p-4">
-                      <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
-                        <Clock3 className="h-4 w-4" />
+                    <ChevronDown
+                      className={`h-5 w-5 shrink-0 text-gray-500 transition-transform ${
+                        expandida
+                          ? "rotate-180"
+                          : ""
+                      }`}
+                    />
+                  </button>
 
-                        Prazo
-                      </div>
+                  <div className="border-t px-4 py-3 sm:hidden">
+                    <div
+                      className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-bold uppercase tracking-wide ${obterClasseStatus(
+                        etapaExibida.status
+                      )}`}
+                    >
+                      {etapaExibida.status ===
+                        "concluida" && (
+                        <CheckCircle2 className="h-3.5 w-3.5" />
+                      )}
 
-                      <p className="mt-2 text-sm font-semibold">
-                        {formatarData(
-                          etapa.prazo
-                        )}
-                      </p>
-                    </div>
-
-                    <div className="rounded-xl border bg-slate-50 p-4">
-                      <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
-                        <CheckCircle2 className="h-4 w-4" />
-
-                        Conclusão
-                      </div>
-
-                      <p className="mt-2 text-sm font-semibold">
-                        {formatarData(
-                          etapa.data_conclusao
-                        )}
-                      </p>
+                      {obterLabelStatus(
+                        etapaExibida.status
+                      )}
                     </div>
                   </div>
 
+                  {expandida && (
+                    <div className="border-t px-4 pb-4">
                   {destinoPostIt && (
                     <div
-                      className={`mt-5 rounded-xl border p-4 ${destinoPostIt.classe}`}
+                      className={`mt-4 rounded-xl border p-3 ${destinoPostIt.classe}`}
                     >
                       <div className="flex items-start gap-3">
                         <div
@@ -1753,7 +2054,9 @@ function EtapasObraPage() {
                     </div>
                   )}
 
-                  <div className="mt-5 grid gap-5 md:grid-cols-2">
+                  {visualizandoRevisaoAtual && (
+                    <>
+                  <div className="mt-4 grid gap-4 md:grid-cols-2">
                     <div className="space-y-2 md:col-span-2">
                       <label className="text-sm font-medium">
                         Título da etapa *
@@ -1777,7 +2080,7 @@ function EtapasObraPage() {
                           !podeEditar
                         }
                         required
-                        className="h-11 w-full rounded-lg border px-3 text-sm outline-none focus:border-blue-500 disabled:cursor-not-allowed disabled:bg-muted"
+                        className="h-10 w-full rounded-lg border px-3 text-sm outline-none focus:border-blue-500 disabled:cursor-not-allowed disabled:bg-muted"
                       />
                     </div>
 
@@ -1803,7 +2106,7 @@ function EtapasObraPage() {
                         disabled={
                           !podeEditar
                         }
-                        className="h-11 w-full rounded-lg border bg-white px-3 text-sm outline-none focus:border-blue-500 disabled:cursor-not-allowed disabled:bg-muted"
+                        className="h-10 w-full rounded-lg border bg-white px-3 text-sm outline-none focus:border-blue-500 disabled:cursor-not-allowed disabled:bg-muted"
                       >
                         {opcoesStatus.map(
                           (
@@ -1816,6 +2119,13 @@ function EtapasObraPage() {
                               value={
                                 opcao.valor
                               }
+                              disabled={
+                                opcao.valor ===
+                                  "concluida" &&
+                                etapa.status !==
+                                  "concluida" &&
+                                !podeConcluirPorDemandas
+                              }
                             >
                               {
                                 opcao.label
@@ -1824,6 +2134,24 @@ function EtapasObraPage() {
                           )
                         )}
                       </select>
+
+                      {etapa.status !==
+                        "concluida" && (
+                        <p
+                          className={`text-xs ${
+                            podeConcluirPorDemandas
+                              ? "font-medium text-green-700"
+                              : "text-muted-foreground"
+                          }`}
+                        >
+                          {podeConcluirPorDemandas
+                            ? `Todas as ${resumoDemandas.total} demanda(s) foram concluídas. A etapa pode ser finalizada.`
+                            : resumoDemandas.total >
+                                0
+                              ? `${resumoDemandas.concluidas} de ${resumoDemandas.total} demanda(s) concluída(s).`
+                              : "A etapa precisa ter ao menos uma demanda concluída para poder ser finalizada."}
+                        </p>
+                      )}
                     </div>
 
                     <div className="space-y-2">
@@ -1850,7 +2178,7 @@ function EtapasObraPage() {
                           disabled={
                             !podeEditar
                           }
-                          className="h-11 w-full rounded-lg border bg-white pl-10 pr-3 text-sm outline-none focus:border-blue-500 disabled:cursor-not-allowed disabled:bg-muted"
+                          className="h-10 w-full rounded-lg border bg-white pl-10 pr-3 text-sm outline-none focus:border-blue-500 disabled:cursor-not-allowed disabled:bg-muted"
                         >
                           <option value="">
                             Sem responsável definido
@@ -1900,7 +2228,7 @@ function EtapasObraPage() {
                         disabled={
                           !podeEditar
                         }
-                        className="h-11 w-full rounded-lg border px-3 text-sm outline-none focus:border-blue-500 disabled:cursor-not-allowed disabled:bg-muted"
+                        className="h-10 w-full rounded-lg border px-3 text-sm outline-none focus:border-blue-500 disabled:cursor-not-allowed disabled:bg-muted"
                       />
                     </div>
 
@@ -1926,7 +2254,7 @@ function EtapasObraPage() {
                         disabled={
                           !podeEditar
                         }
-                        className="h-11 w-full rounded-lg border px-3 text-sm outline-none focus:border-blue-500 disabled:cursor-not-allowed disabled:bg-muted"
+                        className="h-10 w-full rounded-lg border px-3 text-sm outline-none focus:border-blue-500 disabled:cursor-not-allowed disabled:bg-muted"
                       />
                     </div>
 
@@ -1955,7 +2283,7 @@ function EtapasObraPage() {
                     </label>
                   </div>
 
-                  <div className="mt-5 space-y-2">
+                  <div className="mt-4 space-y-2">
                     <label className="text-sm font-medium">
                       Observação
                     </label>
@@ -1976,12 +2304,12 @@ function EtapasObraPage() {
                       disabled={
                         !podeEditar
                       }
-                      rows={3}
+                      rows={2}
                       className="w-full resize-none rounded-lg border p-3 text-sm outline-none focus:border-blue-500 disabled:cursor-not-allowed disabled:bg-muted"
                     />
                   </div>
 
-                  <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t pt-5">
+                  <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t pt-4">
                     {!podeEditar ? (
                       <p className="text-xs text-muted-foreground">
                         Somente usuários deste setor ou administradores podem alterar esta etapa.
@@ -2020,9 +2348,21 @@ function EtapasObraPage() {
                               )
                             }
                             disabled={
-                              executando
+                              executando ||
+                              !podeConcluirPorDemandas
                             }
-                            className="flex cursor-pointer items-center gap-2 rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-sm font-medium text-green-700 transition hover:bg-green-100 disabled:cursor-not-allowed disabled:opacity-50"
+                            title={
+                              podeConcluirPorDemandas
+                                ? "Concluir etapa"
+                                : resumoDemandas.total >
+                                    0
+                                  ? `Conclua as ${
+                                      resumoDemandas.total -
+                                      resumoDemandas.concluidas
+                                    } demanda(s) restante(s).`
+                                  : "Cadastre e conclua ao menos uma demanda nesta etapa."
+                            }
+                            className="flex cursor-pointer items-center gap-2 rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-sm font-medium text-green-700 transition hover:bg-green-100 disabled:cursor-not-allowed disabled:opacity-40"
                           >
                             <CheckCircle2 className="h-4 w-4" />
 
@@ -2097,6 +2437,10 @@ function EtapasObraPage() {
                       </div>
                     )}
                   </div>
+                    </>
+                  )}
+                    </div>
+                  )}
                 </article>
               );
             }
@@ -2124,7 +2468,7 @@ function EtapasObraPage() {
               </h3>
 
               <p className="mt-2 text-sm leading-6 text-gray-600">
-                Esta confirmação define o mês de arquivamento do post-it da Engenharia de Aplicação.
+                A data sugerida corresponde à conclusão mais recente entre as demandas desta etapa e define o mês de arquivamento do post-it da Engenharia Comercial.
               </p>
             </div>
 
@@ -2132,7 +2476,7 @@ function EtapasObraPage() {
               <div className="mt-6">
                 <div className="rounded-xl border border-blue-200 bg-blue-50 p-4">
                   <p className="text-sm font-medium text-blue-900">
-                    Você confirma que esta proposta foi finalizada em:
+                    Você confirma que esta etapa foi finalizada em:
                   </p>
 
                   <p className="mt-2 text-lg font-bold text-blue-950">

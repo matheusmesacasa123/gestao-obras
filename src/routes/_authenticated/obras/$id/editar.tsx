@@ -16,6 +16,7 @@ type SetorObra = {
 type ClienteObra = {
   id: string;
   nome: string;
+  cnpj: string | null;
   email: string | null;
   telefone: string | null;
 };
@@ -111,6 +112,7 @@ function EditarObraPage() {
   ] = useState<any>({
     codigo: "",
     setor_id: "",
+    cliente_id: "",
     cliente: "",
     razao_social: "",
     cnpj: "",
@@ -120,8 +122,6 @@ function EditarObraPage() {
     estado: "",
 
     numero_proposta: "",
-    revisao: "",
-    motivo_revisao: "",
     vendedor: "",
     data_entrada: "",
     data_entrega_esperada: "",
@@ -293,13 +293,23 @@ function EditarObraPage() {
       );
 
       const clienteAtual =
-        respostaObra.data.cliente
+        respostaObra.data.cliente_id
           ? clientesEncontrados.find(
-              (cliente) =>
-                cliente.nome ===
-                respostaObra.data.cliente
+              (
+                cliente
+              ) =>
+                cliente.id ===
+                respostaObra.data.cliente_id
             )
-          : null;
+          : respostaObra.data.cliente
+            ? clientesEncontrados.find(
+                (
+                  cliente
+                ) =>
+                  cliente.nome ===
+                  respostaObra.data.cliente
+              )
+            : null;
 
       setClienteSelecionadoId(
         clienteAtual?.id ||
@@ -465,7 +475,10 @@ function EditarObraPage() {
           prevForm: any
         ) => ({
           ...prevForm,
+          cliente_id: "",
           cliente: "",
+          razao_social: "",
+          cnpj: "",
           email: "",
           telefone: "",
         })
@@ -497,11 +510,23 @@ function EditarObraPage() {
         prevForm: any
       ) => ({
         ...prevForm,
+        cliente_id:
+          cliente.id,
+
         cliente:
           cliente.nome,
+
+        razao_social:
+          cliente.nome,
+
+        cnpj:
+          cliente.cnpj ||
+          "",
+
         email:
           cliente.email ||
           "",
+
         telefone:
           cliente.telefone ||
           "",
@@ -570,7 +595,7 @@ function EditarObraPage() {
             null,
         })
         .select(
-          "id, nome, email, telefone"
+          "id, nome, cnpj, email, telefone"
         )
         .single();
 
@@ -609,8 +634,19 @@ function EditarObraPage() {
           prevForm: any
         ) => ({
           ...prevForm,
+          cliente_id:
+            clienteCriado.id,
+
           cliente:
             clienteCriado.nome,
+
+          razao_social:
+            clienteCriado.nome,
+
+          cnpj:
+            clienteCriado.cnpj ||
+            "",
+
           email:
             clienteCriado.email ||
             "",
@@ -709,6 +745,10 @@ function EditarObraPage() {
           setor_id:
             form.setor_id,
 
+          cliente_id:
+            form.cliente_id ||
+            null,
+
           cliente:
             form.cliente,
 
@@ -738,17 +778,6 @@ function EditarObraPage() {
 
           numero_proposta:
             form.numero_proposta ||
-            null,
-
-          revisao:
-            form.revisao
-              ? Number(
-                  form.revisao
-                )
-              : null,
-
-          motivo_revisao:
-            form.motivo_revisao ||
             null,
 
           vendedor:
@@ -947,45 +976,76 @@ function EditarObraPage() {
             </div>
 
             {[
-              [
-                "codigo",
-                "Código da obra",
-              ],
-              [
-                "nome_obra",
-                "Nome da obra",
-              ],
-              [
-                "razao_social",
-                "Razão social",
-              ],
-              [
-                "cnpj",
-                "CNPJ",
-              ],
-              [
-                "email",
-                "E-mail",
-              ],
-              [
-                "telefone",
-                "Telefone",
-              ],
-              [
-                "cidade",
-                "Cidade",
-              ],
-              [
-                "estado",
-                "Estado",
-              ],
+              {
+                campo:
+                  "codigo",
+                label:
+                  "Código da obra",
+                bloqueado:
+                  false,
+              },
+              {
+                campo:
+                  "nome_obra",
+                label:
+                  "Nome da obra",
+                bloqueado:
+                  false,
+              },
+              {
+                campo:
+                  "razao_social",
+                label:
+                  "Razão social",
+                bloqueado:
+                  true,
+              },
+              {
+                campo:
+                  "cnpj",
+                label:
+                  "CNPJ",
+                bloqueado:
+                  true,
+              },
+              {
+                campo:
+                  "email",
+                label:
+                  "E-mail",
+                bloqueado:
+                  false,
+              },
+              {
+                campo:
+                  "telefone",
+                label:
+                  "Telefone",
+                bloqueado:
+                  false,
+              },
+              {
+                campo:
+                  "cidade",
+                label:
+                  "Cidade",
+                bloqueado:
+                  false,
+              },
+              {
+                campo:
+                  "estado",
+                label:
+                  "Estado",
+                bloqueado:
+                  false,
+              },
             ].map(
-              (
-                [
-                  campo,
-                  label,
-                ]
-              ) => (
+              ({
+                campo,
+                label,
+                bloqueado,
+              }) => (
                 <div
                   key={
                     campo
@@ -1008,8 +1068,31 @@ function EditarObraPage() {
                     onChange={
                       handleChange
                     }
-                    className="border rounded-lg p-3 w-full"
+                    readOnly={
+                      bloqueado
+                    }
+                    tabIndex={
+                      bloqueado
+                        ? -1
+                        : 0
+                    }
+                    title={
+                      bloqueado
+                        ? "Este dado pertence ao cadastro do cliente e não pode ser alterado pela obra."
+                        : undefined
+                    }
+                    className={`w-full rounded-lg border p-3 ${
+                      bloqueado
+                        ? "cursor-not-allowed bg-gray-100 text-gray-500"
+                        : "bg-white"
+                    }`}
                   />
+
+                  {bloqueado && (
+                    <p className="text-xs text-gray-500">
+                      Altere este dado no cadastro do cliente.
+                    </p>
+                  )}
                 </div>
               )
             )}
@@ -1193,14 +1276,6 @@ function EditarObraPage() {
               [
                 "numero_proposta",
                 "Nº Proposta",
-              ],
-              [
-                "revisao",
-                "Revisão",
-              ],
-              [
-                "motivo_revisao",
-                "Motivo da revisão",
               ],
               [
                 "vendedor",

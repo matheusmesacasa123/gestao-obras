@@ -7,6 +7,8 @@ import {
   ExternalLink,
   Eye,
   FileText,
+  MessageSquare,
+  Send,
   Layers3,
   Pencil,
   Trash2,
@@ -26,7 +28,10 @@ import type {
 } from "../types";
 
 import {
+  criarComentarioDocumento,
+  deletarComentarioDocumento,
   deletarDocumento,
+  type DocumentoComentario,
 } from "../services/documentos-service";
 
 interface DocumentoListProps {
@@ -49,6 +54,62 @@ export function DocumentoList({
   const [
     documentoExcluindoId,
     setDocumentoExcluindoId,
+  ] = useState<string | null>(
+    null
+  );
+
+  const [
+    comentariosPorDocumento,
+    setComentariosPorDocumento,
+  ] = useState<
+    Record<
+      string,
+      DocumentoComentario[]
+    >
+  >(() => {
+    const estadoInicial: Record<
+      string,
+      DocumentoComentario[]
+    > = {};
+
+    for (
+      const documento
+      of documentos
+    ) {
+      estadoInicial[
+        documento.id
+      ] =
+        (
+          documento as Documento & {
+            comentarios?: DocumentoComentario[];
+          }
+        ).comentarios ??
+        [];
+    }
+
+    return estadoInicial;
+  });
+
+  const [
+    novoComentarioPorDocumento,
+    setNovoComentarioPorDocumento,
+  ] = useState<
+    Record<
+      string,
+      string
+    >
+  >({});
+
+  const [
+    comentandoDocumentoId,
+    setComentandoDocumentoId,
+  ] = useState<string | null>(
+    null
+  );
+
+  const [
+    comentarioExcluindoId,
+    setComentarioExcluindoId,
   ] = useState<string | null>(
     null
   );
@@ -185,6 +246,169 @@ export function DocumentoList({
     }
   }
 
+  async function adicionarComentario(
+    documentoId: string
+  ) {
+    const texto =
+      novoComentarioPorDocumento[
+        documentoId
+      ]?.trim() ||
+      "";
+
+    if (!texto) {
+      return;
+    }
+
+    try {
+      setComentandoDocumentoId(
+        documentoId
+      );
+
+      const comentario =
+        await criarComentarioDocumento(
+          documentoId,
+          texto
+        );
+
+      setComentariosPorDocumento(
+        (
+          estadoAtual
+        ) => ({
+          ...estadoAtual,
+
+          [documentoId]: [
+            ...(
+              estadoAtual[
+                documentoId
+              ] ??
+              []
+            ),
+            comentario,
+          ],
+        })
+      );
+
+      setNovoComentarioPorDocumento(
+        (
+          estadoAtual
+        ) => ({
+          ...estadoAtual,
+
+          [documentoId]:
+            "",
+        })
+      );
+    } catch (error) {
+      console.error(
+        "Erro ao adicionar comentário:",
+        error
+      );
+
+      alert(
+        error instanceof Error
+          ? error.message
+          : "Não foi possível adicionar o comentário."
+      );
+    } finally {
+      setComentandoDocumentoId(
+        null
+      );
+    }
+  }
+
+  async function excluirComentario(
+    comentario:
+      DocumentoComentario
+  ) {
+    const podeExcluirComentario =
+      administrador ||
+      comentario.usuario_id ===
+        perfil?.id;
+
+    if (!podeExcluirComentario) {
+      alert(
+        "Você só pode excluir os seus próprios comentários."
+      );
+
+      return;
+    }
+
+    const confirmou =
+      window.confirm(
+        "Deseja excluir este comentário?"
+      );
+
+    if (!confirmou) {
+      return;
+    }
+
+    try {
+      setComentarioExcluindoId(
+        comentario.id
+      );
+
+      await deletarComentarioDocumento(
+        comentario.id
+      );
+
+      setComentariosPorDocumento(
+        (
+          estadoAtual
+        ) => ({
+          ...estadoAtual,
+
+          [comentario.documento_id]:
+            (
+              estadoAtual[
+                comentario.documento_id
+              ] ??
+              []
+            ).filter(
+              (
+                item
+              ) =>
+                item.id !==
+                comentario.id
+            ),
+        })
+      );
+    } catch (error) {
+      console.error(
+        "Erro ao excluir comentário:",
+        error
+      );
+
+      alert(
+        error instanceof Error
+          ? error.message
+          : "Não foi possível excluir o comentário."
+      );
+    } finally {
+      setComentarioExcluindoId(
+        null
+      );
+    }
+  }
+
+  function formatarDataComentario(
+    data: string
+  ) {
+    return new Intl.DateTimeFormat(
+      "pt-BR",
+      {
+        dateStyle:
+          "short",
+
+        timeStyle:
+          "short",
+      }
+    ).format(
+      new Date(
+        data
+      )
+    );
+  }
+
   if (
     documentos.length ===
     0
@@ -240,6 +464,32 @@ export function DocumentoList({
                   "Sem título"
                 }`
               : "Etapa não vinculada";
+
+          const revisao =
+            (
+              documento as Documento & {
+                revisao?: {
+                  numero_revisao: number;
+                  status: string;
+                } | null;
+              }
+            ).revisao;
+
+          const comentarios =
+            comentariosPorDocumento[
+              documento.id
+            ] ??
+            [];
+
+          const novoComentario =
+            novoComentarioPorDocumento[
+              documento.id
+            ] ??
+            "";
+
+          const enviandoComentario =
+            comentandoDocumentoId ===
+            documento.id;
 
           return (
             <div
@@ -306,14 +556,6 @@ export function DocumentoList({
                   )}
                 </div>
 
-                <p className="text-sm text-muted-foreground">
-                  Categoria:{" "}
-                  <span className="font-medium text-gray-800">
-                    {documento.categoria ??
-                      "-"}
-                  </span>
-                </p>
-
                 <div className="rounded-lg border border-blue-100 bg-blue-50/60 p-3">
                   <div className="flex items-center gap-2 text-blue-700">
                     <Layers3 className="h-4 w-4 shrink-0" />
@@ -328,6 +570,18 @@ export function DocumentoList({
                       nomeEtapa
                     }
                   </p>
+
+                  {revisao && (
+                    <span className="mt-2 inline-flex rounded-md border border-blue-200 bg-white px-2 py-1 text-xs font-bold text-blue-700">
+                      Rev.{" "}
+                      {String(
+                        revisao.numero_revisao
+                      ).padStart(
+                        2,
+                        "0"
+                      )}
+                    </span>
+                  )}
                 </div>
 
                 <div className="grid gap-2 rounded-lg bg-slate-50 p-3 text-sm">
@@ -365,6 +619,155 @@ export function DocumentoList({
                   ).toLocaleDateString(
                     "pt-BR"
                   )}
+                </p>
+              </div>
+
+              <div className="space-y-3 border-t pt-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <MessageSquare className="h-4 w-4 text-slate-500" />
+
+                    <span className="text-sm font-semibold text-gray-800">
+                      Comentários
+                    </span>
+                  </div>
+
+                  <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600">
+                    {comentarios.length}
+                  </span>
+                </div>
+
+                {comentarios.length ===
+                0 ? (
+                  <p className="rounded-lg border border-dashed bg-slate-50 p-3 text-sm text-gray-500">
+                    Nenhum comentário adicionado.
+                  </p>
+                ) : (
+                  <div className="max-h-56 space-y-2 overflow-y-auto pr-1">
+                    {comentarios.map(
+                      (
+                        comentario
+                      ) => {
+                        const podeExcluirComentario =
+                          administrador ||
+                          comentario.usuario_id ===
+                            perfil?.id;
+
+                        return (
+                          <div
+                            key={
+                              comentario.id
+                            }
+                            className="rounded-xl border bg-slate-50 p-3"
+                          >
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="min-w-0">
+                                <p className="truncate text-xs font-semibold text-gray-800">
+                                  {comentario.usuario?.nome ||
+                                    comentario.usuario?.email ||
+                                    "Usuário não identificado"}
+                                </p>
+
+                                <p className="mt-0.5 text-[11px] text-gray-500">
+                                  {formatarDataComentario(
+                                    comentario.created_at
+                                  )}
+                                </p>
+                              </div>
+
+                              {podeExcluirComentario && (
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    excluirComentario(
+                                      comentario
+                                    )
+                                  }
+                                  disabled={
+                                    comentarioExcluindoId ===
+                                    comentario.id
+                                  }
+                                  title="Excluir comentário"
+                                  className="rounded-lg p-1.5 text-gray-400 transition hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-50"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </button>
+                              )}
+                            </div>
+
+                            <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-5 text-gray-700">
+                              {comentario.comentario}
+                            </p>
+                          </div>
+                        );
+                      }
+                    )}
+                  </div>
+                )}
+
+                <div className="flex items-end gap-2">
+                  <textarea
+                    value={
+                      novoComentario
+                    }
+                    onChange={(
+                      event
+                    ) =>
+                      setNovoComentarioPorDocumento(
+                        (
+                          estadoAtual
+                        ) => ({
+                          ...estadoAtual,
+
+                          [documento.id]:
+                            event.target.value,
+                        })
+                      )
+                    }
+                    onKeyDown={(
+                      event
+                    ) => {
+                      if (
+                        event.key ===
+                          "Enter" &&
+                        !event.shiftKey
+                      ) {
+                        event.preventDefault();
+
+                        adicionarComentario(
+                          documento.id
+                        );
+                      }
+                    }}
+                    rows={2}
+                    maxLength={2000}
+                    placeholder="Escreva um comentário..."
+                    disabled={
+                      enviandoComentario
+                    }
+                    className="min-h-[44px] flex-1 resize-y rounded-xl border bg-white px-3 py-2.5 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:cursor-not-allowed disabled:opacity-60"
+                  />
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      adicionarComentario(
+                        documento.id
+                      )
+                    }
+                    disabled={
+                      enviandoComentario ||
+                      !novoComentario.trim()
+                    }
+                    title="Adicionar comentário"
+                    className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-slate-950 text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <Send className="h-4 w-4" />
+                  </button>
+                </div>
+
+                <p className="text-[11px] text-gray-500">
+                  Pressione Enter para enviar ou Shift + Enter para quebrar a linha.
                 </p>
               </div>
 

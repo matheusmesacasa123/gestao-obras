@@ -51,10 +51,6 @@ export function ModalEditarDocumento({
     setNome,
   ] = useState("");
 
-  const [
-    categoria,
-    setCategoria,
-  ] = useState("");
 
   const [
     etapaId,
@@ -121,11 +117,6 @@ export function ModalEditarDocumento({
 
     setNome(
       documento.nome ||
-        ""
-    );
-
-    setCategoria(
-      documento.categoria ||
         ""
     );
 
@@ -222,10 +213,6 @@ export function ModalEditarDocumento({
           nome:
             nome.trim(),
 
-          categoria:
-            categoria.trim() ||
-            null,
-
           etapa_id:
             etapaId,
 
@@ -302,53 +289,28 @@ export function ModalEditarDocumento({
             </div>
           ) : (
             <div className="space-y-5 p-6">
-              <div className="grid gap-4 md:grid-cols-2">
-                <label className="space-y-2">
-                  <span className="block text-sm font-semibold text-gray-700">
-                    Nome do documento
-                  </span>
+              <label className="block space-y-2">
+                <span className="block text-sm font-semibold text-gray-700">
+                  Nome do documento
+                </span>
 
-                  <input
-                    value={
-                      nome
-                    }
-                    onChange={(
-                      event
-                    ) =>
-                      setNome(
-                        event.target.value
-                      )
-                    }
-                    disabled={
-                      salvando
-                    }
-                    className="h-11 w-full rounded-xl border px-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-gray-100"
-                  />
-                </label>
-
-                <label className="space-y-2">
-                  <span className="block text-sm font-semibold text-gray-700">
-                    Categoria
-                  </span>
-
-                  <input
-                    value={
-                      categoria
-                    }
-                    onChange={(
-                      event
-                    ) =>
-                      setCategoria(
-                        event.target.value
-                      )
-                    }
-                    disabled={
-                      salvando
-                    }
-                    className="h-11 w-full rounded-xl border px-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-gray-100"
-                  />
-                </label>
-              </div>
+                <input
+                  value={
+                    nome
+                  }
+                  onChange={(
+                    event
+                  ) =>
+                    setNome(
+                      event.target.value
+                    )
+                  }
+                  disabled={
+                    salvando
+                  }
+                  className="h-11 w-full rounded-xl border px-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-gray-100"
+                />
+              </label>
 
               <label className="block space-y-2">
                 <span className="flex items-center gap-2 text-sm font-semibold text-gray-700">

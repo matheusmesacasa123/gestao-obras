@@ -1,6 +1,7 @@
 import {
   createFileRoute,
   useNavigate,
+  useSearch,
 } from "@tanstack/react-router";
 
 import {
@@ -16,6 +17,7 @@ import {
   CirclePause,
   Clock3,
   ListTodo,
+  Layers3,
   Plus,
   RefreshCw,
 } from "lucide-react";
@@ -47,6 +49,13 @@ interface SetorFiltro {
   nome: string;
 }
 
+interface EtapaFiltro {
+  id: string;
+  titulo: string | null;
+  ordem: number | null;
+  setor_id: string;
+}
+
 
 export const Route =
   createFileRoute(
@@ -63,6 +72,13 @@ function DemandasPage() {
 
   const navigate =
     useNavigate();
+
+  const {
+    obraRevisaoId,
+  } = useSearch({
+    from:
+      "/_authenticated/obras/$id",
+  });
 
   const {
     perfil,
@@ -82,16 +98,23 @@ function DemandasPage() {
     []
   );
 
+  const [
+    etapas,
+    setEtapas,
+  ] = useState<EtapaFiltro[]>(
+    []
+  );
+
 
   const [
     setorSelecionadoId,
     setSetorSelecionadoId,
-  ] = useState("");
+  ] = useState("todos");
 
   const [
-    filtroInicialAplicado,
-    setFiltroInicialAplicado,
-  ] = useState(false);
+    etapaSelecionadaId,
+    setEtapaSelecionadaId,
+  ] = useState("todas");
 
   const [
     loadingDemandas,
@@ -114,6 +137,11 @@ function DemandasPage() {
     setErroSetores,
   ] = useState(false);
 
+  const [
+    erroEtapas,
+    setErroEtapas,
+  ] = useState(false);
+
 
   const [
     demandaParaEditar,
@@ -128,9 +156,14 @@ function DemandasPage() {
     true;
 
   const podeCriarDemanda =
-    administrador ||
     Boolean(
-      perfil?.setor_id
+      obraRevisaoId
+    ) &&
+    (
+      administrador ||
+      Boolean(
+        perfil?.setor_id
+      )
     );
 
   const carregarSetores =
@@ -185,6 +218,69 @@ function DemandasPage() {
       []
     );
 
+  const carregarEtapas =
+    useCallback(
+      async () => {
+        try {
+          setErroEtapas(
+            false
+          );
+
+          const {
+            data,
+            error,
+          } = await supabase
+            .from("etapas_obras")
+            .select(
+              "id, titulo, ordem, setor_id"
+            )
+            .eq(
+              "obra_id",
+              id
+            )
+            .eq(
+              "obra_revisao_id",
+              obraRevisaoId
+            )
+            .order(
+              "ordem",
+              {
+                ascending:
+                  true,
+              }
+            );
+
+          if (error) {
+            throw error;
+          }
+
+          setEtapas(
+            (
+              data ??
+              []
+            ) as EtapaFiltro[]
+          );
+        } catch (error) {
+          console.error(
+            "Erro ao carregar etapas:",
+            error
+          );
+
+          setEtapas(
+            []
+          );
+
+          setErroEtapas(
+            true
+          );
+        }
+      },
+      [
+        id,
+        obraRevisaoId,
+      ]
+    );
+
   const carregarDemandas =
     useCallback(
       async (
@@ -210,7 +306,8 @@ function DemandasPage() {
 
           const data =
             await getDemandasPorObra(
-              id
+              id,
+              obraRevisaoId
             );
 
           setDemandas(
@@ -237,6 +334,7 @@ function DemandasPage() {
       },
       [
         id,
+        obraRevisaoId,
       ]
     );
 
@@ -256,79 +354,50 @@ function DemandasPage() {
     Promise.all([
       carregarDemandas(),
       carregarSetores(),
+      carregarEtapas(),
     ]);
   }, [
     carregarDemandas,
     carregarSetores,
-  ]);
-
-  useEffect(() => {
-    if (
-      filtroInicialAplicado
-    ) {
-      return;
-    }
-
-    if (
-      perfil?.setor_id
-    ) {
-      setSetorSelecionadoId(
-        perfil.setor_id
-      );
-
-      setFiltroInicialAplicado(
-        true
-      );
-
-      return;
-    }
-
-    if (perfil) {
-      setSetorSelecionadoId(
-        "todos"
-      );
-
-      setFiltroInicialAplicado(
-        true
-      );
-    }
-  }, [
-    perfil,
-    filtroInicialAplicado,
+    carregarEtapas,
   ]);
 
   const demandasFiltradas =
     useMemo(() => {
-      if (
-        !setorSelecionadoId ||
-        setorSelecionadoId ===
-          "todos"
-      ) {
-        return demandas;
-      }
-
-      if (
-        setorSelecionadoId ===
-        "sem_setor"
-      ) {
-        return demandas.filter(
-          (
-            demanda
-          ) =>
-            !demanda.setor_id
-        );
-      }
-
       return demandas.filter(
         (
           demanda
-        ) =>
-          demanda.setor_id ===
-          setorSelecionadoId
+        ) => {
+          const correspondeSetor =
+            setorSelecionadoId ===
+              "todos"
+              ? true
+              : setorSelecionadoId ===
+                  "sem_setor"
+                ? !demanda.setor_id
+                : demanda.setor_id ===
+                  setorSelecionadoId;
+
+          const correspondeEtapa =
+            etapaSelecionadaId ===
+              "todas"
+              ? true
+              : etapaSelecionadaId ===
+                  "sem_etapa"
+                ? !demanda.etapa_id
+                : demanda.etapa_id ===
+                  etapaSelecionadaId;
+
+          return (
+            correspondeSetor &&
+            correspondeEtapa
+          );
+        }
       );
     }, [
       demandas,
       setorSelecionadoId,
+      etapaSelecionadaId,
     ]);
 
   const totais =
@@ -374,6 +443,32 @@ function DemandasPage() {
       demandasFiltradas,
     ]);
 
+  const etapasDisponiveis =
+    useMemo(
+      () => {
+        if (
+          setorSelecionadoId ===
+            "todos" ||
+          setorSelecionadoId ===
+            "sem_setor"
+        ) {
+          return etapas;
+        }
+
+        return etapas.filter(
+          (
+            etapa
+          ) =>
+            etapa.setor_id ===
+            setorSelecionadoId
+        );
+      },
+      [
+        etapas,
+        setorSelecionadoId,
+      ]
+    );
+
   const nomeSetorSelecionado =
     useMemo(() => {
       if (
@@ -403,6 +498,47 @@ function DemandasPage() {
     }, [
       setores,
       setorSelecionadoId,
+    ]);
+
+  const nomeEtapaSelecionada =
+    useMemo(() => {
+      if (
+        etapaSelecionadaId ===
+        "todas"
+      ) {
+        return "Todas as etapas";
+      }
+
+      if (
+        etapaSelecionadaId ===
+        "sem_etapa"
+      ) {
+        return "Sem etapa vinculada";
+      }
+
+      const etapa =
+        etapas.find(
+          (
+            item
+          ) =>
+            item.id ===
+            etapaSelecionadaId
+        );
+
+      if (!etapa) {
+        return "Etapa não encontrada";
+      }
+
+      return etapa.ordem
+        ? `Etapa ${etapa.ordem} — ${
+            etapa.titulo ||
+            "Sem título"
+          }`
+        : etapa.titulo ||
+          "Sem título";
+    }, [
+      etapas,
+      etapaSelecionadaId,
     ]);
 
   if (
@@ -494,6 +630,10 @@ function DemandasPage() {
                       params: {
                         id,
                       },
+
+                      search: {
+                        obraRevisaoId,
+                      },
                     })
                   }
                   className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-black px-4 text-sm font-semibold text-white transition hover:bg-gray-800"
@@ -507,9 +647,15 @@ function DemandasPage() {
         </div>
 
 
+        {!obraRevisaoId && (
+          <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+            Selecione uma revisão da obra no cabeçalho para visualizar e cadastrar demandas.
+          </div>
+        )}
+
         <div className="rounded-2xl border bg-white p-5 shadow-sm">
-          <div className="flex flex-wrap items-end justify-between gap-4">
-            <div className="min-w-[240px] flex-1">
+          <div className="grid gap-4 lg:grid-cols-[1fr_1fr_auto] lg:items-end">
+            <div className="min-w-[220px]">
               <label
                 htmlFor="filtro-setor-demandas"
                 className="flex items-center gap-2 text-sm font-semibold text-gray-700"
@@ -526,11 +672,15 @@ function DemandasPage() {
                 }
                 onChange={(
                   event
-                ) =>
+                ) => {
                   setSetorSelecionadoId(
                     event.target.value
-                  )
-                }
+                  );
+
+                  setEtapaSelecionadaId(
+                    "todas"
+                  );
+                }}
                 disabled={
                   erroSetores
                 }
@@ -552,9 +702,7 @@ function DemandasPage() {
                         setor.id
                       }
                     >
-                      {
-                        setor.nome
-                      }
+                      {setor.nome}
                     </option>
                   )
                 )}
@@ -571,15 +719,81 @@ function DemandasPage() {
               )}
             </div>
 
+            <div className="min-w-[220px]">
+              <label
+                htmlFor="filtro-etapa-demandas"
+                className="flex items-center gap-2 text-sm font-semibold text-gray-700"
+              >
+                <Layers3 className="h-4 w-4 text-gray-500" />
+
+                Etapa das demandas
+              </label>
+
+              <select
+                id="filtro-etapa-demandas"
+                value={
+                  etapaSelecionadaId
+                }
+                onChange={(
+                  event
+                ) =>
+                  setEtapaSelecionadaId(
+                    event.target.value
+                  )
+                }
+                disabled={
+                  erroEtapas
+                }
+                className="mt-2 h-11 w-full rounded-xl border border-gray-300 bg-white px-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-gray-100"
+              >
+                <option value="todas">
+                  Todas as etapas
+                </option>
+
+                {etapasDisponiveis.map(
+                  (
+                    etapa
+                  ) => (
+                    <option
+                      key={
+                        etapa.id
+                      }
+                      value={
+                        etapa.id
+                      }
+                    >
+                      {etapa.ordem
+                        ? `Etapa ${etapa.ordem} — `
+                        : ""}
+                      {etapa.titulo ||
+                        "Sem título"}
+                    </option>
+                  )
+                )}
+
+                <option value="sem_etapa">
+                  Sem etapa vinculada
+                </option>
+              </select>
+
+              {erroEtapas && (
+                <p className="mt-2 text-xs text-red-600">
+                  Não foi possível carregar as etapas.
+                </p>
+              )}
+            </div>
+
             <div className="rounded-xl border bg-slate-50 px-4 py-3">
               <span className="block text-xs font-medium text-slate-500">
                 Visualizando
               </span>
 
               <span className="mt-0.5 block text-sm font-semibold text-slate-800">
-                {
-                  nomeSetorSelecionado
-                }
+                {nomeSetorSelecionado}
+              </span>
+
+              <span className="mt-1 block text-xs text-slate-500">
+                {nomeEtapaSelecionada}
               </span>
             </div>
           </div>
@@ -675,6 +889,11 @@ function DemandasPage() {
             id
           }
           onDelete={() =>
+            carregarDemandas(
+              false
+            )
+          }
+          onStatusChange={() =>
             carregarDemandas(
               false
             )
