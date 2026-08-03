@@ -18,6 +18,7 @@ import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedHistoricoObrasRouteImport } from './routes/_authenticated/historico-obras'
 import { Route as AuthenticatedMinhaContaRouteImport } from './routes/_authenticated/minha-conta'
 import { Route as AuthenticatedTramitacoesRouteImport } from './routes/_authenticated/tramitacoes'
+import { Route as AuthenticatedClientesIdRouteImport } from './routes/_authenticated/clientes/$id'
 import { Route as AuthenticatedObrasIndexRouteImport } from './routes/_authenticated/obras/index'
 import { Route as AuthenticatedObrasIdRouteImport } from './routes/_authenticated/obras/$id'
 import { Route as AuthenticatedObrasNovaRouteImport } from './routes/_authenticated/obras/nova'
@@ -79,6 +80,11 @@ const AuthenticatedTramitacoesRoute =
     path: '/tramitacoes',
     getParentRoute: () => rootRouteImport,
   } as any)
+const AuthenticatedClientesIdRoute = AuthenticatedClientesIdRouteImport.update({
+  id: '/_authenticated/clientes/$id',
+  path: '/clientes/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedObrasIndexRoute = AuthenticatedObrasIndexRouteImport.update({
   id: '/_authenticated/obras/',
   path: '/obras/',
@@ -165,6 +171,7 @@ export interface FileRoutesByFullPath {
   '/historico-obras': typeof AuthenticatedHistoricoObrasRoute
   '/minha-conta': typeof AuthenticatedMinhaContaRoute
   '/tramitacoes': typeof AuthenticatedTramitacoesRoute
+  '/clientes/$id': typeof AuthenticatedClientesIdRoute
   '/obras/$id': typeof AuthenticatedObrasIdRouteWithChildren
   '/obras/nova': typeof AuthenticatedObrasNovaRoute
   '/obras/': typeof AuthenticatedObrasIndexRoute
@@ -189,6 +196,7 @@ export interface FileRoutesByTo {
   '/historico-obras': typeof AuthenticatedHistoricoObrasRoute
   '/minha-conta': typeof AuthenticatedMinhaContaRoute
   '/tramitacoes': typeof AuthenticatedTramitacoesRoute
+  '/clientes/$id': typeof AuthenticatedClientesIdRoute
   '/obras/nova': typeof AuthenticatedObrasNovaRoute
   '/obras': typeof AuthenticatedObrasIndexRoute
   '/obras/$id/editar': typeof AuthenticatedObrasIdEditarRoute
@@ -213,6 +221,7 @@ export interface FileRoutesById {
   '/_authenticated/historico-obras': typeof AuthenticatedHistoricoObrasRoute
   '/_authenticated/minha-conta': typeof AuthenticatedMinhaContaRoute
   '/_authenticated/tramitacoes': typeof AuthenticatedTramitacoesRoute
+  '/_authenticated/clientes/$id': typeof AuthenticatedClientesIdRoute
   '/_authenticated/obras/$id': typeof AuthenticatedObrasIdRouteWithChildren
   '/_authenticated/obras/nova': typeof AuthenticatedObrasNovaRoute
   '/_authenticated/obras/': typeof AuthenticatedObrasIndexRoute
@@ -239,6 +248,7 @@ export interface FileRouteTypes {
     | '/historico-obras'
     | '/minha-conta'
     | '/tramitacoes'
+    | '/clientes/$id'
     | '/obras/$id'
     | '/obras/nova'
     | '/obras/'
@@ -263,6 +273,7 @@ export interface FileRouteTypes {
     | '/historico-obras'
     | '/minha-conta'
     | '/tramitacoes'
+    | '/clientes/$id'
     | '/obras/nova'
     | '/obras'
     | '/obras/$id/editar'
@@ -286,6 +297,7 @@ export interface FileRouteTypes {
     | '/_authenticated/historico-obras'
     | '/_authenticated/minha-conta'
     | '/_authenticated/tramitacoes'
+    | '/_authenticated/clientes/$id'
     | '/_authenticated/obras/$id'
     | '/_authenticated/obras/nova'
     | '/_authenticated/obras/'
@@ -311,6 +323,7 @@ export interface RootRouteChildren {
   AuthenticatedHistoricoObrasRoute: typeof AuthenticatedHistoricoObrasRoute
   AuthenticatedMinhaContaRoute: typeof AuthenticatedMinhaContaRoute
   AuthenticatedTramitacoesRoute: typeof AuthenticatedTramitacoesRoute
+  AuthenticatedClientesIdRoute: typeof AuthenticatedClientesIdRoute
   AuthenticatedObrasIdRoute: typeof AuthenticatedObrasIdRouteWithChildren
   AuthenticatedObrasNovaRoute: typeof AuthenticatedObrasNovaRoute
   AuthenticatedObrasIndexRoute: typeof AuthenticatedObrasIndexRoute
@@ -379,6 +392,13 @@ declare module '@tanstack/react-router' {
       path: '/tramitacoes'
       fullPath: '/tramitacoes'
       preLoaderRoute: typeof AuthenticatedTramitacoesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/clientes/$id': {
+      id: '/_authenticated/clientes/$id'
+      path: '/clientes/$id'
+      fullPath: '/clientes/$id'
+      preLoaderRoute: typeof AuthenticatedClientesIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/obras/': {
@@ -519,6 +539,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedHistoricoObrasRoute: AuthenticatedHistoricoObrasRoute,
   AuthenticatedMinhaContaRoute: AuthenticatedMinhaContaRoute,
   AuthenticatedTramitacoesRoute: AuthenticatedTramitacoesRoute,
+  AuthenticatedClientesIdRoute: AuthenticatedClientesIdRoute,
   AuthenticatedObrasIdRoute: AuthenticatedObrasIdRouteWithChildren,
   AuthenticatedObrasNovaRoute: AuthenticatedObrasNovaRoute,
   AuthenticatedObrasIndexRoute: AuthenticatedObrasIndexRoute,

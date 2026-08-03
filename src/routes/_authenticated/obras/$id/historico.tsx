@@ -10,6 +10,7 @@ import {
   Activity,
   Building2,
   CheckCircle2,
+  ChevronDown,
   Clock3,
   FileText,
   ListTodo,
@@ -122,6 +123,9 @@ const nomesCampos: Record<string, string> = {
   vendedor_id: "Vendedor",
   data_entrada: "Data de entrada",
   data_entrega_esperada: "Data de entrega esperada",
+  valor_orcado: "Valor orçado",
+  valor_vendido: "Valor vendido",
+  custo_real: "Custo real",
 };
 
 const valoresTraduzidos: Record<string, string> = {
@@ -232,6 +236,27 @@ function formatarValor(
       mapas.usuarios[usuarioId] ||
       "Usuário não identificado"
     );
+  }
+
+  if (
+    campo === "valor_orcado" ||
+    campo === "valor_vendido" ||
+    campo === "custo_real"
+  ) {
+    const numero =
+      typeof valor === "number"
+        ? valor
+        : Number(valor);
+
+    if (Number.isFinite(numero)) {
+      return new Intl.NumberFormat(
+        "pt-BR",
+        {
+          style: "currency",
+          currency: "BRL",
+        }
+      ).format(numero);
+    }
   }
 
   if (typeof valor === "boolean") {
@@ -399,17 +424,147 @@ function obterTituloRegistro(
   return null;
 }
 
+const camposFinanceiros = new Set([
+  "valor_orcado",
+  "valor_vendido",
+  "custo_real",
+]);
+
+const camposCadastrais = new Set([
+  "cliente",
+  "cliente_id",
+  "razao_social",
+  "cnpj",
+  "email",
+  "telefone",
+  "cidade",
+  "estado",
+]);
+
+const camposTecnicos = new Set([
+  "tipo_projeto",
+  "tipo_efluente",
+  "vazao",
+  "complexidade",
+]);
+
+const camposComerciais = new Set([
+  "numero_proposta",
+  "revisao",
+  "motivo_revisao",
+  "vendedor",
+  "vendedor_id",
+  "data_entrada",
+  "data_entrega_esperada",
+  "tipo_proposta",
+  "tipo_orcamentacao",
+]);
+
+function todosCamposPertencemAoGrupo(
+  campos: string[],
+  grupo: Set<string>
+) {
+  return (
+    campos.length > 0 &&
+    campos.every((campo) =>
+      grupo.has(campo)
+    )
+  );
+}
+
+function obterTituloEdicaoObra(
+  alteracoes: CampoAlterado[]
+) {
+  const campos = alteracoes.map(
+    (alteracao) => alteracao.campo
+  );
+
+  if (
+    todosCamposPertencemAoGrupo(
+      campos,
+      camposFinanceiros
+    )
+  ) {
+    return "Alterou dados financeiros";
+  }
+
+  if (
+    todosCamposPertencemAoGrupo(
+      campos,
+      camposCadastrais
+    )
+  ) {
+    return "Alterou dados cadastrais";
+  }
+
+  if (
+    todosCamposPertencemAoGrupo(
+      campos,
+      camposTecnicos
+    )
+  ) {
+    return "Alterou dados técnicos";
+  }
+
+  if (
+    todosCamposPertencemAoGrupo(
+      campos,
+      camposComerciais
+    )
+  ) {
+    return "Alterou informações comerciais";
+  }
+
+  return "Alterou informações da obra";
+}
+
 function obterTituloAcao(
   registro: HistoricoObra,
-  mapas: MapasNomes
+  mapas: MapasNomes,
+  alteracoes: CampoAlterado[]
 ) {
-  const acao =
-    formatarNomeAcao(registro.acao);
+  if (
+    registro.entidade === "obra" &&
+    registro.acao === "editou"
+  ) {
+    return obterTituloEdicaoObra(
+      alteracoes
+    );
+  }
 
   const tituloRegistro =
     obterTituloRegistro(
       registro,
       mapas
+    );
+
+  if (
+    registro.entidade === "documento"
+  ) {
+    const nomeDocumento =
+      tituloRegistro ||
+      "Documento sem nome";
+
+    switch (
+      registro.acao
+    ) {
+      case "criou":
+        return `Adicionou o documento “${nomeDocumento}”`;
+
+      case "editou":
+        return `Alterou o documento “${nomeDocumento}”`;
+
+      case "excluiu":
+        return `Excluiu o documento “${nomeDocumento}”`;
+
+      default:
+        return `Atualizou o documento “${nomeDocumento}”`;
+    }
+  }
+
+  const acao =
+    formatarNomeAcao(
+      registro.acao
     );
 
   if (tituloRegistro) {
@@ -516,6 +671,40 @@ function HistoricoObraPage() {
   ] = useState<FiltroEntidade>(
     "todas"
   );
+
+  const [
+    registrosExpandidos,
+    setRegistrosExpandidos,
+  ] = useState<Set<string>>(
+    new Set()
+  );
+
+  function alternarRegistro(
+    registroId: string
+  ) {
+    setRegistrosExpandidos(
+      (estadoAtual) => {
+        const novoEstado =
+          new Set(estadoAtual);
+
+        if (
+          novoEstado.has(
+            registroId
+          )
+        ) {
+          novoEstado.delete(
+            registroId
+          );
+        } else {
+          novoEstado.add(
+            registroId
+          );
+        }
+
+        return novoEstado;
+      }
+    );
+  }
 
   const carregarHistorico =
     useCallback(
@@ -807,7 +996,8 @@ function HistoricoObraPage() {
               const tituloAcao =
                 obterTituloAcao(
                   registro,
-                  mapasNomes
+                  mapasNomes,
+                  alteracoes
                 );
 
               const nomeUsuario =
@@ -815,12 +1005,41 @@ function HistoricoObraPage() {
                 registro.usuario?.email ||
                 "Usuário não identificado";
 
+              const podeExpandir =
+                registro.acao === "editou" &&
+                alteracoes.length > 0;
+
+              const estaExpandido =
+                registrosExpandidos.has(
+                  registro.id
+                );
+
               return (
                 <article
                   key={registro.id}
-                  className="rounded-2xl border bg-white p-5 shadow-sm"
+                  className="overflow-hidden rounded-2xl border bg-white shadow-sm"
                 >
-                  <div className="flex flex-wrap items-start justify-between gap-4">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (podeExpandir) {
+                        alternarRegistro(
+                          registro.id
+                        );
+                      }
+                    }}
+                    disabled={!podeExpandir}
+                    aria-expanded={
+                      podeExpandir
+                        ? estaExpandido
+                        : undefined
+                    }
+                    className={`flex w-full items-start justify-between gap-4 p-5 text-left transition ${
+                      podeExpandir
+                        ? "cursor-pointer hover:bg-slate-50"
+                        : "cursor-default"
+                    }`}
+                  >
                     <div className="flex min-w-0 items-start gap-4">
                       <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-700">
                         <IconeEntidade className="h-5 w-5" />
@@ -859,15 +1078,33 @@ function HistoricoObraPage() {
                               registro.created_at
                             )}
                           </span>
+
+                          {podeExpandir && (
+                            <span className="font-medium text-gray-600">
+                              {alteracoes.length}{" "}
+                              {alteracoes.length === 1
+                                ? "campo alterado"
+                                : "campos alterados"}
+                            </span>
+                          )}
                         </div>
                       </div>
                     </div>
-                  </div>
 
-                  {registro.acao ===
-                    "editou" &&
-                    alteracoes.length > 0 && (
-                      <div className="mt-5 space-y-3 border-t pt-5">
+                    {podeExpandir && (
+                      <ChevronDown
+                        className={`mt-1 h-5 w-5 shrink-0 text-gray-500 transition-transform duration-200 ${
+                          estaExpandido
+                            ? "rotate-180"
+                            : ""
+                        }`}
+                      />
+                    )}
+                  </button>
+
+                  {podeExpandir &&
+                    estaExpandido && (
+                      <div className="space-y-3 border-t bg-slate-50/40 p-5">
                         <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
                           Campos alterados
                         </p>
@@ -878,22 +1115,33 @@ function HistoricoObraPage() {
                               key={
                                 alteracao.campo
                               }
-                              className="rounded-xl border bg-slate-50 p-4"
+                              className="rounded-xl border bg-white p-4"
                             >
                               <p className="text-sm font-semibold text-gray-800">
                                 {nomesCampos[
                                   alteracao.campo
                                 ] ||
-                                  alteracao.campo}
+                                  alteracao.campo
+                                    .replace(
+                                      /_/g,
+                                      " "
+                                    )
+                                    .replace(
+                                      /^./,
+                                      (
+                                        primeiraLetra
+                                      ) =>
+                                        primeiraLetra.toUpperCase()
+                                    )}
                               </p>
 
-                              <div className="mt-2 grid gap-3 text-sm md:grid-cols-2">
-                                <div>
-                                  <span className="block text-xs font-medium text-gray-500">
+                              <div className="mt-3 grid gap-3 text-sm md:grid-cols-2">
+                                <div className="rounded-lg border border-slate-200 bg-slate-100 px-3 py-2.5">
+                                  <span className="block text-xs font-semibold uppercase tracking-wide text-slate-500">
                                     Antes
                                   </span>
 
-                                  <span className="mt-1 block break-words text-gray-700">
+                                  <span className="mt-1 block break-words font-medium text-slate-700">
                                     {formatarValor(
                                       alteracao.anterior,
                                       alteracao.campo,
@@ -902,12 +1150,12 @@ function HistoricoObraPage() {
                                   </span>
                                 </div>
 
-                                <div>
-                                  <span className="block text-xs font-medium text-gray-500">
+                                <div className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2.5">
+                                  <span className="block text-xs font-semibold uppercase tracking-wide text-blue-600">
                                     Depois
                                   </span>
 
-                                  <span className="mt-1 block break-words font-medium text-gray-900">
+                                  <span className="mt-1 block break-words font-semibold text-blue-900">
                                     {formatarValor(
                                       alteracao.novo,
                                       alteracao.campo,

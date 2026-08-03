@@ -114,12 +114,10 @@ function NovaObraPage() {
 
     cliente_id: "",
     novoClienteNome: "",
+    novoClienteCnpj: "",
+    novoClienteEmail: "",
     novoClienteTelefone: "",
 
-    razao_social: "",
-    cnpj: "",
-    email: "",
-    telefone: "",
     cidade: "",
     estado: "",
 
@@ -460,9 +458,10 @@ function NovaObraPage() {
     let valor =
       event.target.value;
 
+
     if (
       name ===
-      "cnpj"
+        "novoClienteCnpj"
     ) {
       valor =
         formatarCnpj(
@@ -471,8 +470,6 @@ function NovaObraPage() {
     }
 
     if (
-      name ===
-        "telefone" ||
       name ===
         "novoClienteTelefone"
     ) {
@@ -562,26 +559,20 @@ function NovaObraPage() {
             ? form.novoClienteNome
             : undefined,
 
+        novoClienteCnpj:
+          modoNovoCliente
+            ? form.novoClienteCnpj
+            : undefined,
+
+        novoClienteEmail:
+          modoNovoCliente
+            ? form.novoClienteEmail
+            : undefined,
+
         novoClienteTelefone:
           modoNovoCliente
             ? form.novoClienteTelefone
             : undefined,
-
-        razao_social:
-          form.razao_social ||
-          null,
-
-        cnpj:
-          form.cnpj ||
-          null,
-
-        email:
-          form.email ||
-          null,
-
-        telefone:
-          form.telefone ||
-          null,
 
         cidade:
           form.cidade ||
@@ -720,7 +711,7 @@ function NovaObraPage() {
               </h2>
 
               <p className="mt-1 text-sm text-gray-500">
-                Identificação da obra e informações do cliente.
+                Identificação da obra e vínculo com o cliente cadastrado.
               </p>
             </div>
 
@@ -744,6 +735,12 @@ function NovaObraPage() {
                       "",
 
                     novoClienteNome:
+                      "",
+
+                    novoClienteCnpj:
+                      "",
+
+                    novoClienteEmail:
                       "",
 
                     novoClienteTelefone:
@@ -950,10 +947,62 @@ function NovaObraPage() {
 
                 <div className="space-y-2">
                   <label
+                    htmlFor="novoClienteCnpj"
+                    className="text-sm font-semibold text-gray-700"
+                  >
+                    CNPJ
+                  </label>
+
+                  <input
+                    id="novoClienteCnpj"
+                    name="novoClienteCnpj"
+                    placeholder="00.000.000/0000-00"
+                    value={
+                      form.novoClienteCnpj
+                    }
+                    onChange={
+                      handleChange
+                    }
+                    maxLength={
+                      18
+                    }
+                    className={
+                      inputClassName
+                    }
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label
+                    htmlFor="novoClienteEmail"
+                    className="text-sm font-semibold text-gray-700"
+                  >
+                    E-mail
+                  </label>
+
+                  <input
+                    id="novoClienteEmail"
+                    name="novoClienteEmail"
+                    type="email"
+                    placeholder="cliente@empresa.com"
+                    value={
+                      form.novoClienteEmail
+                    }
+                    onChange={
+                      handleChange
+                    }
+                    className={
+                      inputClassName
+                    }
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label
                     htmlFor="novoClienteTelefone"
                     className="text-sm font-semibold text-gray-700"
                   >
-                    Telefone do novo cliente
+                    Telefone
                   </label>
 
                   <input
@@ -977,108 +1026,9 @@ function NovaObraPage() {
               </>
             )}
 
-            <div className="space-y-2">
-              <label
-                htmlFor="razao_social"
-                className="text-sm font-semibold text-gray-700"
-              >
-                Razão social
-              </label>
 
-              <input
-                id="razao_social"
-                name="razao_social"
-                placeholder="Razão social da empresa"
-                value={
-                  form.razao_social
-                }
-                onChange={
-                  handleChange
-                }
-                className={
-                  inputClassName
-                }
-              />
-            </div>
 
-            <div className="space-y-2">
-              <label
-                htmlFor="cnpj"
-                className="text-sm font-semibold text-gray-700"
-              >
-                CNPJ
-              </label>
 
-              <input
-                id="cnpj"
-                name="cnpj"
-                placeholder="00.000.000/0000-00"
-                value={
-                  form.cnpj
-                }
-                onChange={
-                  handleChange
-                }
-                maxLength={
-                  18
-                }
-                className={
-                  inputClassName
-                }
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label
-                htmlFor="telefone"
-                className="text-sm font-semibold text-gray-700"
-              >
-                Telefone
-              </label>
-
-              <input
-                id="telefone"
-                name="telefone"
-                placeholder="(00) 00000-0000"
-                value={
-                  form.telefone
-                }
-                onChange={
-                  handleChange
-                }
-                maxLength={
-                  15
-                }
-                className={
-                  inputClassName
-                }
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label
-                htmlFor="email"
-                className="text-sm font-semibold text-gray-700"
-              >
-                E-mail
-              </label>
-
-              <input
-                id="email"
-                name="email"
-                type="email"
-                placeholder="cliente@empresa.com"
-                value={
-                  form.email
-                }
-                onChange={
-                  handleChange
-                }
-                className={
-                  inputClassName
-                }
-              />
-            </div>
 
             <div className="space-y-2">
               <label

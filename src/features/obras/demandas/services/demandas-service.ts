@@ -19,6 +19,10 @@ export interface AtualizarDemandaDados {
 
   prioridade?: PrioridadeDemanda;
 
+  etapa_id?:
+    | string
+    | null;
+
   setor_id?:
     | string
     | null;
@@ -46,6 +50,18 @@ export interface AtualizarDemandaDados {
 
 const consultaDemanda = `
   *,
+  etapa:etapas_obras!demandas_etapa_id_fkey (
+    id,
+    obra_id,
+    setor_id,
+    titulo,
+    ordem,
+    status,
+    setor:setores (
+      id,
+      nome
+    )
+  ),
   setor:setores!demandas_setor_id_fkey (
     id,
     nome

@@ -139,6 +139,7 @@ function EditarObraPage() {
 
     data_inicio: "",
     data_entrega: "",
+    status: "recebida",
     situacao_especial: "",
     motivo_atraso: "",
 
@@ -196,6 +197,7 @@ function EditarObraPage() {
         "$1-$2"
       );
   }
+
 
   useEffect(() => {
     carregarDados();
@@ -658,6 +660,39 @@ function EditarObraPage() {
       return;
     }
 
+    const dataEntregaTratada =
+      form.data_entrega ||
+      null;
+
+    const statusAtual =
+      typeof form.status ===
+      "string"
+        ? form.status
+        : "recebida";
+
+    let statusAtualizado =
+      statusAtual;
+
+    if (dataEntregaTratada) {
+      statusAtualizado =
+        "concluida";
+    } else if (
+      statusAtual ===
+      "concluida"
+    ) {
+      statusAtualizado =
+        form.data_inicio
+          ? "em_desenvolvimento"
+          : "recebida";
+    } else if (
+      form.data_inicio &&
+      statusAtual ===
+        "recebida"
+    ) {
+      statusAtualizado =
+        "em_desenvolvimento";
+    }
+
     try {
       setLoading(true);
 
@@ -772,8 +807,10 @@ function EditarObraPage() {
             null,
 
           data_entrega:
-            form.data_entrega ||
-            null,
+            dataEntregaTratada,
+
+          status:
+            statusAtualizado,
 
           situacao_especial:
             form.situacao_especial ||
@@ -820,6 +857,7 @@ function EditarObraPage() {
       setLoading(false);
     }
   }
+
 
 
   if (carregando) {
@@ -1305,7 +1343,7 @@ function EditarObraPage() {
               ],
               [
                 "data_entrega",
-                "Data de entrega",
+                "Data de finalização",
               ],
               [
                 "situacao_especial",

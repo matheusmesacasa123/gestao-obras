@@ -14,6 +14,18 @@ export interface SetorDemanda {
   nome: string;
 }
 
+export interface EtapaDemanda {
+  id: string;
+  obra_id: string;
+  setor_id: string;
+  titulo: string | null;
+  ordem: number | null;
+  status: string;
+  setor:
+    | SetorDemanda
+    | null;
+}
+
 export interface ResponsavelDemanda {
   id: string;
   nome: string;
@@ -29,6 +41,14 @@ export interface Demanda {
   id: string;
 
   obra_id: string;
+
+  etapa_id:
+    | string
+    | null;
+
+  etapa:
+    | EtapaDemanda
+    | null;
 
   titulo: string;
 

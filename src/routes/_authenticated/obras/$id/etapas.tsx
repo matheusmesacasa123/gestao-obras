@@ -19,6 +19,7 @@ import {
   RefreshCw,
   RotateCcw,
   Save,
+  StickyNote,
   Trash2,
   UserRound,
 } from "lucide-react";
@@ -187,6 +188,142 @@ function formatarData(
   ).format(data);
 }
 
+function obterDataHoje() {
+  const hoje =
+    new Date();
+
+  const ano =
+    hoje.getFullYear();
+
+  const mes =
+    String(
+      hoje.getMonth() + 1
+    ).padStart(
+      2,
+      "0"
+    );
+
+  const dia =
+    String(
+      hoje.getDate()
+    ).padStart(
+      2,
+      "0"
+    );
+
+  return `${ano}-${mes}-${dia}`;
+}
+
+function normalizarTexto(
+  valor?: string | null
+) {
+  return (
+    valor ||
+    ""
+  )
+    .normalize("NFD")
+    .replace(
+      /[\u0300-\u036f]/g,
+      ""
+    )
+    .trim()
+    .toLowerCase();
+}
+
+function etapaEhEngenhariaAplicacao(
+  etapa: EtapaObra
+) {
+  return (
+    normalizarTexto(
+      etapa.setor?.nome
+    ) ===
+    "engenharia de aplicacao"
+  );
+}
+
+function formatarCompetencia(
+  valor?: string | null
+) {
+  if (!valor) {
+    return "";
+  }
+
+  const [
+    ano,
+    mes,
+  ] = valor
+    .split("-")
+    .map(Number);
+
+  if (
+    !ano ||
+    !mes
+  ) {
+    return "";
+  }
+
+  const nomeMes =
+    new Intl.DateTimeFormat(
+      "pt-BR",
+      {
+        month:
+          "long",
+      }
+    ).format(
+      new Date(
+        ano,
+        mes - 1,
+        1
+      )
+    );
+
+  return `${
+    nomeMes.charAt(0).toUpperCase() +
+    nomeMes.slice(1)
+  } de ${ano}`;
+}
+
+
+function obterDestinoPostIt(
+  etapa: EtapaObra
+) {
+  if (
+    etapa.status ===
+      "concluida" &&
+    etapa.data_conclusao
+  ) {
+    return {
+      titulo:
+        `Finalizados — ${formatarCompetencia(
+          etapa.data_conclusao
+        )}`,
+
+      descricao:
+        "O post-it físico deve ser arquivado no quadro de propostas finalizadas, na competência da data de conclusão.",
+
+      classe:
+        "border-green-200 bg-green-50 text-green-900",
+
+      classeIcone:
+        "bg-green-100 text-green-700",
+    };
+  }
+
+  return {
+    titulo:
+      "Em andamento",
+
+    descricao:
+      "O post-it físico deve permanecer no quadro de propostas em andamento até a conclusão desta etapa.",
+
+    classe:
+      "border-amber-200 bg-amber-50 text-amber-900",
+
+    classeIcone:
+      "bg-amber-100 text-amber-700",
+  };
+}
+
 function EtapasObraPage() {
   const {
     id: obraId,
@@ -254,6 +391,30 @@ function EtapasObraPage() {
   ] = useState<string | null>(
     null
   );
+
+  const [
+    etapaConclusaoPendente,
+    setEtapaConclusaoPendente,
+  ] = useState<EtapaObra | null>(
+    null
+  );
+
+  const [
+    dataConclusaoEscolhida,
+    setDataConclusaoEscolhida,
+  ] = useState(
+    obterDataHoje()
+  );
+
+  const [
+    escolhendoOutraData,
+    setEscolhendoOutraData,
+  ] = useState(false);
+
+  const [
+    salvandoConclusao,
+    setSalvandoConclusao,
+  ] = useState(false);
 
   const [
     mostrandoFormulario,
@@ -701,6 +862,110 @@ function EtapasObraPage() {
     }
   }
 
+  function abrirConfirmacaoConclusao(
+    etapa: EtapaObra
+  ) {
+    setErro("");
+    setMensagem("");
+
+    setEtapaConclusaoPendente(
+      etapa
+    );
+
+    setDataConclusaoEscolhida(
+      obterDataHoje()
+    );
+
+    setEscolhendoOutraData(
+      false
+    );
+  }
+
+  function fecharConfirmacaoConclusao() {
+    if (salvandoConclusao) {
+      return;
+    }
+
+    setEtapaConclusaoPendente(
+      null
+    );
+
+    setEscolhendoOutraData(
+      false
+    );
+
+    setDataConclusaoEscolhida(
+      obterDataHoje()
+    );
+  }
+
+  async function confirmarConclusaoAplicacao(
+    dataConclusao: string
+  ) {
+    if (
+      !etapaConclusaoPendente
+    ) {
+      return;
+    }
+
+    if (!dataConclusao) {
+      setErro(
+        "Informe a data de finalização da proposta."
+      );
+
+      return;
+    }
+
+    try {
+      setErro("");
+      setMensagem("");
+      setSalvandoConclusao(true);
+
+      await atualizarEtapaObra(
+        etapaConclusaoPendente.id,
+        {
+          status:
+            "concluida",
+
+          data_conclusao:
+            dataConclusao,
+        }
+      );
+
+      setMensagem(
+        `Etapa concluída. O post-it pertence à competência de ${formatarCompetencia(
+          dataConclusao
+        )}.`
+      );
+
+      setEtapaConclusaoPendente(
+        null
+      );
+
+      setEscolhendoOutraData(
+        false
+      );
+
+      setDataConclusaoEscolhida(
+        obterDataHoje()
+      );
+
+      await carregarDados();
+    } catch (error: any) {
+      console.error(
+        "Erro ao concluir etapa da Engenharia de Aplicação:",
+        error
+      );
+
+      setErro(
+        error?.message ||
+          "Não foi possível concluir a etapa."
+      );
+    } finally {
+      setSalvandoConclusao(false);
+    }
+  }
+
   async function salvarEtapa(
     etapa: EtapaObra
   ) {
@@ -728,6 +993,22 @@ function EtapasObraPage() {
     if (!edicao.titulo.trim()) {
       setErro(
         "O título da etapa não pode ficar vazio."
+      );
+
+      return;
+    }
+
+    if (
+      etapaEhEngenhariaAplicacao(
+        etapa
+      ) &&
+      edicao.status ===
+        "concluida" &&
+      etapa.status !==
+        "concluida"
+    ) {
+      abrirConfirmacaoConclusao(
+        etapa
       );
 
       return;
@@ -820,6 +1101,20 @@ function EtapasObraPage() {
     ) {
       setErro(
         "Você não possui permissão para alterar esta etapa."
+      );
+
+      return;
+    }
+
+    if (
+      acao ===
+        "concluir" &&
+      etapaEhEngenhariaAplicacao(
+        etapa
+      )
+    ) {
+      abrirConfirmacaoConclusao(
+        etapa
       );
 
       return;
@@ -1330,6 +1625,15 @@ function EtapasObraPage() {
                 executandoAcaoId ===
                 etapa.id;
 
+              const destinoPostIt =
+                etapaEhEngenhariaAplicacao(
+                  etapa
+                )
+                  ? obterDestinoPostIt(
+                      etapa
+                    )
+                  : null;
+
               return (
                 <article
                   key={
@@ -1416,6 +1720,38 @@ function EtapasObraPage() {
                       </p>
                     </div>
                   </div>
+
+                  {destinoPostIt && (
+                    <div
+                      className={`mt-5 rounded-xl border p-4 ${destinoPostIt.classe}`}
+                    >
+                      <div className="flex items-start gap-3">
+                        <div
+                          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${destinoPostIt.classeIcone}`}
+                        >
+                          <StickyNote className="h-5 w-5" />
+                        </div>
+
+                        <div>
+                          <p className="text-xs font-semibold uppercase tracking-wide opacity-75">
+                            Local do post-it físico
+                          </p>
+
+                          <p className="mt-1 text-base font-bold">
+                            {
+                              destinoPostIt.titulo
+                            }
+                          </p>
+
+                          <p className="mt-1 text-sm leading-5 opacity-80">
+                            {
+                              destinoPostIt.descricao
+                            }
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                   <div className="mt-5 grid gap-5 md:grid-cols-2">
                     <div className="space-y-2 md:col-span-2">
@@ -1767,6 +2103,189 @@ function EtapasObraPage() {
           )}
         </div>
       )}
+      {etapaConclusaoPendente && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          onMouseDown={(
+            event
+          ) => {
+            if (
+              event.target ===
+              event.currentTarget
+            ) {
+              fecharConfirmacaoConclusao();
+            }
+          }}
+        >
+          <div className="w-full max-w-lg rounded-2xl border bg-white p-6 shadow-xl">
+            <div>
+              <h3 className="text-xl font-semibold text-gray-900">
+                Confirmar finalização
+              </h3>
+
+              <p className="mt-2 text-sm leading-6 text-gray-600">
+                Esta confirmação define o mês de arquivamento do post-it da Engenharia de Aplicação.
+              </p>
+            </div>
+
+            {!escolhendoOutraData ? (
+              <div className="mt-6">
+                <div className="rounded-xl border border-blue-200 bg-blue-50 p-4">
+                  <p className="text-sm font-medium text-blue-900">
+                    Você confirma que esta proposta foi finalizada em:
+                  </p>
+
+                  <p className="mt-2 text-lg font-bold text-blue-950">
+                    {formatarData(
+                      dataConclusaoEscolhida
+                    )}
+                  </p>
+
+                  <p className="mt-1 text-xs text-blue-700">
+                    Competência do post-it:{" "}
+                    {formatarCompetencia(
+                      dataConclusaoEscolhida
+                    )}
+                  </p>
+                </div>
+
+                <div className="mt-6 flex flex-wrap justify-end gap-3">
+                  <button
+                    type="button"
+                    onClick={
+                      fecharConfirmacaoConclusao
+                    }
+                    disabled={
+                      salvandoConclusao
+                    }
+                    className="cursor-pointer rounded-lg border px-4 py-2 text-sm font-medium transition hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    Cancelar
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setEscolhendoOutraData(
+                        true
+                      )
+                    }
+                    disabled={
+                      salvandoConclusao
+                    }
+                    className="cursor-pointer rounded-lg border border-amber-200 bg-amber-50 px-4 py-2 text-sm font-medium text-amber-800 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    Não, escolher outro dia
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      confirmarConclusaoAplicacao(
+                        dataConclusaoEscolhida
+                      )
+                    }
+                    disabled={
+                      salvandoConclusao
+                    }
+                    className="flex cursor-pointer items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {salvandoConclusao && (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    )}
+
+                    Sim, confirmar
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="mt-6">
+                <label
+                  htmlFor="data-conclusao-aplicacao"
+                  className="text-sm font-medium text-gray-800"
+                >
+                  Data em que a proposta foi finalizada
+                </label>
+
+                <input
+                  id="data-conclusao-aplicacao"
+                  type="date"
+                  value={
+                    dataConclusaoEscolhida
+                  }
+                  onChange={(
+                    event
+                  ) =>
+                    setDataConclusaoEscolhida(
+                      event.target.value
+                    )
+                  }
+                  disabled={
+                    salvandoConclusao
+                  }
+                  className="mt-2 h-11 w-full rounded-lg border px-3 text-sm outline-none focus:border-blue-500 disabled:cursor-not-allowed disabled:bg-muted"
+                />
+
+                {dataConclusaoEscolhida && (
+                  <div className="mt-4 rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900">
+                    O post-it será arquivado na competência de{" "}
+                    <strong>
+                      {formatarCompetencia(
+                        dataConclusaoEscolhida
+                      )}
+                    </strong>
+                    .
+                  </div>
+                )}
+
+                <div className="mt-6 flex flex-wrap justify-end gap-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setDataConclusaoEscolhida(
+                        obterDataHoje()
+                      );
+
+                      setEscolhendoOutraData(
+                        false
+                      );
+                    }}
+                    disabled={
+                      salvandoConclusao
+                    }
+                    className="cursor-pointer rounded-lg border px-4 py-2 text-sm font-medium transition hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    Voltar
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      confirmarConclusaoAplicacao(
+                        dataConclusaoEscolhida
+                      )
+                    }
+                    disabled={
+                      salvandoConclusao ||
+                      !dataConclusaoEscolhida
+                    }
+                    className="flex cursor-pointer items-center gap-2 rounded-lg bg-slate-950 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {salvandoConclusao ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <CheckCircle2 className="h-4 w-4" />
+                    )}
+
+                    Salvar conclusão
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

@@ -1,9 +1,42 @@
+export interface SetorDocumento {
+  id: string;
+  nome: string;
+}
+
+export interface UsuarioDocumento {
+  id: string;
+  nome: string;
+  email: string;
+}
+
+export interface EtapaDocumento {
+  id: string;
+  obra_id: string;
+  setor_id: string;
+  titulo: string | null;
+  ordem: number | null;
+  status: string;
+
+  setor?:
+    | SetorDocumento
+    | null;
+}
+
 export interface Documento {
   id: string;
 
   obra_id: string;
 
+  etapa_id:
+    | string
+    | null;
+
+  etapa?:
+    | EtapaDocumento
+    | null;
+
   setor_id: string | null;
+  enviado_por: string | null;
 
   nome: string;
 
@@ -12,4 +45,7 @@ export interface Documento {
   arquivo_url: string;
 
   created_at: string;
+
+  setor?: SetorDocumento | null;
+  usuario?: UsuarioDocumento | null;
 }

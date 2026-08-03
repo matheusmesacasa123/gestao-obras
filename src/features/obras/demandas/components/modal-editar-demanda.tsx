@@ -12,6 +12,7 @@ import {
   CirclePause,
   Clock3,
   ShieldAlert,
+  Layers3,
   UserRound,
   X,
   XCircle,
@@ -53,6 +54,21 @@ interface UsuarioOpcao {
   nome: string;
   email: string;
   setor_id: string | null;
+}
+
+interface EtapaOpcao {
+  id: string;
+  obra_id: string;
+  setor_id: string;
+  titulo: string | null;
+  ordem: number | null;
+  status: string;
+  setor:
+    | {
+        id: string;
+        nome: string;
+      }
+    | null;
 }
 
 interface RegistroSetor {
@@ -243,6 +259,23 @@ function ModalEditarDemanda({
     );
 
   const [
+    etapaId,
+    setEtapaId,
+  ] = useState("");
+
+  const [
+    etapas,
+    setEtapas,
+  ] = useState<EtapaOpcao[]>(
+    []
+  );
+
+  const [
+    carregandoEtapas,
+    setCarregandoEtapas,
+  ] = useState(false);
+
+  const [
     setorId,
     setSetorId,
   ] = useState("");
@@ -347,8 +380,14 @@ function ModalEditarDemanda({
         "media"
     );
 
+    setEtapaId(
+      demanda.etapa_id ??
+        ""
+    );
+
     setSetorId(
       demanda.setor_id ??
+        demanda.etapa?.setor_id ??
         demanda.responsavel
           ?.setor_id ??
         ""
@@ -388,6 +427,99 @@ function ModalEditarDemanda({
     );
   }, [
     demanda,
+  ]);
+
+  useEffect(() => {
+    if (
+      !demanda ||
+      !podeEditar
+    ) {
+      return;
+    }
+
+    async function carregarEtapas() {
+      try {
+        setCarregandoEtapas(
+          true
+        );
+
+        setErroOpcoes("");
+
+        const {
+          data,
+          error,
+        } = await supabase
+          .from("etapas_obras")
+          .select(`
+            id,
+            obra_id,
+            setor_id,
+            titulo,
+            ordem,
+            status,
+            setor:setores (
+              id,
+              nome
+            )
+          `)
+          .eq(
+            "obra_id",
+            demanda.obra_id
+          )
+          .order(
+            "ordem",
+            {
+              ascending:
+                true,
+            }
+          );
+
+        if (error) {
+          throw error;
+        }
+
+        const etapasEncontradas =
+          (
+            data ??
+            []
+          ) as EtapaOpcao[];
+
+        const etapasPermitidas =
+          administrador
+            ? etapasEncontradas
+            : etapasEncontradas.filter(
+                (etapa) =>
+                  etapa.setor_id ===
+                  perfil?.setor_id
+              );
+
+        setEtapas(
+          etapasPermitidas
+        );
+      } catch (error) {
+        console.error(
+          "Erro ao carregar etapas da obra:",
+          error
+        );
+
+        setEtapas([]);
+
+        setErroOpcoes(
+          "Não foi possível carregar as etapas da obra."
+        );
+      } finally {
+        setCarregandoEtapas(
+          false
+        );
+      }
+    }
+
+    carregarEtapas();
+  }, [
+    demanda,
+    podeEditar,
+    administrador,
+    perfil?.setor_id,
   ]);
 
   useEffect(() => {
@@ -675,6 +807,31 @@ function ModalEditarDemanda({
     demandaAtrasada ||
     finalizadaComAtraso;
 
+  function handleAlterarEtapa(
+    novaEtapaId: string
+  ) {
+    setEtapaId(
+      novaEtapaId
+    );
+
+    const etapaSelecionada =
+      etapas.find(
+        (etapa) =>
+          etapa.id ===
+          novaEtapaId
+      );
+
+    if (!etapaSelecionada) {
+      return;
+    }
+
+    setSetorId(
+      etapaSelecionada.setor_id
+    );
+
+    setResponsavelId("");
+  }
+
   function handleAlterarSetor(
     novoSetorId: string
   ) {
@@ -806,9 +963,17 @@ function ModalEditarDemanda({
       return;
     }
 
+    if (!etapaId) {
+      alert(
+        "Selecione a etapa à qual esta demanda pertence."
+      );
+
+      return;
+    }
+
     if (!setorId) {
       alert(
-        "Selecione o setor responsável pela demanda."
+        "A etapa selecionada não possui um setor válido."
       );
 
       return;
@@ -897,6 +1062,9 @@ function ModalEditarDemanda({
             statusAutomatico,
 
           prioridade,
+
+          etapa_id:
+            etapaId,
 
           setor_id:
             administrador
@@ -1092,6 +1260,71 @@ function ModalEditarDemanda({
                   </div>
 
                   <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-2 sm:col-span-2">
+                      <label
+                        htmlFor="editar-demanda-etapa"
+                        className="flex items-center gap-2 text-sm font-semibold text-gray-700"
+                      >
+                        <Layers3 className="h-4 w-4 text-gray-500" />
+
+                        Etapa da obra *
+                      </label>
+
+                      <select
+                        id="editar-demanda-etapa"
+                        value={
+                          etapaId
+                        }
+                        onChange={(
+                          event
+                        ) =>
+                          handleAlterarEtapa(
+                            event.target.value
+                          )
+                        }
+                        disabled={
+                          carregandoEtapas
+                        }
+                        required
+                        className="h-11 w-full cursor-pointer rounded-xl border border-gray-300 bg-white px-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-gray-100"
+                      >
+                        <option value="">
+                          {carregandoEtapas
+                            ? "Carregando etapas..."
+                            : etapas.length === 0
+                              ? "Nenhuma etapa disponível"
+                              : "Selecione a etapa"}
+                        </option>
+
+                        {etapas.map(
+                          (
+                            etapa
+                          ) => (
+                            <option
+                              key={
+                                etapa.id
+                              }
+                              value={
+                                etapa.id
+                              }
+                            >
+                              Etapa{" "}
+                              {etapa.ordem ??
+                                "?"} —{" "}
+                              {etapa.setor?.nome ||
+                                "Setor não informado"} —{" "}
+                              {etapa.titulo ||
+                                "Sem título"}
+                            </option>
+                          )
+                        )}
+                      </select>
+
+                      <p className="text-xs text-gray-500">
+                        O setor responsável acompanha automaticamente a etapa selecionada.
+                      </p>
+                    </div>
+
                     <div className="space-y-2">
                       <label
                         htmlFor="editar-demanda-setor"
@@ -1115,8 +1348,7 @@ function ModalEditarDemanda({
                           )
                         }
                         disabled={
-                          carregandoSetores ||
-                          !administrador
+                          true
                         }
                         required
                         className="h-11 w-full cursor-pointer rounded-xl border border-gray-300 bg-white px-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-gray-100"

@@ -12,9 +12,19 @@ export interface ObraPayload {
   setor_id?: string | null;
   cliente_id?: string | null;
   novoClienteNome?: string;
+  novoClienteCnpj?: string;
+  novoClienteEmail?: string;
   novoClienteTelefone?: string;
-
   [key: string]: unknown;
+}
+
+export interface AtualizarValoresObraPayload {
+  obraId: string;
+  valorOrcado: number | null;
+  custoOrcado: number | null;
+  valorVendido: number | null;
+  custoReal: number | null;
+  motivoAlteracao: string;
 }
 
 const consultaObra = `
@@ -90,12 +100,11 @@ function ordenarEtapas(
               ""
             ).localeCompare(
               etapaB.setor?.nome ||
-              "",
+                "",
               "pt-BR"
             );
           }
-        ) ||
-      [],
+        ) || [],
   };
 }
 
@@ -120,12 +129,26 @@ export async function criarObra(
       .insert([
         {
           nome:
-            dados.novoClienteNome,
+            dados.novoClienteNome.trim(),
+
+          cnpj:
+            typeof dados.novoClienteCnpj ===
+            "string"
+              ? dados.novoClienteCnpj.trim() ||
+                null
+              : null,
+
+          email:
+            typeof dados.novoClienteEmail ===
+            "string"
+              ? dados.novoClienteEmail.trim() ||
+                null
+              : null,
 
           telefone:
             typeof dados.novoClienteTelefone ===
             "string"
-              ? dados.novoClienteTelefone ||
+              ? dados.novoClienteTelefone.trim() ||
                 null
               : null,
         },
@@ -146,12 +169,15 @@ export async function criarObra(
       novoCliente.id;
   }
 
-  const {
-    novoClienteNome,
-    novoClienteTelefone,
-    nome,
-    ...dadosObraLimpos
-  } = dados;
+  const dadosObraLimpos = {
+    ...dados,
+  };
+
+  delete dadosObraLimpos.nome;
+  delete dadosObraLimpos.novoClienteNome;
+  delete dadosObraLimpos.novoClienteCnpj;
+  delete dadosObraLimpos.novoClienteEmail;
+  delete dadosObraLimpos.novoClienteTelefone;
 
   const payloadTratado =
     Object.fromEntries(
@@ -221,8 +247,7 @@ export async function getObras(): Promise<
     .order(
       "created_at",
       {
-        ascending:
-          false,
+        ascending: false,
       }
     );
 
@@ -288,6 +313,11 @@ export async function atualizarObra(
     ...dadosAtualizacao
   } = obra;
 
+  void setor;
+  void clientes;
+  void etapas;
+  void progresso;
+
   const {
     data,
     error,
@@ -317,6 +347,61 @@ export async function atualizarObra(
   return ordenarEtapas(
     data as Obra
   );
+}
+
+export async function atualizarValoresObra({
+  obraId,
+  valorOrcado,
+  custoOrcado,
+  valorVendido,
+  custoReal,
+  motivoAlteracao,
+}: AtualizarValoresObraPayload): Promise<Obra> {
+  const motivo =
+    motivoAlteracao.trim();
+
+  const {
+    data,
+    error,
+  } = await supabase.rpc(
+    "atualizar_valores_obra",
+    {
+      p_obra_id:
+        obraId,
+
+      p_valor_orcado:
+        valorOrcado,
+
+      p_custo_orcado:
+        custoOrcado,
+
+      p_valor_vendido:
+        valorVendido,
+
+      p_custo_real:
+        custoReal,
+
+      p_motivo_alteracao:
+        motivo,
+    }
+  );
+
+  if (error) {
+    console.error(
+      "Erro ao atualizar valores da obra:",
+      error
+    );
+
+    throw error;
+  }
+
+  if (!data) {
+    throw new Error(
+      "Não foi possível atualizar os valores da obra."
+    );
+  }
+
+  return data as Obra;
 }
 
 export async function excluirObra(

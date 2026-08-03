@@ -54,16 +54,12 @@ export interface EtapaObraResumo {
 export interface Obra {
   id: string;
 
-  // Relacionamentos
-
   setor_id: string | null;
   cliente_id: string | null;
 
   setor?: SetorObra | null;
   clientes?: ClienteObra | null;
   etapas?: EtapaObraResumo[];
-
-  // Dados gerais
 
   codigo: string | null;
   cliente: string | null;
@@ -74,13 +70,9 @@ export interface Obra {
   cidade: string | null;
   estado: string | null;
 
-  // Dados técnicos
-
   vazao: number | null;
   tipo_projeto: string | null;
   tipo_efluente: string | null;
-
-  // Dados comerciais
 
   numero_proposta: string | null;
   revisao: number | null;
@@ -91,21 +83,20 @@ export interface Obra {
   tipo_proposta: string | null;
   tipo_orcamentacao: string | null;
 
-  // Informações da obra
+  valor_orcado: number | null;
+  custo_orcado: number | null;
+  valor_vendido: number | null;
+  custo_real: number | null;
 
   nome_obra: string | null;
   descricao: string | null;
   complexidade: string | null;
   responsavel_engenheiro: string | null;
 
-  // Execução
-
   data_inicio: string | null;
   data_entrega: string | null;
   situacao_especial: string | null;
   motivo_atraso: string | null;
-
-  // Controle
 
   prazo_entrega: string | null;
   status: StatusObra | null;
@@ -116,4 +107,28 @@ export interface Obra {
 
   created_at: string;
   updated_at: string;
+}
+
+export interface HistoricoValoresObra {
+  id: string;
+  obra_id: string;
+
+  revisao: number | null;
+
+  valor_orcado_anterior: number | null;
+  valor_orcado_novo: number | null;
+
+  custo_orcado_anterior: number | null;
+  custo_orcado_novo: number | null;
+
+  valor_vendido_anterior: number | null;
+  valor_vendido_novo: number | null;
+
+  custo_real_anterior: number | null;
+  custo_real_novo: number | null;
+
+  motivo_alteracao: string;
+  alterado_por: string | null;
+
+  created_at: string;
 }

@@ -3,10 +3,14 @@ import {
 } from "react";
 
 import {
+  Building2,
   ExternalLink,
   Eye,
   FileText,
+  Layers3,
+  Pencil,
   Trash2,
+  UserRound,
 } from "lucide-react";
 
 import {
@@ -28,11 +32,15 @@ import {
 interface DocumentoListProps {
   documentos: Documento[];
   onDelete: () => void;
+  onEdit: (
+    documento: Documento
+  ) => void;
 }
 
 export function DocumentoList({
   documentos,
   onDelete,
+  onEdit,
 }: DocumentoListProps) {
   const {
     perfil,
@@ -148,7 +156,7 @@ export function DocumentoList({
           "Este documento não pertence ao seu setor e não pode ser excluído."
         );
 
-        onDelete();
+        await onDelete();
 
         return;
       }
@@ -184,11 +192,11 @@ export function DocumentoList({
     return (
       <div className="rounded-xl border bg-white p-8 text-center shadow-sm">
         <h2 className="text-lg font-semibold">
-          Nenhum documento cadastrado
+          Nenhum documento encontrado
         </h2>
 
         <p className="mt-2 text-muted-foreground">
-          Adicione documentos desta obra.
+          Ajuste os filtros ou adicione um novo documento.
         </p>
       </div>
     );
@@ -209,14 +217,38 @@ export function DocumentoList({
             documentoExcluindoId ===
             documento.id;
 
+          const nomeUsuario =
+            documento.usuario?.nome ||
+            documento.usuario?.email ||
+            "Usuário não identificado";
+
+          const nomeSetor =
+            documento.setor?.nome ||
+            documento.etapa?.setor?.nome ||
+            "Setor não informado";
+
+          const nomeEtapa =
+            documento.etapa
+              ? `Etapa ${
+                  documento.etapa.ordem ??
+                  "?"
+                } — ${
+                  documento.etapa.setor?.nome ||
+                  nomeSetor
+                } — ${
+                  documento.etapa.titulo ||
+                  "Sem título"
+                }`
+              : "Etapa não vinculada";
+
           return (
             <div
               key={
                 documento.id
               }
-              className="group relative flex flex-col justify-between space-y-3 rounded-xl border bg-white p-5 shadow-sm"
+              className="group relative flex flex-col justify-between space-y-4 rounded-xl border bg-white p-5 shadow-sm"
             >
-              <div className="space-y-1">
+              <div className="space-y-3">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex min-w-0 items-center gap-2">
                     <FileText className="h-5 w-5 flex-shrink-0 text-blue-600" />
@@ -229,25 +261,43 @@ export function DocumentoList({
                   </div>
 
                   {podeExcluir ? (
-                    <button
-                      type="button"
-                      onClick={() =>
-                        handleDelete(
-                          documento
-                        )
-                      }
-                      disabled={
-                        excluindo
-                      }
-                      className="rounded-lg p-1.5 text-gray-400 transition hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-50"
-                      title="Excluir documento"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          onEdit(
+                            documento
+                          )
+                        }
+                        disabled={
+                          excluindo
+                        }
+                        className="rounded-lg p-1.5 text-gray-500 transition hover:bg-blue-50 hover:text-blue-600 disabled:cursor-not-allowed disabled:opacity-50"
+                        title="Editar documento"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          handleDelete(
+                            documento
+                          )
+                        }
+                        disabled={
+                          excluindo
+                        }
+                        className="rounded-lg p-1.5 text-gray-400 transition hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-50"
+                        title="Excluir documento"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
                   ) : (
                     <div
                       className="flex flex-shrink-0 items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-xs font-medium text-slate-500"
-                      title="Documento enviado por outro setor"
+                      title="Documento de outro setor"
                     >
                       <Eye className="h-3.5 w-3.5" />
 
@@ -258,9 +308,55 @@ export function DocumentoList({
 
                 <p className="text-sm text-muted-foreground">
                   Categoria:{" "}
-                  {documento.categoria ??
-                    "-"}
+                  <span className="font-medium text-gray-800">
+                    {documento.categoria ??
+                      "-"}
+                  </span>
                 </p>
+
+                <div className="rounded-lg border border-blue-100 bg-blue-50/60 p-3">
+                  <div className="flex items-center gap-2 text-blue-700">
+                    <Layers3 className="h-4 w-4 shrink-0" />
+
+                    <span className="text-xs font-semibold">
+                      Etapa vinculada
+                    </span>
+                  </div>
+
+                  <p className="mt-2 text-sm font-semibold text-blue-950">
+                    {
+                      nomeEtapa
+                    }
+                  </p>
+                </div>
+
+                <div className="grid gap-2 rounded-lg bg-slate-50 p-3 text-sm">
+                  <div className="flex items-center gap-2 text-gray-600">
+                    <Building2 className="h-4 w-4 shrink-0 text-slate-500" />
+
+                    <span>
+                      Setor responsável:{" "}
+                      <strong className="font-semibold text-gray-800">
+                        {
+                          nomeSetor
+                        }
+                      </strong>
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2 text-gray-600">
+                    <UserRound className="h-4 w-4 shrink-0 text-slate-500" />
+
+                    <span>
+                      Enviado por:{" "}
+                      <strong className="font-semibold text-gray-800">
+                        {
+                          nomeUsuario
+                        }
+                      </strong>
+                    </span>
+                  </div>
+                </div>
 
                 <p className="text-sm text-muted-foreground">
                   Enviado em:{" "}
@@ -272,7 +368,7 @@ export function DocumentoList({
                 </p>
               </div>
 
-              <div className="mt-2 border-t pt-2">
+              <div className="border-t pt-3">
                 <a
                   href={
                     documento.arquivo_url

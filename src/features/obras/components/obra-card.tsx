@@ -86,6 +86,15 @@ function formatarData(
   );
 }
 
+
+function obraEstaFinalizada(
+  obra: Obra
+) {
+  return Boolean(
+    obra.data_entrega
+  );
+}
+
 function getEtapaStatusInfo(
   status?: StatusEtapaObra | null
 ) {
@@ -154,48 +163,48 @@ function getStatusGeralStyle(
     [];
 
   if (
-    etapas.length ===
-    0
+    obraEstaFinalizada(
+      obra
+    )
   ) {
+    const dataEsperada =
+      parseData(
+        obra.data_entrega_esperada
+      );
+
+    const dataFinal =
+      parseData(
+        obra.data_entrega
+      );
+
     if (
-      obra.status ===
-        "concluida" ||
-      obra.data_entrega
+      dataEsperada &&
+      dataFinal &&
+      dataFinal >
+        dataEsperada
     ) {
-      const dataEsperada =
-        parseData(
-          obra.data_entrega_esperada
-        );
-
-      const dataFinal =
-        parseData(
-          obra.data_entrega
-        );
-
-      if (
-        dataEsperada &&
-        dataFinal &&
-        dataFinal >
-          dataEsperada
-      ) {
-        return {
-          label:
-            "Finalizada com atraso",
-
-          className:
-            "border-amber-300 bg-amber-100 text-amber-800",
-        };
-      }
-
       return {
         label:
-          "Finalizada",
+          "Finalizada com atraso",
 
         className:
-          "border-green-300 bg-green-100 text-green-800",
+          "border-amber-300 bg-amber-100 text-amber-800",
       };
     }
 
+    return {
+      label:
+        "Finalizada",
+
+      className:
+        "border-green-300 bg-green-100 text-green-800",
+    };
+  }
+
+  if (
+    etapas.length ===
+    0
+  ) {
     switch (
       obra.status
     ) {
@@ -257,60 +266,12 @@ function getStatusGeralStyle(
     );
 
   if (todasConcluidas) {
-    const dataEsperada =
-      parseData(
-        obra.data_entrega_esperada
-      );
-
-    const datasConclusao =
-      etapasConsideradas
-        .map(
-          (etapa) =>
-            parseData(
-              etapa.data_conclusao
-            )
-        )
-        .filter(
-          (
-            data
-          ): data is Date =>
-            Boolean(data)
-        );
-
-    const dataConclusaoMaisRecente =
-      datasConclusao.length >
-      0
-        ? new Date(
-            Math.max(
-              ...datasConclusao.map(
-                (data) =>
-                  data.getTime()
-              )
-            )
-          )
-        : null;
-
-    if (
-      dataEsperada &&
-      dataConclusaoMaisRecente &&
-      dataConclusaoMaisRecente >
-        dataEsperada
-    ) {
-      return {
-        label:
-          "Finalizada com atraso",
-
-        className:
-          "border-amber-300 bg-amber-100 text-amber-800",
-      };
-    }
-
     return {
       label:
-        "Finalizada",
+        "Em andamento",
 
       className:
-        "border-green-300 bg-green-100 text-green-800",
+        "border-blue-300 bg-blue-100 text-blue-800",
     };
   }
 
@@ -428,6 +389,7 @@ function getStatusGeralStyle(
   };
 }
 
+
 function calcularProgressoEtapas(
   obra: Obra
 ) {
@@ -435,19 +397,20 @@ function calcularProgressoEtapas(
     obra.etapas ||
     [];
 
+  const finalizada =
+    obraEstaFinalizada(
+      obra
+    );
+
   if (
     etapas.length ===
     0
   ) {
     const progresso =
-      obra.progresso ??
-      (
-        obra.status ===
-          "concluida" ||
-        obra.data_entrega
-          ? 100
-          : 0
-      );
+      finalizada
+        ? 100
+        : obra.progresso ??
+          0;
 
     return {
       progresso:
@@ -460,15 +423,16 @@ function calcularProgressoEtapas(
         ),
 
       concluidas:
-        progresso >= 100
-          ? 1
-          : 0,
+        0,
 
       total:
         0,
 
       possuiEtapas:
         false,
+
+      obraFinalizada:
+        finalizada,
     };
   }
 
@@ -494,7 +458,7 @@ function calcularProgressoEtapas(
   const total =
     etapasConsideradas.length;
 
-  const progresso =
+  const progressoEtapas =
     total > 0
       ? Math.round(
           (
@@ -506,13 +470,20 @@ function calcularProgressoEtapas(
       : 0;
 
   return {
-    progresso,
+    progresso:
+      progressoEtapas,
+
     concluidas,
     total,
+
     possuiEtapas:
       true,
+
+    obraFinalizada:
+      finalizada,
   };
 }
+
 
 function encontrarEtapaExibida(
   obra: Obra,
@@ -652,6 +623,16 @@ export function ObraCard({
       etapaExibida?.status
     );
 
+  const numeroExibido =
+    obra.numero_proposta ||
+    obra.codigo ||
+    "Sem número";
+
+  const revisaoFormatada =
+    String(
+      obra.revisao ?? 0
+    ).padStart(2, "0");
+
   const nomeCliente =
     obra.clientes?.nome ||
     obra.cliente ||
@@ -736,10 +717,15 @@ export function ObraCard({
     >
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
-          <h3 className="truncate text-xl font-bold tracking-tight text-gray-900">
-            {obra.codigo ||
-              "Sem código"}
-          </h3>
+          <div className="flex min-w-0 items-center gap-2">
+            <h3 className="truncate text-xl font-bold tracking-tight text-gray-900">
+              {numeroExibido}
+            </h3>
+
+            <span className="shrink-0 rounded-md border border-slate-200 bg-slate-50 px-2 py-0.5 text-xs font-semibold text-slate-600">
+              Rev. {revisaoFormatada}
+            </span>
+          </div>
 
           <p className="truncate text-sm font-medium text-gray-600">
             {nomeCliente}
@@ -824,10 +810,27 @@ export function ObraCard({
         <div className="flex items-center justify-between gap-3 text-xs font-medium text-gray-600">
           <div>
             <span className="block">
-              Progresso geral
+              Progresso das etapas
             </span>
 
-            {progressoEtapas.possuiEtapas ? (
+            {progressoEtapas.obraFinalizada ? (
+              <span className="mt-0.5 block text-[11px] text-emerald-700">
+                {progressoEtapas.possuiEtapas &&
+                progressoEtapas.concluidas <
+                  progressoEtapas.total
+                  ? `${
+                      progressoEtapas.total -
+                      progressoEtapas.concluidas
+                    } ${
+                      progressoEtapas.total -
+                        progressoEtapas.concluidas ===
+                      1
+                        ? "etapa ainda aberta"
+                        : "etapas ainda abertas"
+                    }`
+                  : "Finalização da obra registrada"}
+              </span>
+            ) : progressoEtapas.possuiEtapas ? (
               <span className="mt-0.5 block text-[11px] text-gray-500">
                 {
                   progressoEtapas.concluidas
