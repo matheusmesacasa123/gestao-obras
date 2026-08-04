@@ -23,6 +23,7 @@ import { Route as AuthenticatedObrasIndexRouteImport } from './routes/_authentic
 import { Route as AuthenticatedObrasIdRouteImport } from './routes/_authenticated/obras/$id'
 import { Route as AuthenticatedObrasNovaRouteImport } from './routes/_authenticated/obras/nova'
 import { Route as AuthenticatedObrasIdIndexRouteImport } from './routes/_authenticated/obras/$id/index'
+import { Route as AuthenticatedObrasIdComercialRouteImport } from './routes/_authenticated/obras/$id/comercial'
 import { Route as AuthenticatedObrasIdEditarRouteImport } from './routes/_authenticated/obras/$id/editar'
 import { Route as AuthenticatedObrasIdEtapasRouteImport } from './routes/_authenticated/obras/$id/etapas'
 import { Route as AuthenticatedObrasIdHistoricoRouteImport } from './routes/_authenticated/obras/$id/historico'
@@ -106,6 +107,12 @@ const AuthenticatedObrasIdIndexRoute =
     path: '/',
     getParentRoute: () => AuthenticatedObrasIdRoute,
   } as any)
+const AuthenticatedObrasIdComercialRoute =
+  AuthenticatedObrasIdComercialRouteImport.update({
+    id: '/comercial',
+    path: '/comercial',
+    getParentRoute: () => AuthenticatedObrasIdRoute,
+  } as any)
 const AuthenticatedObrasIdEditarRoute =
   AuthenticatedObrasIdEditarRouteImport.update({
     id: '/editar',
@@ -175,6 +182,7 @@ export interface FileRoutesByFullPath {
   '/obras/$id': typeof AuthenticatedObrasIdRouteWithChildren
   '/obras/nova': typeof AuthenticatedObrasNovaRoute
   '/obras/': typeof AuthenticatedObrasIndexRoute
+  '/obras/$id/comercial': typeof AuthenticatedObrasIdComercialRoute
   '/obras/$id/editar': typeof AuthenticatedObrasIdEditarRoute
   '/obras/$id/etapas': typeof AuthenticatedObrasIdEtapasRoute
   '/obras/$id/historico': typeof AuthenticatedObrasIdHistoricoRoute
@@ -199,6 +207,7 @@ export interface FileRoutesByTo {
   '/clientes/$id': typeof AuthenticatedClientesIdRoute
   '/obras/nova': typeof AuthenticatedObrasNovaRoute
   '/obras': typeof AuthenticatedObrasIndexRoute
+  '/obras/$id/comercial': typeof AuthenticatedObrasIdComercialRoute
   '/obras/$id/editar': typeof AuthenticatedObrasIdEditarRoute
   '/obras/$id/etapas': typeof AuthenticatedObrasIdEtapasRoute
   '/obras/$id/historico': typeof AuthenticatedObrasIdHistoricoRoute
@@ -225,6 +234,7 @@ export interface FileRoutesById {
   '/_authenticated/obras/$id': typeof AuthenticatedObrasIdRouteWithChildren
   '/_authenticated/obras/nova': typeof AuthenticatedObrasNovaRoute
   '/_authenticated/obras/': typeof AuthenticatedObrasIndexRoute
+  '/_authenticated/obras/$id/comercial': typeof AuthenticatedObrasIdComercialRoute
   '/_authenticated/obras/$id/editar': typeof AuthenticatedObrasIdEditarRoute
   '/_authenticated/obras/$id/etapas': typeof AuthenticatedObrasIdEtapasRoute
   '/_authenticated/obras/$id/historico': typeof AuthenticatedObrasIdHistoricoRoute
@@ -252,6 +262,7 @@ export interface FileRouteTypes {
     | '/obras/$id'
     | '/obras/nova'
     | '/obras/'
+    | '/obras/$id/comercial'
     | '/obras/$id/editar'
     | '/obras/$id/etapas'
     | '/obras/$id/historico'
@@ -276,6 +287,7 @@ export interface FileRouteTypes {
     | '/clientes/$id'
     | '/obras/nova'
     | '/obras'
+    | '/obras/$id/comercial'
     | '/obras/$id/editar'
     | '/obras/$id/etapas'
     | '/obras/$id/historico'
@@ -301,6 +313,7 @@ export interface FileRouteTypes {
     | '/_authenticated/obras/$id'
     | '/_authenticated/obras/nova'
     | '/_authenticated/obras/'
+    | '/_authenticated/obras/$id/comercial'
     | '/_authenticated/obras/$id/editar'
     | '/_authenticated/obras/$id/etapas'
     | '/_authenticated/obras/$id/historico'
@@ -429,6 +442,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedObrasIdIndexRouteImport
       parentRoute: typeof AuthenticatedObrasIdRoute
     }
+    '/_authenticated/obras/$id/comercial': {
+      id: '/_authenticated/obras/$id/comercial'
+      path: '/comercial'
+      fullPath: '/obras/$id/comercial'
+      preLoaderRoute: typeof AuthenticatedObrasIdComercialRouteImport
+      parentRoute: typeof AuthenticatedObrasIdRoute
+    }
     '/_authenticated/obras/$id/editar': {
       id: '/_authenticated/obras/$id/editar'
       path: '/editar'
@@ -496,6 +516,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedObrasIdRouteChildren {
+  AuthenticatedObrasIdComercialRoute: typeof AuthenticatedObrasIdComercialRoute
   AuthenticatedObrasIdEditarRoute: typeof AuthenticatedObrasIdEditarRoute
   AuthenticatedObrasIdEtapasRoute: typeof AuthenticatedObrasIdEtapasRoute
   AuthenticatedObrasIdHistoricoRoute: typeof AuthenticatedObrasIdHistoricoRoute
@@ -509,6 +530,7 @@ interface AuthenticatedObrasIdRouteChildren {
 }
 
 const AuthenticatedObrasIdRouteChildren: AuthenticatedObrasIdRouteChildren = {
+  AuthenticatedObrasIdComercialRoute: AuthenticatedObrasIdComercialRoute,
   AuthenticatedObrasIdEditarRoute: AuthenticatedObrasIdEditarRoute,
   AuthenticatedObrasIdEtapasRoute: AuthenticatedObrasIdEtapasRoute,
   AuthenticatedObrasIdHistoricoRoute: AuthenticatedObrasIdHistoricoRoute,

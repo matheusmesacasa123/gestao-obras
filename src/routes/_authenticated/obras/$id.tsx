@@ -107,6 +107,16 @@ function ObraLayoutPage() {
     },
     {
       label:
+        "Comercial",
+
+      to:
+        "/obras/$id/comercial",
+
+      exact:
+        false,
+    },
+    {
+      label:
         "Documentos",
 
       to:
