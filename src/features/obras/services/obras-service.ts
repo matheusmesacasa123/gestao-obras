@@ -39,7 +39,7 @@ const consultaObra = `
     id,
     nome
   ),
-  etapas:etapas_obras (
+  etapas:etapas_orcamentos (
     id,
     obra_id,
     setor_id,
@@ -202,7 +202,7 @@ export async function criarObra(
     data,
     error,
   } = await supabase
-    .from("obras")
+    .from("orcamentos")
     .insert([
       {
         ...payloadTratado,
@@ -242,7 +242,7 @@ export async function getObras(): Promise<
     data,
     error,
   } = await supabase
-    .from("obras")
+    .from("orcamentos")
     .select(
       consultaObra
     )
@@ -255,7 +255,7 @@ export async function getObras(): Promise<
 
   if (error) {
     console.error(
-      "Erro Supabase obras:",
+      "Erro Supabase orçamentos:",
       error
     );
 
@@ -279,7 +279,7 @@ export async function getObraById(
     data,
     error,
   } = await supabase
-    .from("obras")
+    .from("orcamentos")
     .select(
       consultaObra
     )
@@ -291,7 +291,7 @@ export async function getObraById(
 
   if (error) {
     console.error(
-      "Erro ao buscar obra:",
+      "Erro ao buscar orçamento:",
       error
     );
 
@@ -331,7 +331,7 @@ export async function atualizarObra(
     data,
     error,
   } = await supabase
-    .from("obras")
+    .from("orcamentos")
     .update(
       dadosAtualizacao
     )
@@ -346,7 +346,7 @@ export async function atualizarObra(
 
   if (error) {
     console.error(
-      "Erro ao atualizar obra:",
+      "Erro ao atualizar orçamento:",
       error
     );
 
@@ -397,7 +397,7 @@ export async function atualizarValoresObra({
 
   if (error) {
     console.error(
-      "Erro ao atualizar valores da obra:",
+      "Erro ao atualizar valores do orçamento:",
       error
     );
 
@@ -406,7 +406,7 @@ export async function atualizarValoresObra({
 
   if (!data) {
     throw new Error(
-      "Não foi possível atualizar os valores da obra."
+      "Não foi possível atualizar os valores do orçamento."
     );
   }
 
@@ -419,7 +419,7 @@ export async function excluirObra(
   const {
     error,
   } = await supabase
-    .from("obras")
+    .from("orcamentos")
     .delete()
     .eq(
       "id",
@@ -428,7 +428,7 @@ export async function excluirObra(
 
   if (error) {
     console.error(
-      "Erro ao excluir obra:",
+      "Erro ao excluir orçamento:",
       error
     );
 

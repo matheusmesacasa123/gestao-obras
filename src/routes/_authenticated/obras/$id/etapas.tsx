@@ -72,7 +72,6 @@ type EdicaoEtapa = {
   data_inicio: string;
   prazo: string;
   observacao: string;
-  obrigatoria: boolean;
 };
 
 type ResumoDemandasEtapa = {
@@ -478,10 +477,6 @@ function EtapasObraPage() {
     setNovaObservacao,
   ] = useState("");
 
-  const [
-    novaObrigatoria,
-    setNovaObrigatoria,
-  ] = useState(true);
 
   const [
     mensagem,
@@ -794,9 +789,6 @@ function EtapasObraPage() {
           observacao:
             etapa.observacao ||
             "",
-
-          obrigatoria:
-            etapa.obrigatoria,
         };
       }
 
@@ -964,9 +956,6 @@ function EtapasObraPage() {
         observacao:
           novaObservacao ||
           null,
-
-        obrigatoria:
-          novaObrigatoria,
       });
 
       setMensagem(
@@ -989,9 +978,6 @@ function EtapasObraPage() {
         ""
       );
 
-      setNovaObrigatoria(
-        true
-      );
 
       setMostrandoFormulario(
         false
@@ -1263,9 +1249,6 @@ function EtapasObraPage() {
             edicao.observacao
               .trim() ||
             null,
-
-          obrigatoria:
-            edicao.obrigatoria,
         }
       );
 
@@ -1869,24 +1852,6 @@ function EtapasObraPage() {
             />
           </div>
 
-          <label className="flex cursor-pointer items-center gap-3 text-sm">
-            <input
-              type="checkbox"
-              checked={
-                novaObrigatoria
-              }
-              onChange={(
-                event
-              ) =>
-                setNovaObrigatoria(
-                  event.target.checked
-                )
-              }
-              className="h-4 w-4 cursor-pointer"
-            />
-
-            Etapa obrigatória para concluir a obra
-          </label>
 
           <div className="flex justify-end gap-3">
             <button
@@ -2077,17 +2042,7 @@ function EtapasObraPage() {
                             "Setor não informado"}
                         </span>
 
-                        {etapa.obrigatoria && (
-                          <>
-                            <span className="text-xs text-gray-300">
-                              •
-                            </span>
 
-                            <span className="text-xs font-medium text-gray-500">
-                              Obrigatória
-                            </span>
-                          </>
-                        )}
                       </div>
 
                       <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-500">
@@ -2429,29 +2384,7 @@ function EtapasObraPage() {
                       />
                     </div>
 
-                    <label className="flex cursor-pointer items-center gap-3 self-end pb-3 text-sm">
-                      <input
-                        type="checkbox"
-                        checked={
-                          edicao.obrigatoria
-                        }
-                        onChange={(
-                          event
-                        ) =>
-                          atualizarEdicao(
-                            etapa.id,
-                            "obrigatoria",
-                            event.target.checked
-                          )
-                        }
-                        disabled={
-                          !podeEditar
-                        }
-                        className="h-4 w-4 cursor-pointer disabled:cursor-not-allowed"
-                      />
 
-                      Etapa obrigatória
-                    </label>
                   </div>
 
                   <div className="mt-4 space-y-2">

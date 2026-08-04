@@ -372,7 +372,7 @@ function NovaDemandaPage() {
           data,
           error,
         } = await supabase
-          .from("obras")
+          .from("orcamentos")
           .select(`
             id,
             setor_id,
@@ -555,7 +555,7 @@ function NovaDemandaPage() {
           data,
           error,
         } = await supabase
-          .from("etapas_obras")
+          .from("etapas_orcamentos")
           .select(`
             id,
             obra_id,

@@ -373,7 +373,7 @@ function HistoricoObrasPage() {
         error,
       } = await supabase
         .from(
-          "historico_obras"
+          "historico_orcamentos"
         )
         .select(`
           id,
@@ -423,12 +423,12 @@ function HistoricoObrasPage() {
       );
     } catch (error) {
       console.error(
-        "Erro ao carregar histórico de obras:",
+        "Erro ao carregar histórico de orçamentos:",
         error
       );
 
       setErro(
-        "Não foi possível carregar o histórico de obras."
+        "Não foi possível carregar o histórico de orçamentos."
       );
     } finally {
       setCarregando(false);
@@ -668,11 +668,11 @@ function HistoricoObrasPage() {
           </p>
 
           <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-950">
-            Histórico de Obras
+            Histórico de Orçamentos
           </h1>
 
           <p className="mt-1 max-w-2xl text-sm text-slate-500">
-            Consulte quem criou ou excluiu obras no sistema.
+            Consulte quem criou ou excluiu orçamentos no sistema.
           </p>
         </div>
 
@@ -851,7 +851,7 @@ function HistoricoObrasPage() {
             </h3>
 
             <p className="mt-1 text-sm text-slate-500">
-              As criações e exclusões de obras aparecerão aqui.
+              As criações e exclusões de orçamentos aparecerão aqui.
             </p>
           </div>
         ) : historicoFiltrado.length ===
@@ -958,7 +958,7 @@ function HistoricoObrasPage() {
                                         {criou
                                           ? "Criou"
                                           : "Excluiu"}{" "}
-                                        a obra{" "}
+                                        o orçamento{" "}
                                         {codigo}
                                       </h4>
 

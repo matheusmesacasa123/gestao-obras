@@ -10,7 +10,7 @@ export async function createObra(
     data,
     error,
   } = await supabase
-    .from("obras")
+    .from("orcamentos")
     .insert(obra)
     .select()
     .single();

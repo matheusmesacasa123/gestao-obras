@@ -6,6 +6,7 @@ import {
 import {
   ArrowRightLeft,
   Building2,
+  Calculator,
   FileClock,
   FileText,
   LayoutDashboard,
@@ -52,15 +53,23 @@ export function Sidebar() {
     },
     {
       nome:
-        "Obras",
+        "Orçamentação",
       rota:
         "/obras",
+      icone:
+        Calculator,
+    },
+    {
+      nome:
+        "Obras",
+      rota:
+        "/execucao-obras",
       icone:
         Building2,
     },
     {
       nome:
-        "Histórico de Obras",
+        "Histórico de Orçamentos",
       rota:
         "/historico-obras",
       icone:
@@ -120,7 +129,7 @@ export function Sidebar() {
         </div>
 
         <p className="text-sm font-medium text-white">
-          Gestão de Obras
+          Gestão de Orçamentação
         </p>
       </div>
 

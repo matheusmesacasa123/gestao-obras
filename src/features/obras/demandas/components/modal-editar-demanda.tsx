@@ -746,7 +746,7 @@ function ModalEditarDemanda({
           data,
           error,
         } = await supabase
-          .from("etapas_obras")
+          .from("etapas_orcamentos")
           .select(`
             id,
             obra_id,

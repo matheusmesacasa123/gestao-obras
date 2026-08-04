@@ -232,7 +232,7 @@ function EditarObraPage() {
         respostaClientes,
       ] = await Promise.all([
         supabase
-          .from("obras")
+          .from("orcamentos")
           .select("*")
           .eq(
             "id",
@@ -736,7 +736,7 @@ function EditarObraPage() {
       const {
         error,
       } = await supabase
-        .from("obras")
+        .from("orcamentos")
         .update({
           codigo:
             form.codigo ||

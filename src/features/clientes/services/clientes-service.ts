@@ -66,7 +66,7 @@ export async function getClientes(): Promise<
       email,
       telefone,
       created_at,
-      obras (
+      obras:orcamentos (
         id,
         valor_vendido
       )
@@ -173,7 +173,7 @@ export async function getClienteComObras(
     data: obras,
     error: erroObras,
   } = await supabase
-    .from("obras")
+    .from("orcamentos")
     .select(`
       id,
       cliente_id,
@@ -207,7 +207,7 @@ export async function getClienteComObras(
 
   if (erroObras) {
     console.error(
-      "Erro ao buscar obras do cliente:",
+      "Erro ao buscar orçamentos do cliente:",
       erroObras
     );
 
@@ -341,7 +341,7 @@ export async function excluirCliente(
     error:
       erroContagem,
   } = await supabase
-    .from("obras")
+    .from("orcamentos")
     .select(
       "id",
       {
@@ -358,7 +358,7 @@ export async function excluirCliente(
 
   if (erroContagem) {
     console.error(
-      "Erro ao verificar obras do cliente:",
+      "Erro ao verificar orçamentos do cliente:",
       erroContagem
     );
 
@@ -373,7 +373,7 @@ export async function excluirCliente(
     0
   ) {
     throw new Error(
-      "Este cliente possui obras vinculadas e não pode ser excluído."
+      "Este cliente possui orçamentos vinculados e não pode ser excluído."
     );
   }
 

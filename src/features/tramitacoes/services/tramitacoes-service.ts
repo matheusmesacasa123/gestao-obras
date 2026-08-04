@@ -47,7 +47,7 @@ export async function listarObrasParaTramitacao(
   administrador: boolean
 ): Promise<ObraTramitacao[]> {
   let consulta = supabase
-    .from("obras")
+    .from("orcamentos")
     .select(`
       id,
       codigo,
@@ -171,7 +171,7 @@ export async function listarHistoricoTramitacoes(): Promise<
     data,
     error,
   } = await supabase
-    .from("tramitacoes_obras")
+    .from("tramitacoes")
     .select(`
       id,
       obra_id,

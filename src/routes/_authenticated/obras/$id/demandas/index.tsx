@@ -217,7 +217,7 @@ function DemandasPage() {
             data,
             error,
           } = await supabase
-            .from("etapas_obras")
+            .from("etapas_orcamentos")
             .select(
               "id, titulo, ordem, setor_id"
             )

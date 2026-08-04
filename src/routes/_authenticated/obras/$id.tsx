@@ -24,7 +24,7 @@ export const Route =
         data: obra,
         error,
       } = await supabase
-        .from("obras")
+        .from("orcamentos")
         .select("*")
         .eq(
           "id",
@@ -48,7 +48,7 @@ export const Route =
       () => (
         <div className="space-y-4 rounded-2xl border bg-white p-8 text-center shadow-sm">
           <h2 className="text-xl font-bold text-gray-800">
-            Obra não encontrada
+            Orçamento não encontrado
           </h2>
 
           <p className="text-sm text-gray-500">
@@ -59,7 +59,7 @@ export const Route =
             to="/obras"
             className="inline-block rounded-xl bg-black px-4 py-2 text-sm font-semibold text-white transition hover:bg-gray-800"
           >
-            Voltar para Obras
+            Voltar para Orçamentação
           </Link>
         </div>
       ),
@@ -143,14 +143,14 @@ function ObraLayoutPage() {
         to="/obras"
         className="flex w-fit items-center gap-1 text-sm font-medium text-gray-600 transition hover:text-black"
       >
-        ← Voltar para Obras
+        ← Voltar para Orçamentação
       </Link>
 
       <div className="rounded-2xl border bg-white p-6 shadow-sm">
         <div className="flex min-h-[145px] flex-col justify-between gap-6 lg:flex-row lg:items-end">
           <div className="space-y-1">
             <span className="block text-xs font-medium text-gray-500">
-              Código da obra
+              Código do orçamento
             </span>
 
             <h1 className="text-3xl font-extrabold tracking-tight text-gray-900">
@@ -190,7 +190,7 @@ function ObraLayoutPage() {
           >
             <Pencil className="h-4 w-4" />
 
-            Editar obra
+            Editar orçamento
           </Link>
         </div>
       </div>

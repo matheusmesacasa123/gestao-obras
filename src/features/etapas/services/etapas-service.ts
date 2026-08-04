@@ -227,7 +227,7 @@ async function buscarEtapaNormalizada(
     data,
     error,
   } = await supabase
-    .from("etapas_obras")
+    .from("etapas_orcamentos")
     .select(
       selectEtapa
     )
@@ -258,7 +258,7 @@ export async function listarEtapasDaObra(
     data,
     error,
   } = await supabase
-    .from("etapas_obras")
+    .from("etapas_orcamentos")
     .select(
       selectEtapa
     )
@@ -361,7 +361,7 @@ export async function criarEtapaObra(
     data,
     error,
   } = await supabase
-    .from("etapas_obras")
+    .from("etapas_orcamentos")
     .insert(
       payload
     )
@@ -508,7 +508,7 @@ export async function atualizarEtapaObra(
   const {
     error,
   } = await supabase
-    .from("etapas_obras")
+    .from("etapas_orcamentos")
     .update(
       payload
     )
@@ -553,7 +553,7 @@ export async function excluirEtapaObra(
   const {
     error,
   } = await supabase
-    .from("etapas_obras")
+    .from("etapas_orcamentos")
     .delete()
     .eq(
       "id",

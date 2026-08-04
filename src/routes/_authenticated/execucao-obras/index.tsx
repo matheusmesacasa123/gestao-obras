@@ -4,12 +4,6 @@ import {
 } from "@tanstack/react-router";
 
 import {
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
-
-import {
   Building2,
   Loader2,
   Plus,
@@ -19,32 +13,46 @@ import {
 } from "lucide-react";
 
 import {
-  getObras,
-} from "@/features/obras/services/obras-service";
-
-import type {
-  Obra,
-} from "@/features/obras/types";
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 
 import {
-  ObraCard,
-} from "@/features/obras/components/obra-card";
+  ObraExecucaoCard,
+} from "@/features/execucao-obras/components/obra-execucao-card";
+
+import {
+  getObrasExecucao,
+} from "@/features/execucao-obras/services/execucao-obras-service";
+
+import type {
+  ObraExecucao,
+  StatusObraExecucao,
+} from "@/features/execucao-obras/types";
 
 export const Route = createFileRoute(
-  "/_authenticated/obras/"
+  "/_authenticated/execucao-obras/"
 )({
-  component: ObrasPage,
+  component:
+    ExecucaoObrasPage,
 });
 
-function ObrasPage() {
+type FiltroStatus =
+  | "todos"
+  | StatusObraExecucao;
+
+function ExecucaoObrasPage() {
   const [
     obras,
     setObras,
-  ] = useState<Obra[]>([]);
+  ] = useState<ObraExecucao[]>(
+    []
+  );
 
   const [
-    loading,
-    setLoading,
+    carregando,
+    setCarregando,
   ] = useState(true);
 
   const [
@@ -53,8 +61,8 @@ function ObrasPage() {
   ] = useState(false);
 
   const [
-    error,
-    setError,
+    erro,
+    setErro,
   ] = useState(false);
 
   const [
@@ -63,35 +71,42 @@ function ObrasPage() {
   ] = useState("");
 
   const [
-    setorSelecionadoId,
-    setSetorSelecionadoId,
-  ] = useState("todos");
+    statusSelecionado,
+    setStatusSelecionado,
+  ] = useState<FiltroStatus>(
+    "todos"
+  );
 
   async function carregarObras(
-    carregamentoInicial = false
+    carregamentoInicial =
+      false
   ) {
     try {
-      if (carregamentoInicial) {
-        setLoading(true);
+      if (
+        carregamentoInicial
+      ) {
+        setCarregando(true);
       } else {
         setAtualizando(true);
       }
 
-      setError(false);
+      setErro(false);
 
-      const data =
-        await getObras();
+      const dados =
+        await getObrasExecucao();
 
-      setObras(data);
+      setObras(
+        dados
+      );
     } catch (error) {
       console.error(
-        "Erro ao buscar obras:",
+        "Erro ao carregar obras:",
         error
       );
 
-      setError(true);
+      setErro(true);
     } finally {
-      setLoading(false);
+      setCarregando(false);
       setAtualizando(false);
     }
   }
@@ -99,56 +114,6 @@ function ObrasPage() {
   useEffect(() => {
     carregarObras(true);
   }, []);
-
-  const setoresDisponiveis =
-    useMemo(() => {
-      const setoresMap =
-        new Map<
-          string,
-          string
-        >();
-
-      obras.forEach(
-        (
-          obra
-        ) => {
-          if (
-            obra.setor_id &&
-            obra.setor?.nome
-          ) {
-            setoresMap.set(
-              obra.setor_id,
-              obra.setor.nome
-            );
-          }
-        }
-      );
-
-      return Array.from(
-        setoresMap.entries()
-      )
-        .map(
-          ([
-            id,
-            nome,
-          ]) => ({
-            id,
-            nome,
-          })
-        )
-        .sort(
-          (
-            setorA,
-            setorB
-          ) =>
-            setorA.nome.localeCompare(
-              setorB.nome,
-              "pt-BR"
-            )
-        );
-    }, [
-      obras,
-    ]);
 
   const obrasFiltradas =
     useMemo(() => {
@@ -161,87 +126,96 @@ function ObrasPage() {
         (
           obra
         ) => {
-          const codigo =
-            obra.codigo
-              ?.toLowerCase() ||
-            "";
+          const identificacao =
+            (
+              obra.codigo ||
+              obra.numero_proposta ||
+              ""
+            ).toLowerCase();
 
           const cliente =
-            obra.cliente
-              ?.toLowerCase() ||
-            "";
+            (
+              obra.cliente_relacionado
+                ?.nome ||
+              obra.cliente ||
+              ""
+            ).toLowerCase();
+
+          const nomeObra =
+            (
+              obra.nome_obra ||
+              ""
+            ).toLowerCase();
 
           const correspondePesquisa =
             !termo ||
-            codigo.includes(
+            identificacao.includes(
               termo
             ) ||
             cliente.includes(
               termo
+            ) ||
+            nomeObra.includes(
+              termo
             );
 
-          const correspondeSetor =
-            setorSelecionadoId ===
+          const correspondeStatus =
+            statusSelecionado ===
               "todos" ||
-            (
-              setorSelecionadoId ===
-                "sem_setor" &&
-              !obra.setor_id
-            ) ||
-            obra.setor_id ===
-              setorSelecionadoId;
+            obra.status ===
+              statusSelecionado;
 
           return (
             correspondePesquisa &&
-            correspondeSetor
+            correspondeStatus
           );
         }
       );
     }, [
       obras,
       pesquisa,
-      setorSelecionadoId,
+      statusSelecionado,
     ]);
 
   const possuiFiltros =
     Boolean(
       pesquisa.trim()
     ) ||
-    setorSelecionadoId !==
+    statusSelecionado !==
       "todos";
 
   function limparFiltros() {
     setPesquisa("");
 
-    setSetorSelecionadoId(
+    setStatusSelecionado(
       "todos"
     );
   }
 
-  if (loading) {
+  if (carregando) {
     return (
       <div className="flex min-h-[420px] items-center justify-center p-8">
-        <div className="flex flex-col items-center gap-3 text-gray-600">
+        <div className="flex flex-col items-center gap-3 text-slate-600">
           <Loader2 className="h-7 w-7 animate-spin" />
 
           <p className="text-sm font-medium">
-            Carregando orçamentos...
+            Carregando obras...
           </p>
         </div>
       </div>
     );
   }
 
-  if (error) {
+  if (erro) {
     return (
       <div className="p-8">
         <div className="rounded-2xl border border-red-200 bg-red-50 p-6">
           <h1 className="text-xl font-bold text-red-900">
-            Erro ao carregar orçamentos
+            Erro ao carregar obras
           </h1>
 
           <p className="mt-2 text-sm text-red-700">
-            Não foi possível buscar os orçamentos.
+            Não foi possível buscar as obras cadastradas.
           </p>
 
           <button
@@ -249,7 +223,7 @@ function ObrasPage() {
             onClick={() =>
               carregarObras(true)
             }
-            className="mt-4 rounded-xl bg-black px-4 py-2 text-sm font-semibold text-white transition hover:bg-gray-800"
+            className="mt-4 rounded-xl bg-slate-950 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
           >
             Tentar novamente
           </button>
@@ -263,15 +237,15 @@ function ObrasPage() {
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">
-            Orçamentos
+            Execução
           </p>
 
           <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-950">
-            Orçamentação
+            Obras
           </h1>
 
           <p className="mt-1 text-sm text-slate-500">
-            Controle e acompanhamento dos orçamentos cadastrados.
+            Controle e acompanhamento das obras em execução.
           </p>
         </div>
 
@@ -298,12 +272,12 @@ function ObrasPage() {
           </button>
 
           <Link
-            to="/obras/nova"
+            to="/execucao-obras/nova"
             className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-slate-950 px-4 text-sm font-semibold text-white transition hover:bg-slate-800"
           >
             <Plus className="h-4 w-4" />
 
-            Novo orçamento
+            Nova obra
           </Link>
         </div>
       </header>
@@ -312,17 +286,17 @@ function ObrasPage() {
         <div className="grid gap-4 md:grid-cols-[1fr_320px_auto]">
           <div className="space-y-2">
             <label
-              htmlFor="pesquisar-orcamentos"
+              htmlFor="pesquisar-obras-execucao"
               className="text-sm font-semibold text-slate-700"
             >
-              Pesquisar orçamento
+              Pesquisar obra
             </label>
 
             <div className="relative">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
 
               <input
-                id="pesquisar-orcamentos"
+                id="pesquisar-obras-execucao"
                 type="text"
                 value={
                   pesquisa
@@ -334,7 +308,7 @@ function ObrasPage() {
                     event.target.value
                   )
                 }
-                placeholder="Digite o código ou cliente..."
+                placeholder="Código, cliente ou nome da obra..."
                 className="h-11 w-full rounded-xl border border-slate-300 bg-white pl-10 pr-4 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
               />
             </div>
@@ -342,52 +316,60 @@ function ObrasPage() {
 
           <div className="space-y-2">
             <label
-              htmlFor="filtrar-setor-obras"
+              htmlFor="filtrar-status-obras"
               className="text-sm font-semibold text-slate-700"
             >
-              Setor atual
+              Status
             </label>
 
             <div className="relative">
               <Building2 className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
 
               <select
-                id="filtrar-setor-obras"
+                id="filtrar-status-obras"
                 value={
-                  setorSelecionadoId
+                  statusSelecionado
                 }
                 onChange={(
                   event
                 ) =>
-                  setSetorSelecionadoId(
-                    event.target.value
+                  setStatusSelecionado(
+                    event.target
+                      .value as FiltroStatus
                   )
                 }
                 className="h-11 w-full cursor-pointer appearance-none rounded-xl border border-slate-300 bg-white pl-10 pr-4 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
               >
                 <option value="todos">
-                  Todos os setores
+                  Todos os status
                 </option>
 
-                {setoresDisponiveis.map(
-                  (
-                    setor
-                  ) => (
-                    <option
-                      key={
-                        setor.id
-                      }
-                      value={
-                        setor.id
-                      }
-                    >
-                      {setor.nome}
-                    </option>
-                  )
-                )}
+                <option value="nao_iniciada">
+                  Não iniciada
+                </option>
 
-                <option value="sem_setor">
-                  Sem setor definido
+                <option value="em_andamento">
+                  Em andamento
+                </option>
+
+                <option value="aguardando_cliente">
+                  Aguardando cliente
+                </option>
+
+                <option value="paralisada">
+                  Paralisada
+                </option>
+
+                <option value="atrasada">
+                  Atrasada
+                </option>
+
+                <option value="concluida">
+                  Concluída
+                </option>
+
+                <option value="cancelada">
+                  Cancelada
                 </option>
               </select>
             </div>
@@ -421,7 +403,7 @@ function ObrasPage() {
             <strong className="text-slate-900">
               {obras.length}
             </strong>{" "}
-            orçamentos
+            obras
           </p>
         </div>
       </section>
@@ -432,21 +414,12 @@ function ObrasPage() {
           <Building2 className="mx-auto h-10 w-10 text-slate-400" />
 
           <h2 className="mt-4 text-lg font-semibold text-slate-900">
-            Nenhum orçamento cadastrado
+            Nenhuma obra cadastrada
           </h2>
 
           <p className="mt-1 text-sm text-slate-500">
-            Os novos orçamentos cadastrados aparecerão aqui.
+            Obras cadastradas diretamente ou geradas por orçamentos aprovados aparecerão aqui.
           </p>
-
-          <Link
-            to="/obras/nova"
-            className="mt-5 inline-flex items-center gap-2 rounded-xl bg-slate-950 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
-          >
-            <Plus className="h-4 w-4" />
-
-            Cadastrar primeiro orçamento
-          </Link>
         </section>
       ) : obrasFiltradas.length ===
         0 ? (
@@ -454,11 +427,11 @@ function ObrasPage() {
           <Search className="mx-auto h-10 w-10 text-slate-400" />
 
           <h2 className="mt-4 text-lg font-semibold text-slate-900">
-            Nenhum orçamento encontrado
+            Nenhuma obra encontrada
           </h2>
 
           <p className="mt-1 text-sm text-slate-500">
-            Não encontramos orçamentos com os filtros selecionados.
+            Não encontramos obras com os filtros selecionados.
           </p>
 
           <button
@@ -477,7 +450,7 @@ function ObrasPage() {
             (
               obra
             ) => (
-              <ObraCard
+              <ObraExecucaoCard
                 key={
                   obra.id
                 }

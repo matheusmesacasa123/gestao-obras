@@ -61,7 +61,7 @@ export type DemandaItem = {
 
 const consultaDemanda = `
   *,
-  etapa:etapas_obras!demandas_etapa_obra_fkey (
+  etapa:etapas_orcamentos!demandas_etapa_obra_fkey (
     id,
     obra_id,
     setor_id,

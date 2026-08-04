@@ -1,0 +1,590 @@
+﻿C:\Users\DELL\Documents\gestao-obras\src\components\layout\header.tsx:241:Gestão de Obras
+C:\Users\DELL\Documents\gestao-obras\src\components\layout\sidebar.tsx:57:"/obras",
+C:\Users\DELL\Documents\gestao-obras\src\components\layout\sidebar.tsx:65:"/historico-obras",
+C:\Users\DELL\Documents\gestao-obras\src\features\clientes\pages\clientes-page.tsx:271:const quantidadeObras =
+C:\Users\DELL\Documents\gestao-obras\src\features\clientes\pages\clientes-page.tsx:272:cliente.quantidade_obras ??
+C:\Users\DELL\Documents\gestao-obras\src\features\clientes\pages\clientes-page.tsx:276:quantidadeObras >
+C:\Users\DELL\Documents\gestao-obras\src\features\clientes\pages\clientes-page.tsx:280:`Este cliente possui ${quantidadeObras} ${
+C:\Users\DELL\Documents\gestao-obras\src\features\clientes\pages\clientes-page.tsx:281:quantidadeObras ===
+C:\Users\DELL\Documents\gestao-obras\src\features\clientes\pages\clientes-page.tsx:284:: "obras vinculadas"
+C:\Users\DELL\Documents\gestao-obras\src\features\clientes\pages\clientes-page.tsx:339:Cadastro, consulta e acompanhamento das obras por cliente.
+C:\Users\DELL\Documents\gestao-obras\src\features\clientes\pages\clientes-page.tsx:483:Obras
+C:\Users\DELL\Documents\gestao-obras\src\features\clientes\pages\clientes-page.tsx:501:const quantidadeObras =
+C:\Users\DELL\Documents\gestao-obras\src\features\clientes\pages\clientes-page.tsx:502:cliente.quantidade_obras ??
+C:\Users\DELL\Documents\gestao-obras\src\features\clientes\pages\clientes-page.tsx:505:const possuiObras =
+C:\Users\DELL\Documents\gestao-obras\src\features\clientes\pages\clientes-page.tsx:506:quantidadeObras >
+C:\Users\DELL\Documents\gestao-obras\src\features\clientes\pages\clientes-page.tsx:560:possuiObras
+C:\Users\DELL\Documents\gestao-obras\src\features\clientes\pages\clientes-page.tsx:566:quantidadeObras
+C:\Users\DELL\Documents\gestao-obras\src\features\clientes\pages\clientes-page.tsx:581:possuiObras
+C:\Users\DELL\Documents\gestao-obras\src\features\clientes\pages\clientes-page.tsx:584:possuiObras
+C:\Users\DELL\Documents\gestao-obras\src\features\clientes\pages\clientes-page.tsx:585:? "Clientes com obras vinculadas não podem ser excluídos."
+C:\Users\DELL\Documents\gestao-obras\src\features\clientes\services\clientes-service.ts:12:quantidade_obras?: number;
+C:\Users\DELL\Documents\gestao-obras\src\features\clientes\services\clientes-service.ts:36:export interface ClienteComObras
+C:\Users\DELL\Documents\gestao-obras\src\features\clientes\services\clientes-service.ts:38:obras: ObraCliente[];
+C:\Users\DELL\Documents\gestao-obras\src\features\clientes\services\clientes-service.ts:47:obras:
+C:\Users\DELL\Documents\gestao-obras\src\features\clientes\services\clientes-service.ts:69:obras (
+C:\Users\DELL\Documents\gestao-obras\src\features\clientes\services\clientes-service.ts:100:const obras =
+C:\Users\DELL\Documents\gestao-obras\src\features\clientes\services\clientes-service.ts:101:cliente.obras ??
+C:\Users\DELL\Documents\gestao-obras\src\features\clientes\services\clientes-service.ts:105:obras.reduce(
+C:\Users\DELL\Documents\gestao-obras\src\features\clientes\services\clientes-service.ts:136:quantidade_obras:
+C:\Users\DELL\Documents\gestao-obras\src\features\clientes\services\clientes-service.ts:137:obras.length,
+C:\Users\DELL\Documents\gestao-obras\src\features\clientes\services\clientes-service.ts:146:export async function getClienteComObras(
+C:\Users\DELL\Documents\gestao-obras\src\features\clientes\services\clientes-service.ts:148:): Promise<ClienteComObras> {
+C:\Users\DELL\Documents\gestao-obras\src\features\clientes\services\clientes-service.ts:173:data: obras,
+C:\Users\DELL\Documents\gestao-obras\src\features\clientes\services\clientes-service.ts:174:error: erroObras,
+C:\Users\DELL\Documents\gestao-obras\src\features\clientes\services\clientes-service.ts:176:.from("obras")
+C:\Users\DELL\Documents\gestao-obras\src\features\clientes\services\clientes-service.ts:208:if (erroObras) {
+C:\Users\DELL\Documents\gestao-obras\src\features\clientes\services\clientes-service.ts:210:"Erro ao buscar obras do cliente:",
+C:\Users\DELL\Documents\gestao-obras\src\features\clientes\services\clientes-service.ts:211:erroObras
+C:\Users\DELL\Documents\gestao-obras\src\features\clientes\services\clientes-service.ts:214:throw erroObras;
+C:\Users\DELL\Documents\gestao-obras\src\features\clientes\services\clientes-service.ts:217:const obrasTratadas =
+C:\Users\DELL\Documents\gestao-obras\src\features\clientes\services\clientes-service.ts:219:obras ??
+C:\Users\DELL\Documents\gestao-obras\src\features\clientes\services\clientes-service.ts:226:quantidade_obras:
+C:\Users\DELL\Documents\gestao-obras\src\features\clientes\services\clientes-service.ts:227:obrasTratadas.length,
+C:\Users\DELL\Documents\gestao-obras\src\features\clientes\services\clientes-service.ts:230:obrasTratadas.reduce(
+C:\Users\DELL\Documents\gestao-obras\src\features\clientes\services\clientes-service.ts:245:obras:
+C:\Users\DELL\Documents\gestao-obras\src\features\clientes\services\clientes-service.ts:246:obrasTratadas,
+C:\Users\DELL\Documents\gestao-obras\src\features\clientes\services\clientes-service.ts:309:| "quantidade_obras"
+C:\Users\DELL\Documents\gestao-obras\src\features\clientes\services\clientes-service.ts:344:.from("obras")
+C:\Users\DELL\Documents\gestao-obras\src\features\clientes\services\clientes-service.ts:361:"Erro ao verificar obras do cliente:",
+C:\Users\DELL\Documents\gestao-obras\src\features\clientes\services\clientes-service.ts:376:"Este cliente possui obras vinculadas e não pode ser excluído."
+C:\Users\DELL\Documents\gestao-obras\src\features\dashboard\components\status-obras-chart.tsx:10:} from "@/features/obras/types";
+C:\Users\DELL\Documents\gestao-obras\src\features\dashboard\components\status-obras-chart.tsx:13:obras: Obra[];
+C:\Users\DELL\Documents\gestao-obras\src\features\dashboard\components\status-obras-chart.tsx:154:export function StatusObrasChart({
+C:\Users\DELL\Documents\gestao-obras\src\features\dashboard\components\status-obras-chart.tsx:155:obras,
+C:\Users\DELL\Documents\gestao-obras\src\features\dashboard\components\status-obras-chart.tsx:157:const totalObras =
+C:\Users\DELL\Documents\gestao-obras\src\features\dashboard\components\status-obras-chart.tsx:158:obras.length;
+C:\Users\DELL\Documents\gestao-obras\src\features\dashboard\components\status-obras-chart.tsx:161:obras.filter(
+C:\Users\DELL\Documents\gestao-obras\src\features\dashboard\components\status-obras-chart.tsx:171:obras.filter(
+C:\Users\DELL\Documents\gestao-obras\src\features\dashboard\components\status-obras-chart.tsx:176:obras.filter(
+C:\Users\DELL\Documents\gestao-obras\src\features\dashboard\components\status-obras-chart.tsx:181:obras.filter(
+C:\Users\DELL\Documents\gestao-obras\src\features\dashboard\components\status-obras-chart.tsx:189:totalObras ===
+C:\Users\DELL\Documents\gestao-obras\src\features\dashboard\components\status-obras-chart.tsx:200:totalObras
+C:\Users\DELL\Documents\gestao-obras\src\features\dashboard\components\status-obras-chart.tsx:213:"Obras ainda em execução",
+C:\Users\DELL\Documents\gestao-obras\src\features\dashboard\components\status-obras-chart.tsx:241:"Obras finalizadas",
+C:\Users\DELL\Documents\gestao-obras\src\features\dashboard\components\status-obras-chart.tsx:269:"Obras abertas fora do prazo",
+C:\Users\DELL\Documents\gestao-obras\src\features\dashboard\components\status-obras-chart.tsx:326:Status das obras
+C:\Users\DELL\Documents\gestao-obras\src\features\dashboard\components\status-obras-chart.tsx:330:Distribuição das obras por situação.
+C:\Users\DELL\Documents\gestao-obras\src\features\dashboard\components\status-obras-chart.tsx:335:{totalObras}{" "}
+C:\Users\DELL\Documents\gestao-obras\src\features\dashboard\components\status-obras-chart.tsx:336:{totalObras === 1
+C:\Users\DELL\Documents\gestao-obras\src\features\dashboard\components\status-obras-chart.tsx:338:: "obras"}
+C:\Users\DELL\Documents\gestao-obras\src\features\dashboard\components\status-obras-chart.tsx:342:{totalObras ===
+C:\Users\DELL\Documents\gestao-obras\src\features\dashboard\components\status-obras-chart.tsx:352:Os indicadores aparecerão quando houver obras cadastradas.
+C:\Users\DELL\Documents\gestao-obras\src\features\dashboard\dashboard-page.tsx:27:StatusObrasChart,
+C:\Users\DELL\Documents\gestao-obras\src\features\dashboard\dashboard-page.tsx:28:} from "./components/status-obras-chart";
+C:\Users\DELL\Documents\gestao-obras\src\features\dashboard\dashboard-page.tsx:31:getObras,
+C:\Users\DELL\Documents\gestao-obras\src\features\dashboard\dashboard-page.tsx:32:} from "@/features/obras/services/obras-service";
+C:\Users\DELL\Documents\gestao-obras\src\features\dashboard\dashboard-page.tsx:36:} from "@/features/obras/types";
+C:\Users\DELL\Documents\gestao-obras\src\features\dashboard\dashboard-page.tsx:193:obras,
+C:\Users\DELL\Documents\gestao-obras\src\features\dashboard\dashboard-page.tsx:194:setObras,
+C:\Users\DELL\Documents\gestao-obras\src\features\dashboard\dashboard-page.tsx:235:const obrasData =
+C:\Users\DELL\Documents\gestao-obras\src\features\dashboard\dashboard-page.tsx:236:await getObras();
+C:\Users\DELL\Documents\gestao-obras\src\features\dashboard\dashboard-page.tsx:238:setObras(
+C:\Users\DELL\Documents\gestao-obras\src\features\dashboard\dashboard-page.tsx:239:obrasData as Obra[]
+C:\Users\DELL\Documents\gestao-obras\src\features\dashboard\dashboard-page.tsx:274:const obrasAtivas =
+C:\Users\DELL\Documents\gestao-obras\src\features\dashboard\dashboard-page.tsx:275:obras.filter(
+C:\Users\DELL\Documents\gestao-obras\src\features\dashboard\dashboard-page.tsx:285:obrasAtivas.filter(
+C:\Users\DELL\Documents\gestao-obras\src\features\dashboard\dashboard-page.tsx:290:obras.filter(
+C:\Users\DELL\Documents\gestao-obras\src\features\dashboard\dashboard-page.tsx:296:obras
+C:\Users\DELL\Documents\gestao-obras\src\features\dashboard\dashboard-page.tsx:312:obrasAtivas.length,
+C:\Users\DELL\Documents\gestao-obras\src\features\dashboard\dashboard-page.tsx:318:obrasAtivas.length,
+C:\Users\DELL\Documents\gestao-obras\src\features\dashboard\dashboard-page.tsx:328:obras,
+C:\Users\DELL\Documents\gestao-obras\src\features\dashboard\dashboard-page.tsx:332:const obrasRecentes =
+C:\Users\DELL\Documents\gestao-obras\src\features\dashboard\dashboard-page.tsx:335:[...obras]
+C:\Users\DELL\Documents\gestao-obras\src\features\dashboard\dashboard-page.tsx:364:obras,
+C:\Users\DELL\Documents\gestao-obras\src\features\dashboard\dashboard-page.tsx:387:Gestão de obras
+C:\Users\DELL\Documents\gestao-obras\src\features\dashboard\dashboard-page.tsx:395:Visão geral das obras, prazos, entregas e andamento dos projetos.
+C:\Users\DELL\Documents\gestao-obras\src\features\dashboard\dashboard-page.tsx:431:title="Obras ativas"
+C:\Users\DELL\Documents\gestao-obras\src\features\dashboard\dashboard-page.tsx:440:"/obras",
+C:\Users\DELL\Documents\gestao-obras\src\features\dashboard\dashboard-page.tsx:446:title="Obras atrasadas"
+C:\Users\DELL\Documents\gestao-obras\src\features\dashboard\dashboard-page.tsx:455:"/obras",
+C:\Users\DELL\Documents\gestao-obras\src\features\dashboard\dashboard-page.tsx:465:description="Clientes com obras cadastradas"
+C:\Users\DELL\Documents\gestao-obras\src\features\dashboard\dashboard-page.tsx:474:description="Obras em execução"
+C:\Users\DELL\Documents\gestao-obras\src\features\dashboard\dashboard-page.tsx:479:"/obras",
+C:\Users\DELL\Documents\gestao-obras\src\features\dashboard\dashboard-page.tsx:486:<StatusObrasChart
+C:\Users\DELL\Documents\gestao-obras\src\features\dashboard\dashboard-page.tsx:487:obras={
+C:\Users\DELL\Documents\gestao-obras\src\features\dashboard\dashboard-page.tsx:488:obras
+C:\Users\DELL\Documents\gestao-obras\src\features\dashboard\dashboard-page.tsx:497:Obras recentes
+C:\Users\DELL\Documents\gestao-obras\src\features\dashboard\dashboard-page.tsx:501:Últimas obras cadastradas no sistema.
+C:\Users\DELL\Documents\gestao-obras\src\features\dashboard\dashboard-page.tsx:510:"/obras",
+C:\Users\DELL\Documents\gestao-obras\src\features\dashboard\dashboard-page.tsx:521:{obrasRecentes.length ===
+C:\Users\DELL\Documents\gestao-obras\src\features\dashboard\dashboard-page.tsx:531:As obras cadastradas aparecerão aqui.
+C:\Users\DELL\Documents\gestao-obras\src\features\dashboard\dashboard-page.tsx:536:{obrasRecentes.map(
+C:\Users\DELL\Documents\gestao-obras\src\features\dashboard\dashboard-page.tsx:554:"/obras/$id",
+C:\Users\DELL\Documents\gestao-obras\src\features\etapas\services\etapas-service.ts:161:responsavel:usuarios!etapas_obras_responsavel_id_fkey (
+C:\Users\DELL\Documents\gestao-obras\src\features\etapas\services\etapas-service.ts:230:.from("etapas_obras")
+C:\Users\DELL\Documents\gestao-obras\src\features\etapas\services\etapas-service.ts:261:.from("etapas_obras")
+C:\Users\DELL\Documents\gestao-obras\src\features\etapas\services\etapas-service.ts:364:.from("etapas_obras")
+C:\Users\DELL\Documents\gestao-obras\src\features\etapas\services\etapas-service.ts:511:.from("etapas_obras")
+C:\Users\DELL\Documents\gestao-obras\src\features\etapas\services\etapas-service.ts:556:.from("etapas_obras")
+C:\Users\DELL\Documents\gestao-obras\src\features\obras\components\demanda-card.tsx:51:to="/obras/$id/demandas/$demandaId"
+C:\Users\DELL\Documents\gestao-obras\src\features\obras\components\obra-card.tsx:19:} from "../services/obras-service";
+C:\Users\DELL\Documents\gestao-obras\src\features\obras\components\obra-card.tsx:649:"/obras/$id",
+C:\Users\DELL\Documents\gestao-obras\src\features\obras\components\obra-card.tsx:862:to="/obras/$id/editar"
+C:\Users\DELL\Documents\gestao-obras\src\features\obras\components\obra-module-layout.tsx:57:rota:"/obras/$id",
+C:\Users\DELL\Documents\gestao-obras\src\features\obras\components\obra-module-layout.tsx:67:rota:"/obras/$id/demandas",
+C:\Users\DELL\Documents\gestao-obras\src\features\obras\components\obra-module-layout.tsx:77:rota:"/obras/$id/documentos",
+C:\Users\DELL\Documents\gestao-obras\src\features\obras\components\obra-module-layout.tsx:87:rota:"/obras/$id/equipamentos",
+C:\Users\DELL\Documents\gestao-obras\src\features\obras\components\obra-module-layout.tsx:97:rota:"/obras/$id/cronograma",
+C:\Users\DELL\Documents\gestao-obras\src\features\obras\components\obra-module-layout.tsx:107:rota:"/obras/$id/financeiro",
+C:\Users\DELL\Documents\gestao-obras\src\features\obras\components\obra-module-layout.tsx:117:rota:"/obras/$id/historico",
+C:\Users\DELL\Documents\gestao-obras\src\features\obras\components\obra-module-layout.tsx:146:to="/obras"
+C:\Users\DELL\Documents\gestao-obras\src\features\obras\components\obra-module-layout.tsx:159:← Voltar para Obras
+C:\Users\DELL\Documents\gestao-obras\src\features\obras\demandas\components\modal-editar-demanda.tsx:41:} from "@/features/obras/documentos/services/documentos-service";
+C:\Users\DELL\Documents\gestao-obras\src\features\obras\demandas\components\modal-editar-demanda.tsx:45:} from "@/features/obras/documentos/types";
+C:\Users\DELL\Documents\gestao-obras\src\features\obras\demandas\components\modal-editar-demanda.tsx:749:.from("etapas_obras")
+C:\Users\DELL\Documents\gestao-obras\src\features\obras\demandas\services\demandas-service.ts:64:etapa:etapas_obras!demandas_etapa_obra_fkey (
+C:\Users\DELL\Documents\gestao-obras\src\features\obras\documentos\services\documentos-service.ts:38:etapa:etapas_obras!documentos_etapa_id_fkey (
+C:\Users\DELL\Documents\gestao-obras\src\features\obras\documentos\services\documentos-service.ts:148:.from("etapas_obras")
+C:\Users\DELL\Documents\gestao-obras\src\features\obras\hooks\use-obra.ts:3:import { getObraById } from "../services/obras-service";
+C:\Users\DELL\Documents\gestao-obras\src\features\obras\services\create-obra.ts:13:.from("obras")
+C:\Users\DELL\Documents\gestao-obras\src\features\obras\services\obras-service.ts:42:etapas:etapas_obras (
+C:\Users\DELL\Documents\gestao-obras\src\features\obras\services\obras-service.ts:205:.from("obras")
+C:\Users\DELL\Documents\gestao-obras\src\features\obras\services\obras-service.ts:238:export async function getObras(): Promise<
+C:\Users\DELL\Documents\gestao-obras\src\features\obras\services\obras-service.ts:245:.from("obras")
+C:\Users\DELL\Documents\gestao-obras\src\features\obras\services\obras-service.ts:258:"Erro Supabase obras:",
+C:\Users\DELL\Documents\gestao-obras\src\features\obras\services\obras-service.ts:282:.from("obras")
+C:\Users\DELL\Documents\gestao-obras\src\features\obras\services\obras-service.ts:334:.from("obras")
+C:\Users\DELL\Documents\gestao-obras\src\features\obras\services\obras-service.ts:422:.from("obras")
+C:\Users\DELL\Documents\gestao-obras\src\features\tramitacoes\services\tramitacoes-service.ts:45:export async function listarObrasParaTramitacao(
+C:\Users\DELL\Documents\gestao-obras\src\features\tramitacoes\services\tramitacoes-service.ts:50:.from("obras")
+C:\Users\DELL\Documents\gestao-obras\src\features\tramitacoes\services\tramitacoes-service.ts:84:"Erro ao listar obras para tramitação:",
+C:\Users\DELL\Documents\gestao-obras\src\features\tramitacoes\services\tramitacoes-service.ts:130:export async function tramitarObras(
+C:\Users\DELL\Documents\gestao-obras\src\features\tramitacoes\services\tramitacoes-service.ts:131:obrasIds: string[],
+C:\Users\DELL\Documents\gestao-obras\src\features\tramitacoes\services\tramitacoes-service.ts:139:"tramitar_obras",
+C:\Users\DELL\Documents\gestao-obras\src\features\tramitacoes\services\tramitacoes-service.ts:141:p_obras_ids:
+C:\Users\DELL\Documents\gestao-obras\src\features\tramitacoes\services\tramitacoes-service.ts:142:obrasIds,
+C:\Users\DELL\Documents\gestao-obras\src\features\tramitacoes\services\tramitacoes-service.ts:155:"Erro ao tramitar obras:",
+C:\Users\DELL\Documents\gestao-obras\src\features\tramitacoes\services\tramitacoes-service.ts:174:.from("tramitacoes_obras")
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\clientes\$id.tsx:26:getClienteComObras,
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\clientes\$id.tsx:27:type ClienteComObras,
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\clientes\$id.tsx:158:] = useState<ClienteComObras | null>(
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\clientes\$id.tsx:212:await getClienteComObras(
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\clientes\$id.tsx:226:"Não foi possível carregar o cliente e suas obras."
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\clientes\$id.tsx:244:cliente?.obras.reduce(
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\clientes\$id.tsx:276:"/obras/$id",
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\clientes\$id.tsx:612:Obras vinculadas
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\clientes\$id.tsx:617:cliente.obras.length
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\clientes\$id.tsx:642:Obras e propostas cadastradas para este cliente.
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\clientes\$id.tsx:646:{cliente.obras.length ===
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\clientes\$id.tsx:656:Este cliente ainda não possui obras cadastradas.
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\clientes\$id.tsx:661:{cliente.obras.map(
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\obras\$id\cronograma\index.tsx:6:} from "@/features/obras/cronograma/components/etapa-form";
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\obras\$id\cronograma\index.tsx:10:} from "@/features/obras/cronograma/components/etapas-list";
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\obras\$id\cronograma\index.tsx:15:"/_authenticated/obras/$id/cronograma/"
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\obras\$id\demandas\editar.tsx:4:import { updateDemanda } from "@/features/obras/demandas/services/demandas-service";
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\obras\$id\demandas\editar.tsx:5:import type { Demanda } from "@/features/obras/demandas/types";
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\obras\$id\demandas\editar.tsx:8:"/_authenticated/obras/$id/demandas/editar"
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\obras\$id\demandas\editar.tsx:72:to: "/obras/$id/demandas",
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\obras\$id\demandas\editar.tsx:95:to: "/obras/$id/demandas",
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\obras\$id\demandas\index.tsx:34:} from "@/features/obras/demandas/services/demandas-service";
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\obras\$id\demandas\index.tsx:38:} from "@/features/obras/demandas/components/demanda-list";
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\obras\$id\demandas\index.tsx:40:import ModalEditarDemanda from "@/features/obras/demandas/components/modal-editar-demanda";
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\obras\$id\demandas\index.tsx:44:} from "@/features/obras/demandas/types";
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\obras\$id\demandas\index.tsx:61:"/_authenticated/obras/$id/demandas/"
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\obras\$id\demandas\index.tsx:220:.from("etapas_obras")
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\obras\$id\demandas\index.tsx:648:"/obras/$id/demandas/nova",
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\obras\$id\demandas\nova.tsx:40:} from "@/features/obras/demandas/types";
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\obras\$id\demandas\nova.tsx:91:"/_authenticated/obras/$id/demandas/nova"
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\obras\$id\demandas\nova.tsx:375:.from("obras")
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\obras\$id\demandas\nova.tsx:558:.from("etapas_obras")
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\obras\$id\demandas\nova.tsx:981:"/obras/$id/demandas",
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\obras\$id\documentos\index.tsx:21:} from "@/features/obras/documentos/services/documentos-service";
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\obras\$id\documentos\index.tsx:26:} from "@/features/obras/documentos/types";
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\obras\$id\documentos\index.tsx:29:"/_authenticated/obras/$id/documentos/"
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\obras\$id\equipamentos\index.tsx:13:} from "@/features/obras/equipamentos/services/equipamentos-service";
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\obras\$id\equipamentos\index.tsx:17:} from "@/features/obras/equipamentos/components/equipamento-form";
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\obras\$id\equipamentos\index.tsx:21:} from "@/features/obras/equipamentos/components/equipamento-list";
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\obras\$id\equipamentos\index.tsx:25:} from "@/features/obras/equipamentos/types";
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\obras\$id\equipamentos\index.tsx:28:"/_authenticated/obras/$id/equipamentos/"
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\obras\$id\comercial.tsx:35:} from "@/features/obras/comercial/services/comercial-service";
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\obras\$id\comercial.tsx:41:} from "@/features/obras/comercial/services/comercial-service";
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\obras\$id\comercial.tsx:47:} from "@/features/obras/comercial/types";
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\obras\$id\comercial.tsx:51:"/_authenticated/obras/$id/comercial"
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\obras\$id\editar.tsx:30:"/_authenticated/obras/$id/editar"
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\obras\$id\editar.tsx:235:.from("obras")
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\obras\$id\editar.tsx:739:.from("obras")
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\obras\$id\editar.tsx:870:"/obras/$id",
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\obras\$id\etapas.tsx:50:"/_authenticated/obras/$id/etapas"
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\obras\$id\historico.tsx:28:"/_authenticated/obras/$id/historico"
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\obras\$id\historico.tsx:729:.from("historico_obras")
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\obras\$id\index.tsx:19:} from "@/features/obras/services/obras-service";
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\obras\$id\index.tsx:22:"/_authenticated/obras/$id/"
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\obras\$id\index.tsx:437:"/_authenticated/obras/$id",
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\obras\$id.tsx:18:"/_authenticated/obras/$id"
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\obras\$id.tsx:27:.from("obras")
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\obras\$id.tsx:59:to="/obras"
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\obras\$id.tsx:83:"/obras/$id",
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\obras\$id.tsx:93:"/obras/$id/etapas",
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\obras\$id.tsx:103:"/obras/$id/demandas",
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\obras\$id.tsx:113:"/obras/$id/comercial",
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\obras\$id.tsx:123:"/obras/$id/documentos",
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\obras\$id.tsx:133:"/obras/$id/historico",
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\obras\$id.tsx:143:to="/obras"
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\obras\$id.tsx:184:to="/obras/$id/editar"
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\obras\index.tsx:22:getObras,
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\obras\index.tsx:23:} from "@/features/obras/services/obras-service";
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\obras\index.tsx:27:} from "@/features/obras/types";
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\obras\index.tsx:31:} from "@/features/obras/components/obra-card";
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\obras\index.tsx:34:"/_authenticated/obras/"
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\obras\index.tsx:36:component: ObrasPage,
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\obras\index.tsx:39:function ObrasPage() {
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\obras\index.tsx:41:obras,
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\obras\index.tsx:42:setObras,
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\obras\index.tsx:70:async function carregarObras(
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\obras\index.tsx:83:await getObras();
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\obras\index.tsx:85:setObras(data);
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\obras\index.tsx:88:"Erro ao buscar obras:",
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\obras\index.tsx:100:carregarObras(true);
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\obras\index.tsx:111:obras.forEach(
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\obras\index.tsx:150:obras,
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\obras\index.tsx:153:const obrasFiltradas =
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\obras\index.tsx:160:return obras.filter(
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\obras\index.tsx:201:obras,
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\obras\index.tsx:250:carregarObras(true)
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\obras\index.tsx:282:carregarObras(false)
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\obras\index.tsx:301:to="/obras/nova"
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\obras\index.tsx:345:htmlFor="filtrar-setor-obras"
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\obras\index.tsx:355:id="filtrar-setor-obras"
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\obras\index.tsx:418:{obrasFiltradas.length}
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\obras\index.tsx:422:{obras.length}
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\obras\index.tsx:429:{obras.length ===
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\obras\index.tsx:443:to="/obras/nova"
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\obras\index.tsx:451:) : obrasFiltradas.length ===
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\obras\index.tsx:476:{obrasFiltradas.map(
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\obras\index.tsx:488:carregarObras(false)
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\obras\nova.tsx:17:} from "@/features/obras/services/obras-service";
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\obras\nova.tsx:42:"/_authenticated/obras/nova"
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\obras\nova.tsx:648:"/obras",
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\admin.tsx:709:"Não é possível excluir este setor porque existem usuários, cargos ou obras vinculados a ele."
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\historico-obras.tsx:30:"/_authenticated/historico-obras"
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\historico-obras.tsx:33:HistoricoObrasPage,
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\historico-obras.tsx:315:function HistoricoObrasPage() {
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\historico-obras.tsx:376:"historico_obras"
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\tramitacoes.tsx:29:listarObrasParaTramitacao,
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\tramitacoes.tsx:31:tramitarObras,
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\tramitacoes.tsx:83:obras,
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\tramitacoes.tsx:84:setObras,
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\tramitacoes.tsx:104:obrasSelecionadas,
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\tramitacoes.tsx:105:setObrasSelecionadas,
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\tramitacoes.tsx:154:const obrasFiltradas =
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\tramitacoes.tsx:163:return obras;
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\tramitacoes.tsx:166:return obras.filter(
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\tramitacoes.tsx:185:obras,
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\tramitacoes.tsx:190:const obrasSelecionadasDados =
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\tramitacoes.tsx:193:obras.filter(
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\tramitacoes.tsx:195:obrasSelecionadas.includes(
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\tramitacoes.tsx:200:obras,
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\tramitacoes.tsx:201:obrasSelecionadas,
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\tramitacoes.tsx:206:obrasFiltradas.length > 0 &&
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\tramitacoes.tsx:207:obrasFiltradas.every(
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\tramitacoes.tsx:209:obrasSelecionadas.includes(
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\tramitacoes.tsx:224:obrasEncontradas,
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\tramitacoes.tsx:228:listarObrasParaTramitacao(
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\tramitacoes.tsx:238:setObras(
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\tramitacoes.tsx:239:obrasEncontradas
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\tramitacoes.tsx:250:setObrasSelecionadas(
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\tramitacoes.tsx:256:obrasEncontradas.some(
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\tramitacoes.tsx:290:setObrasSelecionadas(
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\tramitacoes.tsx:320:obrasFiltradas.map(
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\tramitacoes.tsx:326:setObrasSelecionadas(
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\tramitacoes.tsx:341:setObrasSelecionadas(
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\tramitacoes.tsx:348:...obrasFiltradas.map(
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\tramitacoes.tsx:362:obrasSelecionadas.length ===
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\tramitacoes.tsx:381:obrasSelecionadasDados.find(
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\tramitacoes.tsx:409:obrasSelecionadas.length
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\tramitacoes.tsx:411:obrasSelecionadas.length ===
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\tramitacoes.tsx:414:: "obras"
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\tramitacoes.tsx:429:await tramitarObras(
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\tramitacoes.tsx:430:obrasSelecionadas,
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\tramitacoes.tsx:439:: "obras tramitadas"
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\tramitacoes.tsx:443:setObrasSelecionadas(
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\tramitacoes.tsx:458:"Erro ao tramitar obras:",
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\tramitacoes.tsx:501:Transfira obras entre os setores e acompanhe o histórico.
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\tramitacoes.tsx:553:Tramitar obras
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\tramitacoes.tsx:583:Obras disponíveis
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\tramitacoes.tsx:588:? "Como administrador, você pode tramitar obras de qualquer setor."
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\tramitacoes.tsx:589:: "São exibidas para tramitação apenas as obras do seu setor."}
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\tramitacoes.tsx:612:{obrasFiltradas.length ===
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\tramitacoes.tsx:622:Não existem obras para tramitar com os filtros atuais.
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\tramitacoes.tsx:645:obrasSelecionadas.length
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\tramitacoes.tsx:651:{obrasFiltradas.map(
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\tramitacoes.tsx:654:obrasSelecionadas.includes(
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\tramitacoes.tsx:722:Escolha o novo setor responsável pelas obras selecionadas.
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\tramitacoes.tsx:728:Obras selecionadas
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\tramitacoes.tsx:733:obrasSelecionadas.length
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\tramitacoes.tsx:814:obrasSelecionadas.length ===
+C:\Users\DELL\Documents\gestao-obras\src\routes\_authenticated\tramitacoes.tsx:828:: "Tramitar obras"}
+C:\Users\DELL\Documents\gestao-obras\src\routes\cadastro.tsx:26:Gestão de Obras
+C:\Users\DELL\Documents\gestao-obras\src\routes\login.tsx:26:Gestão de Obras
+C:\Users\DELL\Documents\gestao-obras\src\routes\relatorios.tsx:351:obras,
+C:\Users\DELL\Documents\gestao-obras\src\routes\relatorios.tsx:352:setObras,
+C:\Users\DELL\Documents\gestao-obras\src\routes\relatorios.tsx:389:"obras"
+C:\Users\DELL\Documents\gestao-obras\src\routes\relatorios.tsx:417:setObras(
+C:\Users\DELL\Documents\gestao-obras\src\routes\relatorios.tsx:595:obras.forEach(
+C:\Users\DELL\Documents\gestao-obras\src\routes\relatorios.tsx:1110:obras,
+C:\Users\DELL\Documents\gestao-obras\src\routes\relatorios.tsx:1553:descricao="Obras com data de entrega preenchida"
+C:\Users\DELL\Documents\gestao-obras\src\App.tsx:5:Gestão de Obras
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:18:import { Route as AuthenticatedHistoricoObrasRouteImport } from './routes/_authenticated/historico-obras'
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:22:import { Route as AuthenticatedObrasIndexRouteImport } from './routes/_authenticated/obras/index'
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:23:import { Route as AuthenticatedObrasIdRouteImport } from './routes/_authenticated/obras/$id'
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:24:import { Route as AuthenticatedObrasNovaRouteImport } from './routes/_authenticated/obras/nova'
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:25:import { Route as AuthenticatedObrasIdIndexRouteImport } from './routes/_authenticated/obras/$id/index'
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:26:import { Route as AuthenticatedObrasIdComercialRouteImport } from './routes/_authenticated/obras/$id/comercial'
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:27:import { Route as AuthenticatedObrasIdEditarRouteImport } from './routes/_authenticated/obras/$id/editar'
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:28:import { Route as AuthenticatedObrasIdEtapasRouteImport } from './routes/_authenticated/obras/$id/etapas'
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:29:import { Route as AuthenticatedObrasIdHistoricoRouteImport } from './routes/_authenticated/obras/$id/historico'
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:30:import { Route as AuthenticatedObrasIdCronogramaIndexRouteImport } from './routes/_authenticated/obras/$id/cronograma/index'
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:31:import { Route as AuthenticatedObrasIdDemandasIndexRouteImport } from './routes/_authenticated/obras/$id/demandas/index'
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:32:import { Route as AuthenticatedObrasIdDemandasEditarRouteImport } from './routes/_authenticated/obras/$id/demandas/editar'
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:33:import { Route as AuthenticatedObrasIdDemandasNovaRouteImport } from './routes/_authenticated/obras/$id/demandas/nova'
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:34:import { Route as AuthenticatedObrasIdDocumentosIndexRouteImport } from './routes/_authenticated/obras/$id/documentos/index'
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:35:import { Route as AuthenticatedObrasIdEquipamentosIndexRouteImport } from './routes/_authenticated/obras/$id/equipamentos/index'
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:67:const AuthenticatedHistoricoObrasRoute =
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:68:AuthenticatedHistoricoObrasRouteImport.update({
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:69:id: '/_authenticated/historico-obras',
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:70:path: '/historico-obras',
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:89:const AuthenticatedObrasIndexRoute = AuthenticatedObrasIndexRouteImport.update({
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:90:id: '/_authenticated/obras/',
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:91:path: '/obras/',
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:94:const AuthenticatedObrasIdRoute = AuthenticatedObrasIdRouteImport.update({
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:95:id: '/_authenticated/obras/$id',
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:96:path: '/obras/$id',
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:99:const AuthenticatedObrasNovaRoute = AuthenticatedObrasNovaRouteImport.update({
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:100:id: '/_authenticated/obras/nova',
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:101:path: '/obras/nova',
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:104:const AuthenticatedObrasIdIndexRoute =
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:105:AuthenticatedObrasIdIndexRouteImport.update({
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:108:getParentRoute: () => AuthenticatedObrasIdRoute,
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:110:const AuthenticatedObrasIdComercialRoute =
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:111:AuthenticatedObrasIdComercialRouteImport.update({
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:114:getParentRoute: () => AuthenticatedObrasIdRoute,
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:116:const AuthenticatedObrasIdEditarRoute =
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:117:AuthenticatedObrasIdEditarRouteImport.update({
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:120:getParentRoute: () => AuthenticatedObrasIdRoute,
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:122:const AuthenticatedObrasIdEtapasRoute =
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:123:AuthenticatedObrasIdEtapasRouteImport.update({
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:126:getParentRoute: () => AuthenticatedObrasIdRoute,
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:128:const AuthenticatedObrasIdHistoricoRoute =
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:129:AuthenticatedObrasIdHistoricoRouteImport.update({
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:132:getParentRoute: () => AuthenticatedObrasIdRoute,
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:134:const AuthenticatedObrasIdCronogramaIndexRoute =
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:135:AuthenticatedObrasIdCronogramaIndexRouteImport.update({
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:138:getParentRoute: () => AuthenticatedObrasIdRoute,
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:140:const AuthenticatedObrasIdDemandasIndexRoute =
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:141:AuthenticatedObrasIdDemandasIndexRouteImport.update({
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:144:getParentRoute: () => AuthenticatedObrasIdRoute,
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:146:const AuthenticatedObrasIdDemandasEditarRoute =
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:147:AuthenticatedObrasIdDemandasEditarRouteImport.update({
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:150:getParentRoute: () => AuthenticatedObrasIdRoute,
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:152:const AuthenticatedObrasIdDemandasNovaRoute =
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:153:AuthenticatedObrasIdDemandasNovaRouteImport.update({
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:156:getParentRoute: () => AuthenticatedObrasIdRoute,
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:158:const AuthenticatedObrasIdDocumentosIndexRoute =
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:159:AuthenticatedObrasIdDocumentosIndexRouteImport.update({
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:162:getParentRoute: () => AuthenticatedObrasIdRoute,
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:164:const AuthenticatedObrasIdEquipamentosIndexRoute =
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:165:AuthenticatedObrasIdEquipamentosIndexRouteImport.update({
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:168:getParentRoute: () => AuthenticatedObrasIdRoute,
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:178:'/historico-obras': typeof AuthenticatedHistoricoObrasRoute
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:182:'/obras/$id': typeof AuthenticatedObrasIdRouteWithChildren
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:183:'/obras/nova': typeof AuthenticatedObrasNovaRoute
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:184:'/obras/': typeof AuthenticatedObrasIndexRoute
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:185:'/obras/$id/comercial': typeof AuthenticatedObrasIdComercialRoute
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:186:'/obras/$id/editar': typeof AuthenticatedObrasIdEditarRoute
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:187:'/obras/$id/etapas': typeof AuthenticatedObrasIdEtapasRoute
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:188:'/obras/$id/historico': typeof AuthenticatedObrasIdHistoricoRoute
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:189:'/obras/$id/': typeof AuthenticatedObrasIdIndexRoute
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:190:'/obras/$id/demandas/editar': typeof AuthenticatedObrasIdDemandasEditarRoute
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:191:'/obras/$id/demandas/nova': typeof AuthenticatedObrasIdDemandasNovaRoute
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:192:'/obras/$id/cronograma/': typeof AuthenticatedObrasIdCronogramaIndexRoute
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:193:'/obras/$id/demandas/': typeof AuthenticatedObrasIdDemandasIndexRoute
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:194:'/obras/$id/documentos/': typeof AuthenticatedObrasIdDocumentosIndexRoute
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:195:'/obras/$id/equipamentos/': typeof AuthenticatedObrasIdEquipamentosIndexRoute
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:204:'/historico-obras': typeof AuthenticatedHistoricoObrasRoute
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:208:'/obras/nova': typeof AuthenticatedObrasNovaRoute
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:209:'/obras': typeof AuthenticatedObrasIndexRoute
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:210:'/obras/$id/comercial': typeof AuthenticatedObrasIdComercialRoute
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:211:'/obras/$id/editar': typeof AuthenticatedObrasIdEditarRoute
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:212:'/obras/$id/etapas': typeof AuthenticatedObrasIdEtapasRoute
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:213:'/obras/$id/historico': typeof AuthenticatedObrasIdHistoricoRoute
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:214:'/obras/$id': typeof AuthenticatedObrasIdIndexRoute
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:215:'/obras/$id/demandas/editar': typeof AuthenticatedObrasIdDemandasEditarRoute
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:216:'/obras/$id/demandas/nova': typeof AuthenticatedObrasIdDemandasNovaRoute
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:217:'/obras/$id/cronograma': typeof AuthenticatedObrasIdCronogramaIndexRoute
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:218:'/obras/$id/demandas': typeof AuthenticatedObrasIdDemandasIndexRoute
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:219:'/obras/$id/documentos': typeof AuthenticatedObrasIdDocumentosIndexRoute
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:220:'/obras/$id/equipamentos': typeof AuthenticatedObrasIdEquipamentosIndexRoute
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:230:'/_authenticated/historico-obras': typeof AuthenticatedHistoricoObrasRoute
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:234:'/_authenticated/obras/$id': typeof AuthenticatedObrasIdRouteWithChildren
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:235:'/_authenticated/obras/nova': typeof AuthenticatedObrasNovaRoute
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:236:'/_authenticated/obras/': typeof AuthenticatedObrasIndexRoute
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:237:'/_authenticated/obras/$id/comercial': typeof AuthenticatedObrasIdComercialRoute
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:238:'/_authenticated/obras/$id/editar': typeof AuthenticatedObrasIdEditarRoute
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:239:'/_authenticated/obras/$id/etapas': typeof AuthenticatedObrasIdEtapasRoute
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:240:'/_authenticated/obras/$id/historico': typeof AuthenticatedObrasIdHistoricoRoute
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:241:'/_authenticated/obras/$id/': typeof AuthenticatedObrasIdIndexRoute
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:242:'/_authenticated/obras/$id/demandas/editar': typeof AuthenticatedObrasIdDemandasEditarRoute
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:243:'/_authenticated/obras/$id/demandas/nova': typeof AuthenticatedObrasIdDemandasNovaRoute
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:244:'/_authenticated/obras/$id/cronograma/': typeof AuthenticatedObrasIdCronogramaIndexRoute
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:245:'/_authenticated/obras/$id/demandas/': typeof AuthenticatedObrasIdDemandasIndexRoute
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:246:'/_authenticated/obras/$id/documentos/': typeof AuthenticatedObrasIdDocumentosIndexRoute
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:247:'/_authenticated/obras/$id/equipamentos/': typeof AuthenticatedObrasIdEquipamentosIndexRoute
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:258:| '/historico-obras'
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:262:| '/obras/$id'
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:263:| '/obras/nova'
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:264:| '/obras/'
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:265:| '/obras/$id/comercial'
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:266:| '/obras/$id/editar'
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:267:| '/obras/$id/etapas'
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:268:| '/obras/$id/historico'
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:269:| '/obras/$id/'
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:270:| '/obras/$id/demandas/editar'
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:271:| '/obras/$id/demandas/nova'
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:272:| '/obras/$id/cronograma/'
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:273:| '/obras/$id/demandas/'
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:274:| '/obras/$id/documentos/'
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:275:| '/obras/$id/equipamentos/'
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:284:| '/historico-obras'
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:288:| '/obras/nova'
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:289:| '/obras'
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:290:| '/obras/$id/comercial'
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:291:| '/obras/$id/editar'
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:292:| '/obras/$id/etapas'
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:293:| '/obras/$id/historico'
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:294:| '/obras/$id'
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:295:| '/obras/$id/demandas/editar'
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:296:| '/obras/$id/demandas/nova'
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:297:| '/obras/$id/cronograma'
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:298:| '/obras/$id/demandas'
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:299:| '/obras/$id/documentos'
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:300:| '/obras/$id/equipamentos'
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:309:| '/_authenticated/historico-obras'
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:313:| '/_authenticated/obras/$id'
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:314:| '/_authenticated/obras/nova'
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:315:| '/_authenticated/obras/'
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:316:| '/_authenticated/obras/$id/comercial'
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:317:| '/_authenticated/obras/$id/editar'
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:318:| '/_authenticated/obras/$id/etapas'
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:319:| '/_authenticated/obras/$id/historico'
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:320:| '/_authenticated/obras/$id/'
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:321:| '/_authenticated/obras/$id/demandas/editar'
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:322:| '/_authenticated/obras/$id/demandas/nova'
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:323:| '/_authenticated/obras/$id/cronograma/'
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:324:| '/_authenticated/obras/$id/demandas/'
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:325:| '/_authenticated/obras/$id/documentos/'
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:326:| '/_authenticated/obras/$id/equipamentos/'
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:336:AuthenticatedHistoricoObrasRoute: typeof AuthenticatedHistoricoObrasRoute
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:340:AuthenticatedObrasIdRoute: typeof AuthenticatedObrasIdRouteWithChildren
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:341:AuthenticatedObrasNovaRoute: typeof AuthenticatedObrasNovaRoute
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:342:AuthenticatedObrasIndexRoute: typeof AuthenticatedObrasIndexRoute
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:389:'/_authenticated/historico-obras': {
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:390:id: '/_authenticated/historico-obras'
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:391:path: '/historico-obras'
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:392:fullPath: '/historico-obras'
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:393:preLoaderRoute: typeof AuthenticatedHistoricoObrasRouteImport
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:417:'/_authenticated/obras/': {
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:418:id: '/_authenticated/obras/'
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:419:path: '/obras'
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:420:fullPath: '/obras/'
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:421:preLoaderRoute: typeof AuthenticatedObrasIndexRouteImport
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:424:'/_authenticated/obras/$id': {
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:425:id: '/_authenticated/obras/$id'
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:426:path: '/obras/$id'
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:427:fullPath: '/obras/$id'
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:428:preLoaderRoute: typeof AuthenticatedObrasIdRouteImport
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:431:'/_authenticated/obras/nova': {
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:432:id: '/_authenticated/obras/nova'
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:433:path: '/obras/nova'
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:434:fullPath: '/obras/nova'
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:435:preLoaderRoute: typeof AuthenticatedObrasNovaRouteImport
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:438:'/_authenticated/obras/$id/': {
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:439:id: '/_authenticated/obras/$id/'
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:441:fullPath: '/obras/$id/'
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:442:preLoaderRoute: typeof AuthenticatedObrasIdIndexRouteImport
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:443:parentRoute: typeof AuthenticatedObrasIdRoute
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:445:'/_authenticated/obras/$id/comercial': {
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:446:id: '/_authenticated/obras/$id/comercial'
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:448:fullPath: '/obras/$id/comercial'
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:449:preLoaderRoute: typeof AuthenticatedObrasIdComercialRouteImport
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:450:parentRoute: typeof AuthenticatedObrasIdRoute
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:452:'/_authenticated/obras/$id/editar': {
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:453:id: '/_authenticated/obras/$id/editar'
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:455:fullPath: '/obras/$id/editar'
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:456:preLoaderRoute: typeof AuthenticatedObrasIdEditarRouteImport
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:457:parentRoute: typeof AuthenticatedObrasIdRoute
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:459:'/_authenticated/obras/$id/etapas': {
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:460:id: '/_authenticated/obras/$id/etapas'
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:462:fullPath: '/obras/$id/etapas'
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:463:preLoaderRoute: typeof AuthenticatedObrasIdEtapasRouteImport
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:464:parentRoute: typeof AuthenticatedObrasIdRoute
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:466:'/_authenticated/obras/$id/historico': {
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:467:id: '/_authenticated/obras/$id/historico'
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:469:fullPath: '/obras/$id/historico'
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:470:preLoaderRoute: typeof AuthenticatedObrasIdHistoricoRouteImport
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:471:parentRoute: typeof AuthenticatedObrasIdRoute
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:473:'/_authenticated/obras/$id/cronograma/': {
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:474:id: '/_authenticated/obras/$id/cronograma/'
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:476:fullPath: '/obras/$id/cronograma/'
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:477:preLoaderRoute: typeof AuthenticatedObrasIdCronogramaIndexRouteImport
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:478:parentRoute: typeof AuthenticatedObrasIdRoute
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:480:'/_authenticated/obras/$id/demandas/': {
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:481:id: '/_authenticated/obras/$id/demandas/'
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:483:fullPath: '/obras/$id/demandas/'
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:484:preLoaderRoute: typeof AuthenticatedObrasIdDemandasIndexRouteImport
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:485:parentRoute: typeof AuthenticatedObrasIdRoute
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:487:'/_authenticated/obras/$id/demandas/editar': {
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:488:id: '/_authenticated/obras/$id/demandas/editar'
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:490:fullPath: '/obras/$id/demandas/editar'
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:491:preLoaderRoute: typeof AuthenticatedObrasIdDemandasEditarRouteImport
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:492:parentRoute: typeof AuthenticatedObrasIdRoute
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:494:'/_authenticated/obras/$id/demandas/nova': {
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:495:id: '/_authenticated/obras/$id/demandas/nova'
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:497:fullPath: '/obras/$id/demandas/nova'
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:498:preLoaderRoute: typeof AuthenticatedObrasIdDemandasNovaRouteImport
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:499:parentRoute: typeof AuthenticatedObrasIdRoute
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:501:'/_authenticated/obras/$id/documentos/': {
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:502:id: '/_authenticated/obras/$id/documentos/'
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:504:fullPath: '/obras/$id/documentos/'
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:505:preLoaderRoute: typeof AuthenticatedObrasIdDocumentosIndexRouteImport
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:506:parentRoute: typeof AuthenticatedObrasIdRoute
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:508:'/_authenticated/obras/$id/equipamentos/': {
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:509:id: '/_authenticated/obras/$id/equipamentos/'
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:511:fullPath: '/obras/$id/equipamentos/'
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:512:preLoaderRoute: typeof AuthenticatedObrasIdEquipamentosIndexRouteImport
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:513:parentRoute: typeof AuthenticatedObrasIdRoute
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:518:interface AuthenticatedObrasIdRouteChildren {
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:519:AuthenticatedObrasIdComercialRoute: typeof AuthenticatedObrasIdComercialRoute
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:520:AuthenticatedObrasIdEditarRoute: typeof AuthenticatedObrasIdEditarRoute
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:521:AuthenticatedObrasIdEtapasRoute: typeof AuthenticatedObrasIdEtapasRoute
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:522:AuthenticatedObrasIdHistoricoRoute: typeof AuthenticatedObrasIdHistoricoRoute
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:523:AuthenticatedObrasIdIndexRoute: typeof AuthenticatedObrasIdIndexRoute
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:524:AuthenticatedObrasIdDemandasEditarRoute: typeof AuthenticatedObrasIdDemandasEditarRoute
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:525:AuthenticatedObrasIdDemandasNovaRoute: typeof AuthenticatedObrasIdDemandasNovaRoute
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:526:AuthenticatedObrasIdCronogramaIndexRoute: typeof AuthenticatedObrasIdCronogramaIndexRoute
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:527:AuthenticatedObrasIdDemandasIndexRoute: typeof AuthenticatedObrasIdDemandasIndexRoute
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:528:AuthenticatedObrasIdDocumentosIndexRoute: typeof AuthenticatedObrasIdDocumentosIndexRoute
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:529:AuthenticatedObrasIdEquipamentosIndexRoute: typeof AuthenticatedObrasIdEquipamentosIndexRoute
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:532:const AuthenticatedObrasIdRouteChildren: AuthenticatedObrasIdRouteChildren = {
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:533:AuthenticatedObrasIdComercialRoute: AuthenticatedObrasIdComercialRoute,
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:534:AuthenticatedObrasIdEditarRoute: AuthenticatedObrasIdEditarRoute,
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:535:AuthenticatedObrasIdEtapasRoute: AuthenticatedObrasIdEtapasRoute,
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:536:AuthenticatedObrasIdHistoricoRoute: AuthenticatedObrasIdHistoricoRoute,
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:537:AuthenticatedObrasIdIndexRoute: AuthenticatedObrasIdIndexRoute,
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:538:AuthenticatedObrasIdDemandasEditarRoute:
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:539:AuthenticatedObrasIdDemandasEditarRoute,
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:540:AuthenticatedObrasIdDemandasNovaRoute: AuthenticatedObrasIdDemandasNovaRoute,
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:541:AuthenticatedObrasIdCronogramaIndexRoute:
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:542:AuthenticatedObrasIdCronogramaIndexRoute,
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:543:AuthenticatedObrasIdDemandasIndexRoute:
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:544:AuthenticatedObrasIdDemandasIndexRoute,
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:545:AuthenticatedObrasIdDocumentosIndexRoute:
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:546:AuthenticatedObrasIdDocumentosIndexRoute,
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:547:AuthenticatedObrasIdEquipamentosIndexRoute:
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:548:AuthenticatedObrasIdEquipamentosIndexRoute,
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:551:const AuthenticatedObrasIdRouteWithChildren =
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:552:AuthenticatedObrasIdRoute._addFileChildren(AuthenticatedObrasIdRouteChildren)
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:561:AuthenticatedHistoricoObrasRoute: AuthenticatedHistoricoObrasRoute,
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:565:AuthenticatedObrasIdRoute: AuthenticatedObrasIdRouteWithChildren,
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:566:AuthenticatedObrasNovaRoute: AuthenticatedObrasNovaRoute,
+C:\Users\DELL\Documents\gestao-obras\src\routeTree.gen.ts:567:AuthenticatedObrasIndexRoute: AuthenticatedObrasIndexRoute,

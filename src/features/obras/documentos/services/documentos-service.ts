@@ -35,7 +35,7 @@ const consultaDocumento = `
     titulo,
     numero_revisao
   ),
-  etapa:etapas_obras!documentos_etapa_id_fkey (
+  etapa:etapas_orcamentos!documentos_etapa_id_fkey (
     id,
     obra_id,
     setor_id,
@@ -145,7 +145,7 @@ export async function getEtapasDocumentosPorObra(
     data,
     error,
   } = await supabase
-    .from("etapas_obras")
+    .from("etapas_orcamentos")
     .select(`
       id,
       obra_id,

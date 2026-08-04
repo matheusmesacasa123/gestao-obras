@@ -726,7 +726,7 @@ function HistoricoObraPage() {
             respostaUsuarios,
           ] = await Promise.all([
             supabase
-              .from("historico_obras")
+              .from("historico_orcamentos")
               .select(`
                 id,
                 obra_id,
