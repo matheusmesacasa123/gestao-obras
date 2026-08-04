@@ -354,10 +354,16 @@ export function ModalEditarDocumento({
                         Etapa{" "}
                         {etapa.ordem ??
                           "?"} —{" "}
-                        {etapa.setor?.nome ||
-                          "Setor não informado"} —{" "}
                         {etapa.titulo ||
-                          "Sem título"}
+                          "Sem título"} — Rev.{" "}
+                        {String(
+                          etapa.numero_revisao
+                        ).padStart(
+                          2,
+                          "0"
+                        )} —{" "}
+                        {etapa.setor?.nome ||
+                          "Setor não informado"}
                       </option>
                     )
                   )}
@@ -373,16 +379,8 @@ export function ModalEditarDocumento({
                   value={
                     setorId
                   }
-                  onChange={(
-                    event
-                  ) =>
-                    setSetorId(
-                      event.target.value
-                    )
-                  }
                   disabled={
-                    salvando ||
-                    !administrador
+                    true
                   }
                   className="h-11 w-full cursor-pointer rounded-xl border bg-white px-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-gray-100"
                 >
@@ -411,9 +409,7 @@ export function ModalEditarDocumento({
                 </select>
 
                 <p className="text-xs text-gray-500">
-                  {administrador
-                    ? "Administradores podem alterar o setor responsável."
-                    : "O setor acompanha automaticamente a etapa selecionada."}
+                  O setor acompanha automaticamente a etapa e a revisão selecionadas.
                 </p>
               </label>
 

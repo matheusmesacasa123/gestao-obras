@@ -21,7 +21,6 @@ import type {
 
 interface DocumentoFormProps {
   obraId: string;
-  obraRevisaoId: string;
   etapas: EtapaDocumento[];
   setores: SetorDocumento[];
   onSuccess: () => void;
@@ -29,7 +28,6 @@ interface DocumentoFormProps {
 
 export function DocumentoForm({
   obraId,
-  obraRevisaoId,
   etapas,
   setores,
   onSuccess,
@@ -148,7 +146,6 @@ export function DocumentoForm({
       !nome.trim() ||
       !arquivo ||
       !etapaId ||
-      !obraRevisaoId ||
       !setorId
     ) {
       alert(
@@ -166,7 +163,6 @@ export function DocumentoForm({
       await uploadDocumento(
         obraId,
         etapaId,
-        obraRevisaoId,
         arquivo,
         nome.trim(),
         setorId
@@ -262,19 +258,16 @@ export function DocumentoForm({
           }
           disabled={
             loading ||
-            !obraRevisaoId ||
             etapas.length ===
               0
           }
           className="w-full cursor-pointer rounded-lg border bg-white px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:bg-gray-100"
         >
           <option value="">
-            {!obraRevisaoId
-              ? "Selecione uma revisão da obra"
-              : etapas.length ===
-                  0
-                ? "Nenhuma etapa disponível nesta revisão"
-                : "Selecione a etapa"}
+            {etapas.length ===
+            0
+              ? "Nenhuma etapa disponível"
+              : "Selecione a etapa e a revisão"}
           </option>
 
           {etapas.map(
@@ -293,18 +286,25 @@ export function DocumentoForm({
                 {etapa.ordem ??
                   "?"}{" "}
                 —{" "}
-                {etapa.setor?.nome ||
-                  "Setor não informado"}{" "}
-                —{" "}
                 {etapa.titulo ||
-                  "Sem título"}
+                  "Sem título"}{" "}
+                — Rev.{" "}
+                {String(
+                  etapa.numero_revisao
+                ).padStart(
+                  2,
+                  "0"
+                )}{" "}
+                —{" "}
+                {etapa.setor?.nome ||
+                  "Setor não informado"}
               </option>
             )
           )}
         </select>
 
         <p className="text-xs text-gray-500">
-          São exibidas somente as etapas da revisão selecionada no cabeçalho da obra.
+          Selecione exatamente a etapa e a revisão às quais o documento pertence.
         </p>
       </label>
 
@@ -315,15 +315,22 @@ export function DocumentoForm({
             {etapaSelecionada.ordem ??
               "?"}{" "}
             —{" "}
-            {etapaSelecionada.setor?.nome ||
-              "Setor não informado"}{" "}
-            —{" "}
             {etapaSelecionada.titulo ||
-              "Sem título"}
+              "Sem título"}{" "}
+            — Rev.{" "}
+            {String(
+              etapaSelecionada.numero_revisao
+            ).padStart(
+              2,
+              "0"
+            )}{" "}
+            —{" "}
+            {etapaSelecionada.setor?.nome ||
+              "Setor não informado"}
           </p>
 
           <p className="mt-1 text-xs text-blue-700">
-            O documento será vinculado a esta etapa e à revisão selecionada da obra.
+            O documento será vinculado especificamente a esta revisão da etapa.
           </p>
         </div>
       )}
@@ -465,7 +472,6 @@ export function DocumentoForm({
           loading ||
           !nome.trim() ||
           !arquivo ||
-          !obraRevisaoId ||
           !etapaId ||
           !setorId
         }

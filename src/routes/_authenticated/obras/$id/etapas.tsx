@@ -10,10 +10,10 @@ import {
 } from "react";
 
 import {
+  AlertTriangle,
   CalendarDays,
   CheckCircle2,
   ChevronDown,
-  CirclePlay,
   Clock3,
   Loader2,
   Plus,
@@ -23,6 +23,7 @@ import {
   StickyNote,
   Trash2,
   UserRound,
+  X,
 } from "lucide-react";
 
 import {
@@ -30,7 +31,6 @@ import {
   concluirEtapaObra,
   criarEtapaObra,
   excluirEtapaObra,
-  iniciarEtapaObra,
   listarEtapasDaObra,
   reabrirEtapaObra,
   type EtapaObra,
@@ -338,10 +338,6 @@ function EtapasObraPage() {
   } = Route.useParams();
 
   const {
-    obraRevisaoId,
-  } = Route.useSearch();
-
-  const {
     perfil,
   } = useAuth();
 
@@ -367,6 +363,7 @@ function EtapasObraPage() {
   ] = useState<string | null>(
     null
   );
+
 
   const [
     setores,
@@ -420,6 +417,7 @@ function EtapasObraPage() {
   ] = useState<string | null>(
     null
   );
+
 
   const [
     etapaConclusaoPendente,
@@ -495,6 +493,38 @@ function EtapasObraPage() {
     setErro,
   ] = useState("");
 
+  const [
+    alertaExclusao,
+    setAlertaExclusao,
+  ] = useState<{
+    titulo: string;
+    mensagem: string;
+  } | null>(
+    null
+  );
+
+  const etapasVisiveis =
+    useMemo(
+      () =>
+        [...etapas].sort(
+          (
+            etapaA,
+            etapaB
+          ) =>
+            (
+              etapaA.ordem ??
+              Number.MAX_SAFE_INTEGER
+            ) -
+            (
+              etapaB.ordem ??
+              Number.MAX_SAFE_INTEGER
+            )
+        ),
+      [
+        etapas,
+      ]
+    );
+
   const setoresDisponiveis =
     useMemo(
       () => {
@@ -546,12 +576,6 @@ function EtapasObraPage() {
       setCarregando(true);
       setErro("");
 
-      if (!obraRevisaoId) {
-        setEtapas([]);
-        setResumoDemandasPorEtapa({});
-        return;
-      }
-
       const [
         etapasEncontradas,
         respostaSetores,
@@ -559,8 +583,7 @@ function EtapasObraPage() {
         respostaDemandas,
       ] = await Promise.all([
         listarEtapasDaObra(
-          obraId,
-          obraRevisaoId
+          obraId
         ),
 
         supabase
@@ -605,10 +628,6 @@ function EtapasObraPage() {
           .eq(
             "obra_id",
             obraId
-          )
-          .eq(
-            "obra_revisao_id",
-            obraRevisaoId
           ),
       ]);
 
@@ -823,7 +842,6 @@ function EtapasObraPage() {
     carregarDados();
   }, [
     obraId,
-    obraRevisaoId,
     perfil?.id,
     perfil?.setor_id,
     perfil?.administrador,
@@ -925,9 +943,6 @@ function EtapasObraPage() {
       await criarEtapaObra({
         obra_id:
           obraId,
-
-        obra_revisao_id:
-          obraRevisaoId,
 
         setor_id:
           novoSetorId,
@@ -1279,7 +1294,6 @@ function EtapasObraPage() {
   async function executarAcaoEtapa(
     etapa: EtapaObra,
     acao:
-      | "iniciar"
       | "concluir"
       | "reabrir"
   ) {
@@ -1366,19 +1380,6 @@ function EtapasObraPage() {
 
       if (
         acao ===
-        "iniciar"
-      ) {
-        await iniciarEtapaObra(
-          etapa.id
-        );
-
-        setMensagem(
-          "Etapa iniciada com sucesso."
-        );
-      }
-
-      if (
-        acao ===
         "concluir"
       ) {
         await concluirEtapaObra(
@@ -1438,15 +1439,10 @@ function EtapasObraPage() {
 
     const confirmado =
       window.confirm(
-        `Deseja excluir a Etapa ${
-          etapa.ordem ?? "sem número"
-        } — ${
-          etapa.setor?.nome ||
-          "Setor não informado"
-        } — ${
+        `Deseja excluir a etapa “${
           etapa.titulo ||
           "Sem título"
-        }? Esta ação não poderá ser desfeita.`
+        }”? A exclusão será bloqueada caso existam demandas ou documentos vinculados. Esta ação não poderá ser desfeita.`
       );
 
     if (!confirmado) {
@@ -1456,6 +1452,7 @@ function EtapasObraPage() {
     try {
       setErro("");
       setMensagem("");
+
       setExecutandoAcaoId(
         etapa.id
       );
@@ -1468,6 +1465,10 @@ function EtapasObraPage() {
         "Etapa excluída com sucesso."
       );
 
+      setEtapaExpandidaId(
+        null
+      );
+
       await carregarDados();
     } catch (error: any) {
       console.error(
@@ -1475,10 +1476,22 @@ function EtapasObraPage() {
         error
       );
 
-      setErro(
+      const mensagemErro =
         error?.message ||
-          "Não foi possível excluir a etapa."
+        error?.details ||
+        "Não foi possível excluir a etapa.";
+
+      setErro(
+        mensagemErro
       );
+
+      setAlertaExclusao({
+        titulo:
+          "Não foi possível excluir esta etapa",
+
+        mensagem:
+          mensagemErro,
+      });
     } finally {
       setExecutandoAcaoId(
         null
@@ -1500,6 +1513,125 @@ function EtapasObraPage() {
 
   return (
     <div className="space-y-6">
+      <style>
+        {`
+          @keyframes alerta-exclusao-tremer {
+            0%, 100% {
+              transform: translateX(0);
+            }
+
+            15% {
+              transform: translateX(-12px);
+            }
+
+            30% {
+              transform: translateX(12px);
+            }
+
+            45% {
+              transform: translateX(-9px);
+            }
+
+            60% {
+              transform: translateX(9px);
+            }
+
+            75% {
+              transform: translateX(-5px);
+            }
+
+            90% {
+              transform: translateX(5px);
+            }
+          }
+
+          .alerta-exclusao-tremer {
+            animation:
+              alerta-exclusao-tremer
+              0.55s
+              ease-in-out
+              2;
+          }
+        `}
+      </style>
+
+      {alertaExclusao && (
+        <div
+          className="fixed inset-0 z-[200] flex items-center justify-center bg-black/70 px-4 backdrop-blur-[2px]"
+          role="alertdialog"
+          aria-modal="true"
+          aria-labelledby="titulo-alerta-exclusao"
+          aria-describedby="mensagem-alerta-exclusao"
+          onMouseDown={(
+            event
+          ) => {
+            if (
+              event.target ===
+              event.currentTarget
+            ) {
+              setAlertaExclusao(
+                null
+              );
+            }
+          }}
+        >
+          <div className="alerta-exclusao-tremer relative w-full max-w-lg rounded-2xl border-2 border-red-400 bg-white p-6 shadow-2xl">
+            <button
+              type="button"
+              onClick={() =>
+                setAlertaExclusao(
+                  null
+                )
+              }
+              className="absolute right-4 top-4 inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg text-gray-500 transition hover:bg-gray-100 hover:text-gray-900"
+              aria-label="Fechar aviso"
+            >
+              <X className="h-5 w-5" />
+            </button>
+
+            <div className="flex items-start gap-4 pr-10">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-red-100 text-red-700">
+                <AlertTriangle className="h-6 w-6" />
+              </div>
+
+              <div>
+                <h3
+                  id="titulo-alerta-exclusao"
+                  className="text-xl font-extrabold text-gray-950"
+                >
+                  {alertaExclusao.titulo}
+                </h3>
+
+                <p
+                  id="mensagem-alerta-exclusao"
+                  className="mt-3 whitespace-pre-line text-sm leading-6 text-gray-700"
+                >
+                  {alertaExclusao.mensagem}
+                </p>
+
+                <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-900">
+                  Exclua primeiro todas as demandas e todos os documentos vinculados a esta etapa.
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-6 flex justify-end">
+              <button
+                type="button"
+                autoFocus
+                onClick={() =>
+                  setAlertaExclusao(
+                    null
+                  )
+                }
+                className="inline-flex h-11 cursor-pointer items-center justify-center rounded-xl bg-red-600 px-6 text-sm font-bold text-white shadow-sm transition hover:bg-red-700"
+              >
+                Entendi
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold">
@@ -1805,7 +1937,7 @@ function EtapasObraPage() {
         </div>
       ) : (
         <div className="space-y-2">
-          {etapas.map(
+          {etapasVisiveis.map(
             (
               etapa,
               indice
@@ -1819,13 +1951,19 @@ function EtapasObraPage() {
                 return null;
               }
 
+              const atrasada =
+                Boolean(
+                  etapa.prazo &&
+                  etapa.prazo <
+                    obterDataHoje() &&
+                  etapa.status !==
+                    "concluida"
+                );
+
               const podeEditar =
                 podeEditarEtapa(
                   etapa
                 );
-
-              const visualizandoRevisaoAtual =
-                true;
 
               const etapaExibida: EtapaObra =
                 etapa;
@@ -1844,6 +1982,7 @@ function EtapasObraPage() {
               const executando =
                 executandoAcaoId ===
                 etapa.id;
+
 
               const destinoPostIt =
                 etapaEhEngenhariaComercial(
@@ -1883,13 +2022,16 @@ function EtapasObraPage() {
                   key={
                     etapa.id
                   }
-                  className={`overflow-hidden rounded-xl border shadow-sm ${
-                    etapaExibida.status ===
-                    "concluida"
-                      ? "border-green-300 bg-green-50/40"
-                      : "bg-white"
+                  className={`relative overflow-hidden rounded-xl border shadow-sm transition ${
+                    atrasada
+                      ? "border-red-300 bg-red-50/50"
+                      : etapaExibida.status ===
+                          "concluida"
+                        ? "border-green-300 bg-green-50/40"
+                        : "bg-white"
                   }`}
                 >
+                  <div className="flex items-stretch">
                   <button
                     type="button"
                     onClick={() =>
@@ -1899,7 +2041,7 @@ function EtapasObraPage() {
                           : etapa.id
                       )
                     }
-                    className="flex w-full cursor-pointer items-center gap-4 px-4 py-3 text-left transition hover:bg-slate-50/80"
+                    className="flex min-w-0 flex-1 cursor-pointer items-center gap-4 px-4 py-3 text-left transition hover:bg-slate-50/80"
                     aria-expanded={
                       expandida
                     }
@@ -1917,6 +2059,14 @@ function EtapasObraPage() {
                             indice +
                               1}
                         </span>
+
+                        {atrasada && (
+                          <span className="inline-flex items-center gap-1 rounded-md border border-red-300 bg-red-100 px-2 py-0.5 text-[11px] font-bold text-red-700">
+                            <AlertTriangle className="h-3 w-3" />
+
+                            Atrasada
+                          </span>
+                        )}
 
                         <span className="text-xs text-gray-300">
                           •
@@ -1956,7 +2106,13 @@ function EtapasObraPage() {
                           <Clock3 className="h-3.5 w-3.5" />
 
                           Prazo:{" "}
-                          <strong className="font-semibold text-gray-700">
+                          <strong
+                            className={
+                              atrasada
+                                ? "font-bold text-red-700"
+                                : "font-semibold text-gray-700"
+                            }
+                          >
                             {formatarData(
                               etapaExibida.prazo
                             )}
@@ -2002,6 +2158,8 @@ function EtapasObraPage() {
                       }`}
                     />
                   </button>
+
+                  </div>
 
                   <div className="border-t px-4 py-3 sm:hidden">
                     <div
@@ -2054,8 +2212,6 @@ function EtapasObraPage() {
                     </div>
                   )}
 
-                  {visualizandoRevisaoAtual && (
-                    <>
                   <div className="mt-4 grid gap-4 md:grid-cols-2">
                     <div className="space-y-2 md:col-span-2">
                       <label className="text-sm font-medium">
@@ -2120,11 +2276,19 @@ function EtapasObraPage() {
                                 opcao.valor
                               }
                               disabled={
-                                opcao.valor ===
-                                  "concluida" &&
-                                etapa.status !==
-                                  "concluida" &&
-                                !podeConcluirPorDemandas
+                                (
+                                  opcao.valor ===
+                                    "em_andamento" &&
+                                  etapa.status ===
+                                    "nao_iniciada"
+                                ) ||
+                                (
+                                  opcao.valor ===
+                                    "concluida" &&
+                                  etapa.status !==
+                                    "concluida" &&
+                                  !podeConcluirPorDemandas
+                                )
                               }
                             >
                               {
@@ -2134,6 +2298,13 @@ function EtapasObraPage() {
                           )
                         )}
                       </select>
+
+                      {etapa.status ===
+                        "nao_iniciada" && (
+                        <p className="text-xs font-medium text-blue-700">
+                          A etapa será iniciada automaticamente quando a primeira demanda for iniciada.
+                        </p>
+                      )}
 
                       {etapa.status !==
                         "concluida" && (
@@ -2316,27 +2487,6 @@ function EtapasObraPage() {
                       </p>
                     ) : (
                       <div className="flex flex-wrap gap-2">
-                        {etapa.status ===
-                          "nao_iniciada" && (
-                          <button
-                            type="button"
-                            onClick={() =>
-                              executarAcaoEtapa(
-                                etapa,
-                                "iniciar"
-                              )
-                            }
-                            disabled={
-                              executando
-                            }
-                            className="flex cursor-pointer items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-sm font-medium text-blue-700 transition hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-50"
-                          >
-                            <CirclePlay className="h-4 w-4" />
-
-                            Iniciar etapa
-                          </button>
-                        )}
-
                         {etapa.status !==
                           "concluida" && (
                           <button
@@ -2437,8 +2587,6 @@ function EtapasObraPage() {
                       </div>
                     )}
                   </div>
-                    </>
-                  )}
                     </div>
                   )}
                 </article>

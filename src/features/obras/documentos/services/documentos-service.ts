@@ -27,18 +27,17 @@ export interface DocumentoComentario {
 
 const consultaDocumento = `
   *,
-  revisao:obra_revisoes!documentos_revisao_obra_fkey (
+  demanda:demandas!documentos_demanda_id_fkey (
     id,
     obra_id,
-    numero_revisao,
-    status,
-    motivo_revisao,
-    observacao
+    etapa_id,
+    setor_id,
+    titulo,
+    numero_revisao
   ),
   etapa:etapas_obras!documentos_etapa_id_fkey (
     id,
     obra_id,
-    obra_revisao_id,
     setor_id,
     titulo,
     ordem,
@@ -73,40 +72,27 @@ const consultaDocumento = `
 `;
 
 export async function getDocumentosPorObra(
-  obraId: string,
-  obraRevisaoId?: string | null
+  obraId: string
 ): Promise<Documento[]> {
-  let consulta =
-    supabase
-      .from("documentos")
-      .select(
-        consultaDocumento
-      )
-      .eq(
-        "obra_id",
-        obraId
-      );
-
-  if (
-    obraRevisaoId
-  ) {
-    consulta =
-      consulta.eq(
-        "obra_revisao_id",
-        obraRevisaoId
-      );
-  }
-
   const {
     data,
     error,
-  } = await consulta.order(
-    "created_at",
-    {
-      ascending:
-        false,
-    }
-  );
+  } = await supabase
+    .from("documentos")
+    .select(
+      consultaDocumento
+    )
+    .eq(
+      "obra_id",
+      obraId
+    )
+    .order(
+      "created_at",
+      {
+        ascending:
+          false,
+      }
+    );
 
   if (error) {
     console.error(
@@ -153,50 +139,36 @@ export async function getDocumentosPorObra(
 }
 
 export async function getEtapasDocumentosPorObra(
-  obraId: string,
-  obraRevisaoId?: string | null
+  obraId: string
 ): Promise<EtapaDocumento[]> {
-  let consulta =
-    supabase
-      .from("etapas_obras")
-      .select(`
-        id,
-        obra_id,
-        obra_revisao_id,
-        setor_id,
-        titulo,
-        ordem,
-        status,
-        setor:setores (
-          id,
-          nome
-        )
-      `)
-      .eq(
-        "obra_id",
-        obraId
-      );
-
-  if (
-    obraRevisaoId
-  ) {
-    consulta =
-      consulta.eq(
-        "obra_revisao_id",
-        obraRevisaoId
-      );
-  }
-
   const {
     data,
     error,
-  } = await consulta.order(
-    "ordem",
-    {
-      ascending:
-        true,
-    }
-  );
+  } = await supabase
+    .from("etapas_obras")
+    .select(`
+      id,
+      obra_id,
+      setor_id,
+      titulo,
+      ordem,
+      status,
+      setor:setores (
+        id,
+        nome
+      )
+    `)
+    .eq(
+      "obra_id",
+      obraId
+    )
+    .order(
+      "ordem",
+      {
+        ascending:
+          true,
+      }
+    );
 
   if (error) {
     console.error(
@@ -211,44 +183,6 @@ export async function getEtapasDocumentosPorObra(
     data ??
     []
   ) as EtapaDocumento[];
-}
-
-export type ContextoRevisaoDocumento = {
-  id: string;
-  obra_id: string;
-  numero_revisao: number;
-  status: string;
-  motivo_revisao: string | null;
-  observacao: string | null;
-};
-
-export async function getContextoRevisaoDocumento(
-  obraRevisaoId: string
-): Promise<ContextoRevisaoDocumento> {
-  const {
-    data,
-    error,
-  } = await supabase
-    .from("obra_revisoes")
-    .select(
-      "id, obra_id, numero_revisao, status, motivo_revisao, observacao"
-    )
-    .eq(
-      "id",
-      obraRevisaoId
-    )
-    .single();
-
-  if (error) {
-    console.error(
-      "Erro ao buscar revisão selecionada:",
-      error
-    );
-
-    throw error;
-  }
-
-  return data as ContextoRevisaoDocumento;
 }
 
 export async function getSetoresDocumentos(): Promise<
@@ -287,15 +221,94 @@ export async function getSetoresDocumentos(): Promise<
 
 export interface AtualizarDocumentoDados {
   nome: string;
-  etapa_id: string;
-  setor_id: string;
-  obra_revisao_id?: string;
+  demanda_id: string;
+}
+
+export async function getDocumentosPorDemanda(
+  demandaId: string
+): Promise<Documento[]> {
+  const { data, error } = await supabase
+    .from("documentos")
+    .select(consultaDocumento)
+    .eq("demanda_id", demandaId)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error("Erro ao buscar documentos da demanda:", error);
+    throw error;
+  }
+
+  return (data ?? []) as unknown as Documento[];
+}
+
+export async function uploadDocumentoDaDemanda(
+  demandaId: string,
+  obraId: string,
+  arquivo: File,
+  nome: string
+): Promise<Documento> {
+  const nomeTratado = nome.trim();
+
+  if (!nomeTratado) {
+    throw new Error("Informe o nome do documento.");
+  }
+
+  const { data: usuarioData, error: usuarioError } =
+    await supabase.auth.getUser();
+
+  if (usuarioError || !usuarioData.user) {
+    throw new Error("Não foi possível identificar o usuário autenticado.");
+  }
+
+  const nomeArquivoSeguro = arquivo.name.replace(
+    /[^a-zA-Z0-9._-]/g,
+    "_"
+  );
+
+  const caminho =
+    `${obraId}/demandas/${demandaId}/${Date.now()}-${nomeArquivoSeguro}`;
+
+  const { error: uploadError } = await supabase.storage
+    .from("documentos")
+    .upload(caminho, arquivo);
+
+  if (uploadError) {
+    throw uploadError;
+  }
+
+  try {
+    const { data: urlData } = supabase.storage
+      .from("documentos")
+      .getPublicUrl(caminho);
+
+    const { data, error } = await supabase
+      .from("documentos")
+      .insert({
+        demanda_id: demandaId,
+        enviado_por: usuarioData.user.id,
+        nome: nomeTratado,
+        arquivo_url: urlData.publicUrl,
+      })
+      .select(consultaDocumento)
+      .single();
+
+    if (error) {
+      throw error;
+    }
+
+    return data as unknown as Documento;
+  } catch (error) {
+    await supabase.storage
+      .from("documentos")
+      .remove([caminho]);
+
+    throw error;
+  }
 }
 
 export async function uploadDocumento(
   obraId: string,
   etapaId: string,
-  obraRevisaoId: string,
   arquivo: File,
   nome: string,
   setorId: string
@@ -356,9 +369,6 @@ export async function uploadDocumento(
 
         etapa_id:
           etapaId,
-
-        obra_revisao_id:
-          obraRevisaoId,
 
         setor_id:
           setorId,
@@ -527,15 +537,8 @@ export async function atualizarDocumento(
         nome:
           dados.nome,
 
-        etapa_id:
-          dados.etapa_id,
-
-        setor_id:
-          dados.setor_id,
-
-        obra_revisao_id:
-          dados.obra_revisao_id ||
-          documento.obra_revisao_id,
+        demanda_id:
+          dados.demanda_id,
 
         arquivo_url:
           novaUrl,

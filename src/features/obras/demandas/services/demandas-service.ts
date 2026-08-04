@@ -23,10 +23,6 @@ export interface AtualizarDemandaDados {
     | string
     | null;
 
-  obra_revisao_id?:
-    | string
-    | null;
-
   setor_id?:
     | string
     | null;
@@ -65,10 +61,9 @@ export type DemandaItem = {
 
 const consultaDemanda = `
   *,
-  etapa:etapas_obras!demandas_etapa_revisao_obra_fkey (
+  etapa:etapas_obras!demandas_etapa_obra_fkey (
     id,
     obra_id,
-    obra_revisao_id,
     setor_id,
     titulo,
     ordem,
@@ -80,16 +75,6 @@ const consultaDemanda = `
       id,
       nome
     )
-  ),
-  obra_revisao:obra_revisoes!demandas_revisao_obra_fkey (
-    id,
-    obra_id,
-    numero_revisao,
-    status,
-    motivo_revisao,
-    observacao,
-    created_at,
-    updated_at
   ),
   setor:setores!demandas_setor_id_fkey (
     id,
@@ -118,40 +103,34 @@ const consultaDemanda = `
 `;
 
 export async function getDemandasPorObra(
-  obraId: string,
-  obraRevisaoId?: string
+  obraId: string
 ): Promise<Demanda[]> {
-  let consulta =
-    supabase
-      .from("demandas")
-      .select(
-        consultaDemanda
-      )
-      .eq(
-        "obra_id",
-        obraId
-      );
-
-  if (
-    obraRevisaoId
-  ) {
-    consulta =
-      consulta.eq(
-        "obra_revisao_id",
-        obraRevisaoId
-      );
-  }
-
   const {
     data,
     error,
-  } = await consulta.order(
-    "created_at",
-    {
-      ascending:
-        false,
-    }
-  );
+  } = await supabase
+    .from("demandas")
+    .select(
+      consultaDemanda
+    )
+    .eq(
+      "obra_id",
+      obraId
+    )
+    .order(
+      "numero_revisao",
+      {
+        ascending:
+          false,
+      }
+    )
+    .order(
+      "created_at",
+      {
+        ascending:
+          false,
+      }
+    );
 
   if (error) {
     console.error(
@@ -192,6 +171,88 @@ export async function getDemandasPorObra(
         ),
     })
   ) as unknown as Demanda[];
+}
+
+export async function criarNovaRevisaoDemanda(
+  demandaId: string
+): Promise<string> {
+  const {
+    data,
+    error,
+  } = await supabase.rpc(
+    "criar_nova_revisao_demanda",
+    {
+      p_demanda_id:
+        demandaId,
+    }
+  );
+
+  if (error) {
+    console.error(
+      "Erro ao criar nova revisão da demanda:",
+      error
+    );
+
+    throw error;
+  }
+
+  if (
+    typeof data !==
+      "string" ||
+    !data
+  ) {
+    throw new Error(
+      "A nova revisão foi criada, mas o identificador não foi retornado."
+    );
+  }
+
+  return data;
+}
+
+export async function iniciarDemanda(
+  demandaId: string
+): Promise<void> {
+  const {
+    error,
+  } = await supabase.rpc(
+    "iniciar_demanda",
+    {
+      p_demanda_id:
+        demandaId,
+    }
+  );
+
+  if (error) {
+    console.error(
+      "Erro ao iniciar demanda:",
+      error
+    );
+
+    throw error;
+  }
+}
+
+export async function concluirDemanda(
+  demandaId: string
+): Promise<void> {
+  const {
+    error,
+  } = await supabase.rpc(
+    "concluir_demanda",
+    {
+      p_demanda_id:
+        demandaId,
+    }
+  );
+
+  if (error) {
+    console.error(
+      "Erro ao concluir demanda:",
+      error
+    );
+
+    throw error;
+  }
 }
 
 export async function deleteDemanda(

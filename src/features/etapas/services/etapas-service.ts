@@ -10,20 +10,9 @@ export type StatusEtapaObra =
   | "bloqueada"
   | "concluida";
 
-export type StatusObraRevisao =
+export type StatusRevisaoEtapa =
   | "ativa"
   | "encerrada";
-
-export type ObraRevisaoResumo = {
-  id: string;
-  obra_id: string;
-  numero_revisao: number;
-  status: StatusObraRevisao;
-  motivo_revisao: string | null;
-  observacao: string | null;
-  created_at: string;
-  updated_at: string;
-};
 
 /**
  * Tipo mantido temporariamente para evitar quebra de imports
@@ -56,7 +45,6 @@ export type RevisaoEtapaObra = {
 export type EtapaObra = {
   id: string;
   obra_id: string;
-  obra_revisao_id: string;
   setor_id: string;
   responsavel_id: string | null;
 
@@ -87,21 +75,10 @@ export type EtapaObra = {
     email: string;
   } | null;
 
-  obra_revisao?: ObraRevisaoResumo | null;
-
-  /**
-   * Campos temporários de compatibilidade.
-   * Serão removidos após a migração dos componentes de etapas.
-   */
-  revisao_atual_id: string | null;
-  numero_revisao_atual: number;
-  motivo_revisao: string | null;
-  revisoes: RevisaoEtapaObra[];
 };
 
 export type CriarEtapaObraDados = {
   obra_id: string;
-  obra_revisao_id?: string | null;
   setor_id: string;
   responsavel_id?: string | null;
   titulo: string;
@@ -123,22 +100,14 @@ export type AtualizarEtapaObraDados = {
   obrigatoria?: boolean;
 };
 
-/**
- * Tipo antigo mantido temporariamente para evitar quebra
- * de imports antes da atualização da tela de etapas.
- */
 export type CriarNovaRevisaoEtapaDados = {
   etapa_id: string;
-  motivo_revisao: string;
   observacao?: string | null;
-  prazo?: string | null;
-  responsavel_id?: string | null;
 };
 
 type EtapaConsulta = {
   id: string;
   obra_id: string;
-  obra_revisao_id: string;
   setor_id: string;
   responsavel_id: string | null;
 
@@ -168,13 +137,11 @@ type EtapaConsulta = {
     email: string;
   } | null;
 
-  obra_revisao?: ObraRevisaoResumo | null;
 };
 
 const selectEtapa = `
   id,
   obra_id,
-  obra_revisao_id,
   setor_id,
   responsavel_id,
   titulo,
@@ -195,16 +162,6 @@ const selectEtapa = `
     id,
     nome,
     email
-  ),
-  obra_revisao:obra_revisoes!etapas_obras_revisao_obra_fkey (
-    id,
-    obra_id,
-    numero_revisao,
-    status,
-    motivo_revisao,
-    observacao,
-    created_at,
-    updated_at
   )
 `;
 
@@ -217,9 +174,6 @@ function normalizarEtapa(
 
     obra_id:
       etapa.obra_id,
-
-    obra_revisao_id:
-      etapa.obra_revisao_id,
 
     setor_id:
       etapa.setor_id,
@@ -263,25 +217,6 @@ function normalizarEtapa(
     responsavel:
       etapa.responsavel ?? null,
 
-    obra_revisao:
-      etapa.obra_revisao ?? null,
-
-    /**
-     * Compatibilidade temporária com os componentes antigos.
-     */
-    revisao_atual_id:
-      etapa.obra_revisao_id,
-
-    numero_revisao_atual:
-      etapa.obra_revisao?.numero_revisao ??
-      0,
-
-    motivo_revisao:
-      etapa.obra_revisao?.motivo_revisao ??
-      null,
-
-    revisoes:
-      [],
   };
 }
 
@@ -317,34 +252,20 @@ async function buscarEtapaNormalizada(
 }
 
 export async function listarEtapasDaObra(
-  obraId: string,
-  obraRevisaoId?: string | null
+  obraId: string
 ): Promise<EtapaObra[]> {
-  let consulta =
-    supabase
-      .from("etapas_obras")
-      .select(
-        selectEtapa
-      )
-      .eq(
-        "obra_id",
-        obraId
-      );
-
-  if (
-    obraRevisaoId
-  ) {
-    consulta =
-      consulta.eq(
-        "obra_revisao_id",
-        obraRevisaoId
-      );
-  }
-
   const {
     data,
     error,
-  } = await consulta
+  } = await supabase
+    .from("etapas_obras")
+    .select(
+      selectEtapa
+    )
+    .eq(
+      "obra_id",
+      obraId
+    )
     .order(
       "ordem",
       {
@@ -394,7 +315,6 @@ export async function criarEtapaObra(
 
   const payload: {
     obra_id: string;
-    obra_revisao_id?: string;
     setor_id: string;
     responsavel_id: string | null;
     titulo: string;
@@ -436,13 +356,6 @@ export async function criarEtapaObra(
       dados.obrigatoria ??
       true,
   };
-
-  if (
-    dados.obra_revisao_id
-  ) {
-    payload.obra_revisao_id =
-      dados.obra_revisao_id;
-  }
 
   const {
     data,
@@ -619,23 +532,24 @@ export async function atualizarEtapaObra(
 }
 
 /**
- * Esta função pertence ao modelo antigo de revisão por etapa.
- *
- * Ela foi mantida temporariamente apenas para não quebrar imports.
- * A criação da revisão da obra será movida para a tela principal
- * usando a RPC criar_nova_revisao_obra.
+ * Mantida temporariamente para evitar quebra de imports antigos.
+ * As revisões agora pertencem às demandas, não às etapas.
  */
 export async function criarNovaRevisaoEtapa(
   _dados: CriarNovaRevisaoEtapaDados
-): Promise<RevisaoEtapaObra> {
+): Promise<EtapaObra> {
   throw new Error(
-    "A revisão agora pertence à obra inteira. Use a opção “Criar nova revisão” no cabeçalho da obra."
+    "As revisões de etapas foram removidas. Crie uma revisão na demanda."
   );
 }
 
+export type ResultadoExclusaoEtapa =
+  | "etapa_excluida"
+  | "revisao_excluida";
+
 export async function excluirEtapaObra(
   etapaId: string
-): Promise<void> {
+): Promise<ResultadoExclusaoEtapa> {
   const {
     error,
   } = await supabase
@@ -654,6 +568,8 @@ export async function excluirEtapaObra(
 
     throw error;
   }
+
+  return "etapa_excluida";
 }
 
 export async function iniciarEtapaObra(

@@ -1,7 +1,6 @@
 import {
   createFileRoute,
   useNavigate,
-  useSearch,
 } from "@tanstack/react-router";
 
 import {
@@ -55,7 +54,6 @@ interface UsuarioOpcao {
 interface EtapaOpcao {
   id: string;
   obra_id: string;
-  obra_revisao_id: string;
   setor_id: string;
   titulo: string | null;
   ordem: number | null;
@@ -219,13 +217,6 @@ function NovaDemandaPage() {
     useNavigate();
 
   const {
-    obraRevisaoId,
-  } = useSearch({
-    from:
-      "/_authenticated/obras/$id",
-  });
-
-  const {
     perfil,
   } = useAuth();
 
@@ -295,14 +286,6 @@ function NovaDemandaPage() {
     useState<ObraPermissao | null>(
       null
     );
-
-  const [
-    numeroRevisaoObra,
-    setNumeroRevisaoObra,
-  ] = useState<number | null>(
-    null
-  );
-
 
   const [
     dataInicio,
@@ -560,7 +543,7 @@ function NovaDemandaPage() {
   ]);
 
   useEffect(() => {
-    async function carregarEtapasDaRevisao() {
+    async function carregarEtapasDaObra() {
       try {
         setCarregandoEtapas(
           true
@@ -568,91 +551,43 @@ function NovaDemandaPage() {
 
         setErroOpcoes("");
 
-        if (!obraRevisaoId) {
-          setEtapas([]);
-          setEtapaId("");
-          setNumeroRevisaoObra(
-            null
-          );
-
-          setErroOpcoes(
-            "Selecione uma revisão da obra no cabeçalho."
-          );
-
-          return;
-        }
-
-        const [
-          respostaRevisao,
-          respostaEtapas,
-        ] = await Promise.all([
-          supabase
-            .from("obra_revisoes")
-            .select(
-              "id, obra_id, numero_revisao, status"
-            )
-            .eq(
-              "id",
-              obraRevisaoId
-            )
-            .eq(
-              "obra_id",
-              id
-            )
-            .single(),
-
-          supabase
-            .from("etapas_obras")
-            .select(`
+        const {
+          data,
+          error,
+        } = await supabase
+          .from("etapas_obras")
+          .select(`
+            id,
+            obra_id,
+            setor_id,
+            titulo,
+            ordem,
+            status,
+            prazo,
+            setor:setores (
               id,
-              obra_id,
-              obra_revisao_id,
-              setor_id,
-              titulo,
-              ordem,
-              status,
-              prazo,
-              setor:setores (
-                id,
-                nome
-              )
-            `)
-            .eq(
-              "obra_id",
-              id
+              nome
             )
-            .eq(
-              "obra_revisao_id",
-              obraRevisaoId
-            )
-            .order(
-              "ordem",
-              {
-                ascending:
-                  true,
-              }
-            ),
-        ]);
+          `)
+          .eq(
+            "obra_id",
+            id
+          )
+          .order(
+            "ordem",
+            {
+              ascending:
+                true,
+            }
+          );
 
-        if (
-          respostaRevisao.error
-        ) {
-          throw respostaRevisao.error;
+        if (error) {
+          throw error;
         }
-
-        if (
-          respostaEtapas.error
-        ) {
-          throw respostaEtapas.error;
-        }
-
-        setNumeroRevisaoObra(
-          respostaRevisao.data.numero_revisao
-        );
 
         const etapasEncontradas =
           (
-            respostaEtapas.data ??
+            data ??
             []
           ) as unknown as EtapaOpcao[];
 
@@ -716,27 +651,24 @@ function NovaDemandaPage() {
         ) {
           setErroOpcoes(
             administrador
-              ? "Nenhuma etapa foi cadastrada nesta revisão da obra."
-              : "Nenhuma etapa desta revisão está disponível para o seu setor."
+              ? "Nenhuma etapa foi cadastrada nesta obra."
+              : "Nenhuma etapa desta obra está disponível para o seu setor."
           );
         }
       } catch (error) {
         console.error(
-          "Erro ao carregar etapas da revisão da obra:",
+          "Erro ao carregar etapas da obra:",
           error
         );
 
         setEtapas([]);
         setEtapaId("");
         setSetorId("");
-        setNumeroRevisaoObra(
-          null
-        );
 
         setErroOpcoes(
           error instanceof Error
             ? error.message
-            : "Não foi possível carregar as etapas da revisão selecionada."
+            : "Não foi possível carregar as etapas da obra."
         );
       } finally {
         setCarregandoEtapas(
@@ -745,10 +677,9 @@ function NovaDemandaPage() {
       }
     }
 
-    carregarEtapasDaRevisao();
+    carregarEtapasDaObra();
   }, [
     id,
-    obraRevisaoId,
     administrador,
     perfil?.setor_id,
   ]);
@@ -1052,10 +983,6 @@ function NovaDemandaPage() {
       params: {
         id,
       },
-
-      search: {
-        obraRevisaoId,
-      },
     });
   }
 
@@ -1180,14 +1107,6 @@ function NovaDemandaPage() {
       return;
     }
 
-    if (!obraRevisaoId) {
-      alert(
-        "Selecione uma revisão da obra no cabeçalho."
-      );
-
-      return;
-    }
-
     if (!etapaId) {
       alert(
         "Selecione a etapa à qual esta demanda pertence."
@@ -1289,9 +1208,6 @@ function NovaDemandaPage() {
 
           etapa_id:
             etapaId,
-
-          obra_revisao_id:
-            obraRevisaoId,
 
           titulo:
             titulo.trim(),
@@ -1543,18 +1459,7 @@ function NovaDemandaPage() {
       </div>
 
       <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
-        A demanda será criada na{" "}
-        <strong>
-          Rev.{" "}
-          {String(
-            numeroRevisaoObra ??
-              0
-          ).padStart(
-            2,
-            "0"
-          )}
-        </strong>
-        {" "}da obra, vinculada à etapa{" "}
+        A demanda será vinculada à{" "}
         <strong>
           {etapas.find(
             (
@@ -1562,19 +1467,38 @@ function NovaDemandaPage() {
             ) =>
               etapa.id ===
               etapaId
-          )?.titulo ||
-            "selecionada"}
+          )
+            ? `Etapa ${
+                etapas.find(
+                  (
+                    etapa
+                  ) =>
+                    etapa.id ===
+                    etapaId
+                )?.ordem ??
+                "?"
+              } — ${
+                etapas.find(
+                  (
+                    etapa
+                  ) =>
+                    etapa.id ===
+                    etapaId
+                )?.titulo ||
+                "Sem título"
+              }`
+            : "etapa selecionada"}
         </strong>
         {" "}e ao setor{" "}
         <strong>
           {setores.find(
-            (setor) =>
+            (
+              setor
+            ) =>
               setor.id ===
               setorId
           )?.nome ||
-            (administrador
-              ? "selecionado"
-              : "do usuário")}
+            "da etapa selecionada"}
         </strong>
         .
       </div>
@@ -1710,17 +1634,18 @@ function NovaDemandaPage() {
                       Etapa{" "}
                       {etapa.ordem ??
                         "?"} —{" "}
-                      {etapa.setor?.nome ||
-                        "Setor não informado"} —{" "}
                       {etapa.titulo ||
-                        "Sem título"}
+                        "Sem título"}{" "}
+                      —{" "}
+                      {etapa.setor?.nome ||
+                        "Setor não informado"}
                     </option>
                   )
                 )}
               </select>
 
               <p className="text-xs text-gray-500">
-                Selecione uma das etapas cadastradas na revisão atual da obra.
+                Selecione a etapa à qual esta demanda pertencerá.
               </p>
             </div>
 
@@ -1778,11 +1703,9 @@ function NovaDemandaPage() {
                 )}
               </select>
 
-              {!administrador && (
-                <p className="text-xs text-gray-500">
-                  A demanda será vinculada automaticamente ao seu setor.
-                </p>
-              )}
+              <p className="text-xs text-gray-500">
+                O setor é definido automaticamente pela etapa selecionada.
+              </p>
             </div>
 
             <div className="space-y-2">
@@ -2213,6 +2136,8 @@ function NovaDemandaPage() {
               loading ||
               carregandoSetores ||
               carregandoUsuarios ||
+              carregandoEtapas ||
+              !etapaId ||
               !setorId
             }
             className="inline-flex h-11 items-center justify-center rounded-xl bg-black px-6 text-sm font-semibold text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50"

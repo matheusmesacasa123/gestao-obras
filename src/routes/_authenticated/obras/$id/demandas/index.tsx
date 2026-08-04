@@ -1,7 +1,6 @@
 import {
   createFileRoute,
   useNavigate,
-  useSearch,
 } from "@tanstack/react-router";
 
 import {
@@ -72,13 +71,6 @@ function DemandasPage() {
 
   const navigate =
     useNavigate();
-
-  const {
-    obraRevisaoId,
-  } = useSearch({
-    from:
-      "/_authenticated/obras/$id",
-  });
 
   const {
     perfil,
@@ -156,14 +148,9 @@ function DemandasPage() {
     true;
 
   const podeCriarDemanda =
+    administrador ||
     Boolean(
-      obraRevisaoId
-    ) &&
-    (
-      administrador ||
-      Boolean(
-        perfil?.setor_id
-      )
+      perfil?.setor_id
     );
 
   const carregarSetores =
@@ -238,10 +225,6 @@ function DemandasPage() {
               "obra_id",
               id
             )
-            .eq(
-              "obra_revisao_id",
-              obraRevisaoId
-            )
             .order(
               "ordem",
               {
@@ -277,7 +260,6 @@ function DemandasPage() {
       },
       [
         id,
-        obraRevisaoId,
       ]
     );
 
@@ -306,8 +288,7 @@ function DemandasPage() {
 
           const data =
             await getDemandasPorObra(
-              id,
-              obraRevisaoId
+              id
             );
 
           setDemandas(
@@ -334,7 +315,6 @@ function DemandasPage() {
       },
       [
         id,
-        obraRevisaoId,
       ]
     );
 
@@ -400,10 +380,50 @@ function DemandasPage() {
       etapaSelecionadaId,
     ]);
 
+  const demandasMaisRecentes =
+    useMemo(() => {
+      const maisRecentes =
+        new Map<
+          string,
+          Demanda
+        >();
+
+      for (
+        const demanda
+        of demandasFiltradas
+      ) {
+        const grupoId =
+          demanda.grupo_revisao_id ||
+          demanda.id;
+
+        const atual =
+          maisRecentes.get(
+            grupoId
+          );
+
+        if (
+          !atual ||
+          demanda.numero_revisao >
+            atual.numero_revisao
+        ) {
+          maisRecentes.set(
+            grupoId,
+            demanda
+          );
+        }
+      }
+
+      return Array.from(
+        maisRecentes.values()
+      );
+    }, [
+      demandasFiltradas,
+    ]);
+
   const totais =
     useMemo(() => {
       const abertas =
-        demandasFiltradas.filter(
+        demandasMaisRecentes.filter(
           (
             demanda
           ) =>
@@ -412,7 +432,7 @@ function DemandasPage() {
         ).length;
 
       const andamento =
-        demandasFiltradas.filter(
+        demandasMaisRecentes.filter(
           (
             demanda
           ) =>
@@ -421,7 +441,7 @@ function DemandasPage() {
         ).length;
 
       const concluidas =
-        demandasFiltradas.filter(
+        demandasMaisRecentes.filter(
           (
             demanda
           ) =>
@@ -431,7 +451,7 @@ function DemandasPage() {
 
       return {
         total:
-          demandasFiltradas.length,
+          demandasMaisRecentes.length,
 
         abertas,
 
@@ -440,7 +460,7 @@ function DemandasPage() {
         concluidas,
       };
     }, [
-      demandasFiltradas,
+      demandasMaisRecentes,
     ]);
 
   const etapasDisponiveis =
@@ -631,9 +651,6 @@ function DemandasPage() {
                         id,
                       },
 
-                      search: {
-                        obraRevisaoId,
-                      },
                     })
                   }
                   className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-black px-4 text-sm font-semibold text-white transition hover:bg-gray-800"
@@ -646,12 +663,6 @@ function DemandasPage() {
           </div>
         </div>
 
-
-        {!obraRevisaoId && (
-          <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
-            Selecione uma revisão da obra no cabeçalho para visualizar e cadastrar demandas.
-          </div>
-        )}
 
         <div className="rounded-2xl border bg-white p-5 shadow-sm">
           <div className="grid gap-4 lg:grid-cols-[1fr_1fr_auto] lg:items-end">
@@ -885,8 +896,8 @@ function DemandasPage() {
           demandas={
             demandasFiltradas
           }
-          obraId={
-            id
+          etapas={
+            etapasDisponiveis
           }
           onDelete={() =>
             carregarDemandas(

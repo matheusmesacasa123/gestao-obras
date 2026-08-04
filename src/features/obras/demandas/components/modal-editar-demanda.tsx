@@ -11,10 +11,14 @@ import {
   CheckCircle2,
   CirclePause,
   Clock3,
+  ExternalLink,
+  FileText,
   ShieldAlert,
   Layers3,
+  MessageSquareText,
   Plus,
   Trash2,
+  Upload,
   UserRound,
   X,
   XCircle,
@@ -30,6 +34,16 @@ import {
   supabase,
 } from "@/integrations/supabase/client";
 
+import {
+  deletarDocumento,
+  getDocumentosPorDemanda,
+  uploadDocumentoDaDemanda,
+} from "@/features/obras/documentos/services/documentos-service";
+
+import type {
+  Documento,
+} from "@/features/obras/documentos/types";
+
 import type {
   Demanda,
   PrioridadeDemanda,
@@ -39,6 +53,7 @@ import type {
 import {
   atualizarItemDemanda,
   criarItemDemanda,
+  deleteDemanda,
   excluirItemDemanda,
   listarItensDemanda,
   updateDemanda,
@@ -81,6 +96,25 @@ interface EtapaOpcao {
 
 interface RegistroSetor {
   setor_id: string | null;
+}
+
+interface UsuarioObservacao {
+  id: string;
+  nome: string;
+  email: string;
+}
+
+interface DemandaObservacao {
+  id: string;
+  demanda_id: string;
+  usuario_id: string | null;
+  observacao: string;
+  created_at: string;
+  updated_at: string;
+
+  usuario?:
+    | UsuarioObservacao
+    | null;
 }
 
 function obterSomenteData(
@@ -349,6 +383,11 @@ function ModalEditarDemanda({
   ] = useState(false);
 
   const [
+    excluindo,
+    setExcluindo,
+  ] = useState(false);
+
+  const [
     itensChecklist,
     setItensChecklist,
   ] = useState<DemandaItem[]>(
@@ -376,6 +415,72 @@ function ModalEditarDemanda({
     adicionandoItem,
     setAdicionandoItem,
   ] = useState(false);
+
+  const [
+    documentosDemanda,
+    setDocumentosDemanda,
+  ] = useState<Documento[]>([]);
+
+  const [
+    nomeNovoDocumento,
+    setNomeNovoDocumento,
+  ] = useState("");
+
+  const [
+    arquivoNovoDocumento,
+    setArquivoNovoDocumento,
+  ] = useState<File | null>(null);
+
+  const [
+    carregandoDocumentos,
+    setCarregandoDocumentos,
+  ] = useState(false);
+
+  const [
+    enviandoDocumento,
+    setEnviandoDocumento,
+  ] = useState(false);
+
+  const [
+    excluindoDocumentoId,
+    setExcluindoDocumentoId,
+  ] = useState<string | null>(null);
+
+  const [
+    observacoes,
+    setObservacoes,
+  ] = useState<DemandaObservacao[]>(
+    []
+  );
+
+  const [
+    novaObservacao,
+    setNovaObservacao,
+  ] = useState("");
+
+  const [
+    carregandoObservacoes,
+    setCarregandoObservacoes,
+  ] = useState(false);
+
+  const [
+    adicionandoObservacao,
+    setAdicionandoObservacao,
+  ] = useState(false);
+
+  const [
+    excluindoObservacaoId,
+    setExcluindoObservacaoId,
+  ] = useState<string | null>(
+    null
+  );
+
+  const [
+    usuarioAtualId,
+    setUsuarioAtualId,
+  ] = useState<string | null>(
+    null
+  );
 
   const administrador =
     perfil?.administrador ===
@@ -499,6 +604,127 @@ function ModalEditarDemanda({
   }, [
     demanda,
   ]);
+
+  useEffect(() => {
+    async function carregarUsuarioAtual() {
+      const {
+        data,
+      } = await supabase.auth.getUser();
+
+      setUsuarioAtualId(
+        data.user?.id ??
+        null
+      );
+    }
+
+    carregarUsuarioAtual();
+  }, []);
+
+  useEffect(() => {
+    if (!demanda) {
+      setObservacoes([]);
+      setNovaObservacao("");
+
+      return;
+    }
+
+    async function carregarObservacoes() {
+      try {
+        setCarregandoObservacoes(
+          true
+        );
+
+        const {
+          data,
+          error,
+        } = await supabase
+          .from("demanda_observacoes")
+          .select(`
+            id,
+            demanda_id,
+            usuario_id,
+            observacao,
+            created_at,
+            updated_at,
+            usuario:usuarios!demanda_observacoes_usuario_id_fkey (
+              id,
+              nome,
+              email
+            )
+          `)
+          .eq(
+            "demanda_id",
+            demanda.id
+          )
+          .order(
+            "created_at",
+            {
+              ascending:
+                true,
+            }
+          );
+
+        if (error) {
+          throw error;
+        }
+
+        setObservacoes(
+          (
+            data ??
+            []
+          ) as unknown as DemandaObservacao[]
+        );
+      } catch (error) {
+        console.error(
+          "Erro ao carregar observações da demanda:",
+          error
+        );
+
+        setErroOpcoes(
+          "Não foi possível carregar as observações da demanda."
+        );
+      } finally {
+        setCarregandoObservacoes(
+          false
+        );
+      }
+    }
+
+    carregarObservacoes();
+  }, [
+    demanda,
+  ]);
+
+  useEffect(() => {
+    if (!demanda) {
+      setDocumentosDemanda([]);
+      return;
+    }
+
+    async function carregarDocumentos() {
+      try {
+        setCarregandoDocumentos(true);
+
+        const documentos =
+          await getDocumentosPorDemanda(demanda.id);
+
+        setDocumentosDemanda(documentos);
+      } catch (error) {
+        console.error(
+          "Erro ao carregar documentos da demanda:",
+          error
+        );
+
+        setErroOpcoes(
+          "Não foi possível carregar os documentos da demanda."
+        );
+      } finally {
+        setCarregandoDocumentos(false);
+      }
+    }
+
+    carregarDocumentos();
+  }, [demanda]);
 
   useEffect(() => {
     if (
@@ -688,7 +914,6 @@ function ModalEditarDemanda({
 
     if (!setorId) {
       setUsuarios([]);
-      setResponsavelId("");
 
       return;
     }
@@ -735,8 +960,47 @@ function ModalEditarDemanda({
             []
           ) as UsuarioOpcao[];
 
+        const responsavelAtualDaDemanda =
+          demanda.responsavel_id &&
+          demanda.responsavel
+            ? {
+                id:
+                  demanda.responsavel.id,
+
+                nome:
+                  demanda.responsavel.nome,
+
+                email:
+                  demanda.responsavel.email,
+
+                setor_id:
+                  demanda.responsavel.setor_id,
+              }
+            : null;
+
+        const responsavelJaEstaNaLista =
+          Boolean(
+            responsavelAtualDaDemanda &&
+            usuariosEncontrados.some(
+              (
+                usuario
+              ) =>
+                usuario.id ===
+                responsavelAtualDaDemanda.id
+            )
+          );
+
+        const usuariosComResponsavelAtual =
+          responsavelAtualDaDemanda &&
+          !responsavelJaEstaNaLista
+            ? [
+                responsavelAtualDaDemanda,
+                ...usuariosEncontrados,
+              ]
+            : usuariosEncontrados;
+
         setUsuarios(
-          usuariosEncontrados
+          usuariosComResponsavelAtual
         );
 
         setResponsavelId(
@@ -750,7 +1014,7 @@ function ModalEditarDemanda({
             }
 
             const responsavelValido =
-              usuariosEncontrados.some(
+              usuariosComResponsavelAtual.some(
                 (
                   usuario
                 ) =>
@@ -1144,6 +1408,278 @@ function ModalEditarDemanda({
     }
   }
 
+  async function adicionarObservacao() {
+    if (
+      !demanda ||
+      !novaObservacao.trim()
+    ) {
+      return;
+    }
+
+    try {
+      setAdicionandoObservacao(
+        true
+      );
+
+      const permissaoAtual =
+        await validarPermissaoAtual();
+
+      if (!permissaoAtual) {
+        alert(
+          "Você não possui permissão para adicionar observações nesta demanda."
+        );
+
+        return;
+      }
+
+      const {
+        data,
+        error,
+      } = await supabase
+        .from("demanda_observacoes")
+        .insert({
+          demanda_id:
+            demanda.id,
+
+          observacao:
+            novaObservacao.trim(),
+        })
+        .select(`
+          id,
+          demanda_id,
+          usuario_id,
+          observacao,
+          created_at,
+          updated_at,
+          usuario:usuarios!demanda_observacoes_usuario_id_fkey (
+            id,
+            nome,
+            email
+          )
+        `)
+        .single();
+
+      if (error) {
+        throw error;
+      }
+
+      setObservacoes(
+        (
+          observacoesAtuais
+        ) => [
+          ...observacoesAtuais,
+          data as unknown as DemandaObservacao,
+        ]
+      );
+
+      setNovaObservacao(
+        ""
+      );
+    } catch (error: any) {
+      console.error(
+        "Erro ao adicionar observação:",
+        error
+      );
+
+      alert(
+        error?.message ||
+        error?.details ||
+        "Não foi possível adicionar a observação."
+      );
+    } finally {
+      setAdicionandoObservacao(
+        false
+      );
+    }
+  }
+
+  async function excluirObservacao(
+    observacao: DemandaObservacao
+  ) {
+    const podeExcluirObservacao =
+      administrador ||
+      (
+        Boolean(
+          usuarioAtualId
+        ) &&
+        observacao.usuario_id ===
+          usuarioAtualId
+      );
+
+    if (!podeExcluirObservacao) {
+      alert(
+        "Você só pode excluir suas próprias observações."
+      );
+
+      return;
+    }
+
+    const confirmou =
+      window.confirm(
+        "Deseja excluir esta observação? Esta ação não poderá ser desfeita."
+      );
+
+    if (!confirmou) {
+      return;
+    }
+
+    try {
+      setExcluindoObservacaoId(
+        observacao.id
+      );
+
+      const {
+        error,
+      } = await supabase
+        .from("demanda_observacoes")
+        .delete()
+        .eq(
+          "id",
+          observacao.id
+        );
+
+      if (error) {
+        throw error;
+      }
+
+      setObservacoes(
+        (
+          observacoesAtuais
+        ) =>
+          observacoesAtuais.filter(
+            (
+              observacaoAtual
+            ) =>
+              observacaoAtual.id !==
+              observacao.id
+          )
+      );
+    } catch (error: any) {
+      console.error(
+        "Erro ao excluir observação:",
+        error
+      );
+
+      alert(
+        error?.message ||
+        error?.details ||
+        "Não foi possível excluir a observação."
+      );
+    } finally {
+      setExcluindoObservacaoId(
+        null
+      );
+    }
+  }
+
+  async function enviarDocumentoDemanda() {
+    if (
+      !demanda ||
+      !arquivoNovoDocumento ||
+      !nomeNovoDocumento.trim()
+    ) {
+      alert("Informe o nome e selecione o arquivo.");
+      return;
+    }
+
+    try {
+      setEnviandoDocumento(true);
+
+      const permissaoAtual =
+        await validarPermissaoAtual();
+
+      if (!permissaoAtual) {
+        alert(
+          "Você não possui permissão para adicionar documentos nesta demanda."
+        );
+        return;
+      }
+
+      const documentoCriado =
+        await uploadDocumentoDaDemanda(
+          demanda.id,
+          demanda.obra_id,
+          arquivoNovoDocumento,
+          nomeNovoDocumento
+        );
+
+      setDocumentosDemanda(
+        (atuais) => [documentoCriado, ...atuais]
+      );
+
+      setNomeNovoDocumento("");
+      setArquivoNovoDocumento(null);
+      onSuccess();
+    } catch (error: any) {
+      console.error(
+        "Erro ao enviar documento da demanda:",
+        error
+      );
+
+      alert(
+        error?.message ||
+        error?.details ||
+        "Não foi possível enviar o documento."
+      );
+    } finally {
+      setEnviandoDocumento(false);
+    }
+  }
+
+  async function excluirDocumentoDemanda(
+    documento: Documento
+  ) {
+    const confirmou = window.confirm(
+      `Deseja excluir o documento “${documento.nome}”? Esta ação não poderá ser desfeita.`
+    );
+
+    if (!confirmou) {
+      return;
+    }
+
+    try {
+      setExcluindoDocumentoId(documento.id);
+
+      const permissaoAtual =
+        await validarPermissaoAtual();
+
+      if (!permissaoAtual) {
+        alert(
+          "Você não possui permissão para excluir documentos desta demanda."
+        );
+        return;
+      }
+
+      await deletarDocumento(
+        documento.id,
+        documento.arquivo_url
+      );
+
+      setDocumentosDemanda(
+        (atuais) =>
+          atuais.filter(
+            (item) =>
+              item.id !== documento.id
+          )
+      );
+
+      onSuccess();
+    } catch (error: any) {
+      console.error(
+        "Erro ao excluir documento da demanda:",
+        error
+      );
+
+      alert(
+        error?.message ||
+        error?.details ||
+        "Não foi possível excluir o documento."
+      );
+    } finally {
+      setExcluindoDocumentoId(null);
+    }
+  }
+
   async function validarPermissaoAtual(): Promise<boolean> {
     if (
       administrador
@@ -1193,6 +1729,77 @@ function ModalEditarDemanda({
       demandaAtual.setor_id ===
       setorUsuarioId
     );
+  }
+
+  async function excluirDemandaAtual() {
+    if (
+      !demanda
+    ) {
+      return;
+    }
+
+    if (
+      !podeEditar
+    ) {
+      alert(
+        "Você não possui permissão para excluir esta demanda."
+      );
+
+      return;
+    }
+
+    const confirmou =
+      window.confirm(
+        `Deseja excluir a demanda “${demanda.titulo}”? As observações e os itens do checklist serão excluídos. A exclusão será bloqueada enquanto existirem documentos vinculados. Esta ação não poderá ser desfeita.`
+      );
+
+    if (
+      !confirmou
+    ) {
+      return;
+    }
+
+    try {
+      setExcluindo(
+        true
+      );
+
+      const permissaoAtual =
+        await validarPermissaoAtual();
+
+      if (
+        !permissaoAtual
+      ) {
+        alert(
+          "A demanda não pertence mais ao seu setor e não pode ser excluída."
+        );
+
+        onClose();
+
+        return;
+      }
+
+      await deleteDemanda(
+        demanda.id
+      );
+
+      onSuccess();
+    } catch (error: any) {
+      console.error(
+        "Erro ao excluir demanda:",
+        error
+      );
+
+      alert(
+        error?.message ||
+          error?.details ||
+          "Não foi possível excluir a demanda."
+      );
+    } finally {
+      setExcluindo(
+        false
+      );
+    }
   }
 
   async function handleSubmit(
@@ -1930,6 +2537,333 @@ function ModalEditarDemanda({
                     )}
                 </section>
 
+                <section className="space-y-4 rounded-2xl border bg-white p-5">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <h3 className="flex items-center gap-2 font-semibold text-gray-900">
+                        <MessageSquareText className="h-4 w-4 text-gray-500" />
+
+                        Observações da demanda
+                      </h3>
+
+                      <p className="mt-1 text-xs text-gray-500">
+                        Registre atualizações, decisões e informações importantes desta atividade.
+                      </p>
+                    </div>
+
+                    <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-700">
+                      {observacoes.length}{" "}
+                      {observacoes.length ===
+                      1
+                        ? "observação"
+                        : "observações"}
+                    </span>
+                  </div>
+
+                  <div className="space-y-3">
+                    <textarea
+                      value={
+                        novaObservacao
+                      }
+                      onChange={(
+                        event
+                      ) =>
+                        setNovaObservacao(
+                          event.target.value
+                        )
+                      }
+                      onKeyDown={(
+                        event
+                      ) => {
+                        if (
+                          event.key ===
+                            "Enter" &&
+                          (
+                            event.ctrlKey ||
+                            event.metaKey
+                          )
+                        ) {
+                          event.preventDefault();
+
+                          adicionarObservacao();
+                        }
+                      }}
+                      rows={3}
+                      maxLength={2000}
+                      disabled={
+                        adicionandoObservacao
+                      }
+                      placeholder="Escreva uma observação sobre esta demanda..."
+                      className="w-full resize-y rounded-xl border border-gray-300 bg-white px-3 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:cursor-not-allowed disabled:opacity-50"
+                    />
+
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                      <p className="text-xs text-gray-500">
+                        Use Ctrl + Enter para adicionar.
+                      </p>
+
+                      <button
+                        type="button"
+                        onClick={
+                          adicionarObservacao
+                        }
+                        disabled={
+                          adicionandoObservacao ||
+                          !novaObservacao.trim()
+                        }
+                        className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-slate-950 px-4 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        <Plus className="h-4 w-4" />
+
+                        {adicionandoObservacao
+                          ? "Adicionando..."
+                          : "Adicionar observação"}
+                      </button>
+                    </div>
+                  </div>
+
+                  {carregandoObservacoes ? (
+                    <p className="text-sm text-gray-500">
+                      Carregando observações...
+                    </p>
+                  ) : observacoes.length ===
+                    0 ? (
+                    <div className="rounded-xl border border-dashed bg-slate-50 p-5 text-center text-sm text-gray-500">
+                      Nenhuma observação registrada nesta demanda.
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {observacoes.map(
+                        (
+                          observacao
+                        ) => {
+                          const podeExcluirObservacao =
+                            administrador ||
+                            (
+                              Boolean(
+                                usuarioAtualId
+                              ) &&
+                              observacao.usuario_id ===
+                                usuarioAtualId
+                            );
+
+                          return (
+                            <article
+                              key={
+                                observacao.id
+                              }
+                              className="rounded-xl border bg-slate-50 p-4"
+                            >
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="min-w-0">
+                                  <p className="truncate text-sm font-semibold text-gray-900">
+                                    {observacao.usuario?.nome ||
+                                      "Usuário não identificado"}
+                                  </p>
+
+                                  <p className="mt-0.5 text-xs text-gray-500">
+                                    {formatarDataHora(
+                                      observacao.created_at
+                                    )}
+                                  </p>
+                                </div>
+
+                                {podeExcluirObservacao && (
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      excluirObservacao(
+                                        observacao
+                                      )
+                                    }
+                                    disabled={
+                                      excluindoObservacaoId ===
+                                        observacao.id
+                                    }
+                                    title="Excluir observação"
+                                    className="shrink-0 rounded-lg p-2 text-gray-400 transition hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-50"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </button>
+                                )}
+                              </div>
+
+                              <p className="mt-3 whitespace-pre-wrap break-words text-sm leading-6 text-gray-700">
+                                {observacao.observacao}
+                              </p>
+                            </article>
+                          );
+                        }
+                      )}
+                    </div>
+                  )}
+                </section>
+
+                <section className="space-y-4 rounded-2xl border bg-white p-5">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <h3 className="font-semibold text-gray-900">
+                        Documentos da demanda
+                      </h3>
+
+                      <p className="mt-1 text-xs text-gray-500">
+                        Anexe os arquivos produzidos ou recebidos nesta atividade.
+                      </p>
+                    </div>
+
+                    <span className="rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
+                      {documentosDemanda.length} documento(s)
+                    </span>
+                  </div>
+
+                  <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
+                    <input
+                      type="text"
+                      value={nomeNovoDocumento}
+                      onChange={(event) =>
+                        setNomeNovoDocumento(
+                          event.target.value
+                        )
+                      }
+                      placeholder="Nome do documento"
+                      disabled={enviandoDocumento}
+                      className="h-11 w-full rounded-xl border border-gray-300 bg-white px-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:opacity-50"
+                    />
+
+                    <label className="inline-flex h-11 cursor-pointer items-center justify-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-4 text-sm font-semibold text-blue-700 transition hover:bg-blue-100">
+                      <Upload className="h-4 w-4" />
+
+                      {arquivoNovoDocumento
+                        ? "Trocar arquivo"
+                        : "Selecionar arquivo"}
+
+                      <input
+                        type="file"
+                        className="hidden"
+                        disabled={enviandoDocumento}
+                        onChange={(event) => {
+                          setArquivoNovoDocumento(
+                            event.target.files?.[0] ||
+                            null
+                          );
+
+                          event.target.value = "";
+                        }}
+                      />
+                    </label>
+                  </div>
+
+                  {arquivoNovoDocumento && (
+                    <div className="flex items-center justify-between gap-3 rounded-xl border bg-slate-50 px-3 py-3">
+                      <div className="flex min-w-0 items-center gap-2">
+                        <FileText className="h-5 w-5 shrink-0 text-blue-600" />
+
+                        <span className="truncate text-sm font-medium text-gray-800">
+                          {arquivoNovoDocumento.name}
+                        </span>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setArquivoNovoDocumento(null)
+                        }
+                        disabled={enviandoDocumento}
+                        className="rounded-lg p-1.5 text-gray-400 transition hover:bg-red-50 hover:text-red-600"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={enviarDocumentoDemanda}
+                    disabled={
+                      enviandoDocumento ||
+                      !nomeNovoDocumento.trim() ||
+                      !arquivoNovoDocumento
+                    }
+                    className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <Upload className="h-4 w-4" />
+
+                    {enviandoDocumento
+                      ? "Enviando documento..."
+                      : "Adicionar documento"}
+                  </button>
+
+                  {carregandoDocumentos ? (
+                    <p className="text-sm text-gray-500">
+                      Carregando documentos...
+                    </p>
+                  ) : documentosDemanda.length === 0 ? (
+                    <div className="rounded-xl border border-dashed bg-slate-50 p-5 text-center text-sm text-gray-500">
+                      Nenhum documento anexado a esta demanda.
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {documentosDemanda.map(
+                        (documento) => (
+                          <div
+                            key={documento.id}
+                            className="flex flex-col gap-3 rounded-xl border bg-slate-50 px-3 py-3 sm:flex-row sm:items-center"
+                          >
+                            <div className="flex min-w-0 flex-1 items-center gap-3">
+                              <FileText className="h-5 w-5 shrink-0 text-blue-600" />
+
+                              <div className="min-w-0">
+                                <p className="truncate text-sm font-semibold text-gray-900">
+                                  {documento.nome}
+                                </p>
+
+                                <p className="text-xs text-gray-500">
+                                  {formatarDataHora(
+                                    documento.created_at
+                                  )}
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                              <a
+                                href={documento.arquivo_url}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="inline-flex h-9 flex-1 items-center justify-center gap-2 rounded-lg border bg-white px-3 text-xs font-semibold text-gray-700 hover:bg-gray-50 sm:flex-none"
+                              >
+                                <ExternalLink className="h-4 w-4" />
+                                Abrir
+                              </a>
+
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  excluirDocumentoDemanda(
+                                    documento
+                                  )
+                                }
+                                disabled={
+                                  excluindoDocumentoId ===
+                                  documento.id
+                                }
+                                className="inline-flex h-9 flex-1 items-center justify-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 text-xs font-semibold text-red-700 hover:bg-red-100 disabled:opacity-50 sm:flex-none"
+                              >
+                                <Trash2 className="h-4 w-4" />
+
+                                {excluindoDocumentoId ===
+                                documento.id
+                                  ? "Excluindo..."
+                                  : "Excluir"}
+                              </button>
+                            </div>
+                          </div>
+                        )
+                      )}
+                    </div>
+                  )}
+                </section>
+
                 <section className="space-y-4 rounded-2xl border bg-slate-50/60 p-5">
                   <div>
                     <h3 className="font-semibold text-gray-900">
@@ -2078,33 +3012,55 @@ function ModalEditarDemanda({
                   </section>
                 )}
 
-                <div className="flex flex-col-reverse gap-3 border-t pt-5 sm:flex-row sm:justify-end">
+                <div className="flex flex-col gap-3 border-t pt-5 sm:flex-row sm:items-center sm:justify-between">
                   <button
                     type="button"
                     onClick={
-                      onClose
+                      excluirDemandaAtual
                     }
-                    disabled={
-                      salvando
-                    }
-                    className="inline-flex h-11 items-center justify-center rounded-xl border border-gray-300 bg-white px-5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    Cancelar
-                  </button>
-
-                  <button
-                    type="submit"
                     disabled={
                       salvando ||
-                      carregandoSetores ||
-                      carregandoUsuarios
+                      excluindo
                     }
-                    className="inline-flex h-11 items-center justify-center rounded-xl bg-black px-5 text-sm font-semibold text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-red-300 bg-red-50 px-5 text-sm font-semibold text-red-700 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    {salvando
-                      ? "Salvando..."
-                      : "Salvar alterações"}
+                    <Trash2 className="h-4 w-4" />
+
+                    {excluindo
+                      ? "Excluindo..."
+                      : "Excluir demanda"}
                   </button>
+
+                  <div className="flex flex-col-reverse gap-3 sm:flex-row">
+                    <button
+                      type="button"
+                      onClick={
+                        onClose
+                      }
+                      disabled={
+                        salvando ||
+                        excluindo
+                      }
+                      className="inline-flex h-11 items-center justify-center rounded-xl border border-gray-300 bg-white px-5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      Cancelar
+                    </button>
+
+                    <button
+                      type="submit"
+                      disabled={
+                        salvando ||
+                        excluindo ||
+                        carregandoSetores ||
+                        carregandoUsuarios
+                      }
+                      className="inline-flex h-11 items-center justify-center rounded-xl bg-black px-5 text-sm font-semibold text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {salvando
+                        ? "Salvando..."
+                        : "Salvar alterações"}
+                    </button>
+                  </div>
                 </div>
               </form>
             </>
@@ -2114,7 +3070,8 @@ function ModalEditarDemanda({
             <button
               type="button"
               disabled={
-                salvando
+                salvando ||
+                excluindo
               }
               className="absolute right-5 top-5 rounded-lg p-1.5 text-gray-500 transition hover:bg-gray-100 hover:text-gray-900 disabled:opacity-50"
               aria-label="Fechar"

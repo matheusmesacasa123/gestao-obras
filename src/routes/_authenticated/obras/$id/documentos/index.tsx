@@ -3,6 +3,8 @@ import {
 } from "@tanstack/react-router";
 
 import {
+  ExternalLink,
+  FileText,
   Search,
 } from "lucide-react";
 
@@ -14,27 +16,12 @@ import {
 } from "react";
 
 import {
-  getContextoRevisaoDocumento,
   getDocumentosPorObra,
-  getEtapasDocumentosPorObra,
   getSetoresDocumentos,
 } from "@/features/obras/documentos/services/documentos-service";
 
-import {
-  DocumentoList,
-} from "@/features/obras/documentos/components/documento-list";
-
-import {
-  DocumentoForm,
-} from "@/features/obras/documentos/components/documento-form";
-
-import {
-  ModalEditarDocumento,
-} from "@/features/obras/documentos/components/modal-editar-documento";
-
 import type {
   Documento,
-  EtapaDocumento,
   SetorDocumento,
 } from "@/features/obras/documentos/types";
 
@@ -45,15 +32,13 @@ export const Route = createFileRoute(
 });
 
 function normalizarTexto(
-  valor?: string | null
+  valor?: string | number | null
 ) {
-  return (
-    valor ||
+  return String(
+    valor ??
     ""
   )
-    .normalize(
-      "NFD"
-    )
+    .normalize("NFD")
     .replace(
       /[\u0300-\u036f]/g,
       ""
@@ -62,14 +47,56 @@ function normalizarTexto(
     .trim();
 }
 
+function formatarDataHora(
+  valor?: string | null
+) {
+  if (!valor) {
+    return "Data não informada";
+  }
+
+  const data =
+    new Date(
+      valor
+    );
+
+  if (
+    Number.isNaN(
+      data.getTime()
+    )
+  ) {
+    return "Data não informada";
+  }
+
+  return new Intl.DateTimeFormat(
+    "pt-BR",
+    {
+      dateStyle:
+        "short",
+
+      timeStyle:
+        "short",
+    }
+  ).format(
+    data
+  );
+}
+
+function formatarNumeroRevisao(
+  numero?: number | null
+) {
+  return `Rev. ${String(
+    numero ??
+    0
+  ).padStart(
+    2,
+    "0"
+  )}`;
+}
+
 function DocumentosPage() {
   const {
     id,
   } = Route.useParams();
-
-  const {
-    obraRevisaoId,
-  } = Route.useSearch();
 
   const [
     documentos,
@@ -79,31 +106,10 @@ function DocumentosPage() {
   );
 
   const [
-    etapas,
-    setEtapas,
-  ] = useState<EtapaDocumento[]>(
-    []
-  );
-
-  const [
-    numeroRevisao,
-    setNumeroRevisao,
-  ] = useState<number | null>(
-    null
-  );
-
-  const [
     setores,
     setSetores,
   ] = useState<SetorDocumento[]>(
     []
-  );
-
-  const [
-    documentoEditando,
-    setDocumentoEditando,
-  ] = useState<Documento | null>(
-    null
   );
 
   const [
@@ -119,16 +125,12 @@ function DocumentosPage() {
   const [
     loading,
     setLoading,
-  ] = useState(
-    true
-  );
+  ] = useState(true);
 
   const [
     erro,
     setErro,
-  ] = useState(
-    false
-  );
+  ] = useState(false);
 
   const carregarDados =
     useCallback(
@@ -142,54 +144,23 @@ function DocumentosPage() {
             false
           );
 
-          if (
-            !obraRevisaoId
-          ) {
-            setDocumentos([]);
-            setEtapas([]);
-            setSetores([]);
-            setNumeroRevisao(null);
-            return;
-          }
-
           const [
             documentosData,
-            etapasData,
             setoresData,
-            contextoRevisao,
-          ] =
-            await Promise.all([
-              getDocumentosPorObra(
-                id,
-                obraRevisaoId
-              ),
+          ] = await Promise.all([
+            getDocumentosPorObra(
+              id
+            ),
 
-              getEtapasDocumentosPorObra(
-                id,
-                obraRevisaoId
-              ),
-
-              getSetoresDocumentos(),
-
-              getContextoRevisaoDocumento(
-                obraRevisaoId
-              ),
-            ]);
+            getSetoresDocumentos(),
+          ]);
 
           setDocumentos(
             documentosData
           );
 
-          setEtapas(
-            etapasData
-          );
-
           setSetores(
             setoresData
-          );
-
-          setNumeroRevisao(
-            contextoRevisao.numero_revisao
           );
         } catch (error) {
           console.error(
@@ -208,37 +179,6 @@ function DocumentosPage() {
       },
       [
         id,
-        obraRevisaoId,
-      ]
-    );
-
-  const recarregarDocumentos =
-    useCallback(
-      async () => {
-        try {
-          const data =
-            await getDocumentosPorObra(
-              id,
-              obraRevisaoId
-            );
-
-          setDocumentos(
-            data
-          );
-        } catch (error) {
-          console.error(
-            "Erro ao atualizar documentos:",
-            error
-          );
-
-          setErro(
-            true
-          );
-        }
-      },
-      [
-        id,
-        obraRevisaoId,
       ]
     );
 
@@ -260,13 +200,10 @@ function DocumentosPage() {
           (
             documento
           ) => {
-            const correspondeSetor =
-              !setorFiltro ||
-              documento.setor_id ===
-                setorFiltro;
-
             if (
-              !correspondeSetor
+              setorFiltro &&
+              documento.setor_id !==
+                setorFiltro
             ) {
               return false;
             }
@@ -275,29 +212,42 @@ function DocumentosPage() {
               return true;
             }
 
-            const conteudoPesquisavel =
-              [
-                documento.nome,
-                documento.categoria,
-                documento.setor?.nome,
-                documento.usuario?.nome,
-                documento.usuario?.email,
-                documento.etapa?.titulo,
-                documento.etapa?.setor?.nome,
-                documento.etapa?.ordem
-                  ? `Etapa ${documento.etapa.ordem}`
-                  : "",
-              ]
-                .map(
-                  normalizarTexto
-                )
-                .join(
-                  " "
-                );
-
-            return conteudoPesquisavel.includes(
-              termo
-            );
+            return [
+              documento.nome,
+              documento.demanda
+                ?.titulo,
+              documento.demanda
+                ?.numero_revisao,
+              documento.demanda
+                ? `Revisão da demanda ${formatarNumeroRevisao(
+                    documento.demanda
+                      .numero_revisao
+                  )}`
+                : "",
+              documento.setor
+                ?.nome,
+              documento.usuario
+                ?.nome,
+              documento.usuario
+                ?.email,
+              documento.etapa
+                ?.titulo,
+              documento.etapa
+                ?.setor?.nome,
+              documento.etapa
+                ?.ordem
+                ? `Etapa ${documento.etapa.ordem}`
+                : "",
+            ]
+              .map(
+                normalizarTexto
+              )
+              .join(
+                " "
+              )
+              .includes(
+                termo
+              );
           }
         );
       },
@@ -325,64 +275,16 @@ function DocumentosPage() {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold">
           Documentos
         </h2>
 
-        <p className="text-muted-foreground">
-          Documentos da revisão selecionada da obra.
+        <p className="mt-1 text-sm text-muted-foreground">
+          Consulte todos os documentos adicionados às demandas desta obra.
         </p>
       </div>
-
-      {!obraRevisaoId ? (
-        <div className="rounded-xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-800">
-          Selecione uma revisão da obra no cabeçalho para visualizar e cadastrar documentos.
-        </div>
-      ) : (
-        <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3">
-          <p className="text-sm font-semibold text-blue-950">
-            Rev.{" "}
-            {String(
-              numeroRevisao ??
-                0
-            ).padStart(
-              2,
-              "0"
-            )}
-            {" — "}
-            {etapas.length}{" "}
-            {etapas.length ===
-            1
-              ? "etapa disponível"
-              : "etapas disponíveis"}
-          </p>
-
-          <p className="mt-1 text-xs text-blue-700">
-            A listagem e os novos documentos pertencem somente a esta revisão da obra.
-          </p>
-        </div>
-      )}
-
-      <DocumentoForm
-        obraId={
-          id
-        }
-        obraRevisaoId={
-          obraRevisaoId ||
-          ""
-        }
-        etapas={
-          etapas
-        }
-        setores={
-          setores
-        }
-        onSuccess={
-          recarregarDocumentos
-        }
-      />
 
       <section className="space-y-4 rounded-xl border bg-white p-5 shadow-sm">
         <div>
@@ -391,7 +293,7 @@ function DocumentosPage() {
           </h3>
 
           <p className="mt-1 text-sm text-gray-500">
-            Pesquise por nome, setor responsável ou usuário.
+            O cadastro e a exclusão são feitos dentro de cada demanda.
           </p>
         </div>
 
@@ -411,7 +313,7 @@ function DocumentosPage() {
                   event.target.value
                 )
               }
-              placeholder="Pesquisar documentos..."
+              placeholder="Pesquisar documento, demanda, revisão, etapa ou usuário..."
               className="h-11 w-full rounded-xl border bg-white pl-10 pr-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
             />
           </label>
@@ -445,9 +347,7 @@ function DocumentosPage() {
                     setor.id
                   }
                 >
-                  {
-                    setor.nome
-                  }
+                  {setor.nome}
                 </option>
               )
             )}
@@ -455,9 +355,7 @@ function DocumentosPage() {
         </div>
 
         <p className="text-sm text-gray-500">
-          {
-            documentosFiltrados.length
-          }{" "}
+          {documentosFiltrados.length}{" "}
           {documentosFiltrados.length ===
           1
             ? "documento encontrado"
@@ -465,37 +363,109 @@ function DocumentosPage() {
         </p>
       </section>
 
-      <DocumentoList
-        documentos={
-          documentosFiltrados
-        }
-        onDelete={
-          recarregarDocumentos
-        }
-        onEdit={
-          setDocumentoEditando
-        }
-      />
+      {documentosFiltrados.length ===
+      0 ? (
+        <div className="rounded-2xl border border-dashed bg-white p-10 text-center shadow-sm">
+          <FileText className="mx-auto h-10 w-10 text-gray-400" />
 
-      <ModalEditarDocumento
-        documento={
-          documentoEditando
-        }
-        etapas={
-          etapas
-        }
-        setores={
-          setores
-        }
-        onClose={() =>
-          setDocumentoEditando(
-            null
-          )
-        }
-        onSuccess={
-          recarregarDocumentos
-        }
-      />
+          <p className="mt-4 font-semibold text-gray-900">
+            Nenhum documento encontrado
+          </p>
+
+          <p className="mt-1 text-sm text-gray-500">
+            Adicione documentos dentro das demandas da obra.
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {documentosFiltrados.map(
+            (
+              documento
+            ) => (
+              <article
+                key={
+                  documento.id
+                }
+                className="rounded-2xl border bg-white p-5 shadow-sm"
+              >
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+                  <div className="flex min-w-0 flex-1 items-center gap-4">
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-700">
+                      <FileText className="h-6 w-6" />
+                    </div>
+
+                    <div className="min-w-0 flex-1">
+                      <h3 className="truncate text-base font-bold text-gray-950">
+                        {documento.nome}
+                      </h3>
+
+                      <div className="mt-1 flex flex-wrap items-center gap-2">
+                        <p className="text-sm font-medium text-gray-700">
+                          Demanda:{" "}
+                          {documento.demanda
+                            ?.titulo ||
+                            "Não informada"}
+                        </p>
+
+                        {documento.demanda && (
+                          <span className="inline-flex rounded-full border border-violet-200 bg-violet-50 px-2.5 py-1 text-xs font-bold text-violet-700">
+                            Revisão da demanda —{" "}
+                            {formatarNumeroRevisao(
+                              documento.demanda
+                                .numero_revisao
+                            )}
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-gray-500">
+                        <span>
+                          Etapa{" "}
+                          {documento.etapa
+                            ?.ordem ??
+                            "?"}{" "}
+                          —{" "}
+                          {documento.etapa
+                            ?.titulo ||
+                            "Sem título"}
+                        </span>
+
+                        <span>
+                          {documento.setor
+                            ?.nome ||
+                            documento.etapa
+                              ?.setor
+                              ?.nome ||
+                            "Setor não informado"}
+                        </span>
+
+                        <span>
+                          {formatarDataHora(
+                            documento.created_at
+                          )}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <a
+                    href={
+                      documento.arquivo_url
+                    }
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-xl border bg-white px-4 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
+                  >
+                    <ExternalLink className="h-4 w-4" />
+
+                    Abrir documento
+                  </a>
+                </div>
+              </article>
+            )
+          )}
+        </div>
+      )}
     </div>
   );
 }

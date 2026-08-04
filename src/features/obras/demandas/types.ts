@@ -21,6 +21,10 @@ export interface EtapaDemanda {
   titulo: string | null;
   ordem: number | null;
   status: string;
+  grupo_revisao_id: string;
+  numero_revisao: number;
+  revisao_anterior_id: string | null;
+
   setor:
     | SetorDemanda
     | null;
