@@ -1,4 +1,8 @@
 import {
+  Link,
+} from "@tanstack/react-router";
+
+import {
   Building2,
   CalendarDays,
   FileCheck2,
@@ -134,10 +138,17 @@ export function ObraExecucaoCard({
       obra.status
     );
 
-  const identificacao =
-    obra.codigo ||
+  const numeroErp =
+    obra.codigo_erp ||
+    "Ainda não lançado no ERP";
+
+  const numeroProposta =
     obra.numero_proposta ||
-    "Sem código";
+    obra.orcamento
+      ?.numero_proposta ||
+    obra.orcamento
+      ?.codigo ||
+    "Não informado";
 
   const cliente =
     obra.cliente_relacionado?.nome ||
@@ -161,7 +172,7 @@ export function ObraExecucaoCard({
   async function handleExcluir() {
     const confirmado =
       window.confirm(
-        `Tem certeza que deseja excluir a obra ${identificacao}?`
+        `Tem certeza que deseja excluir a obra ${numeroErp}?`
       );
 
     if (!confirmado) {
@@ -195,11 +206,31 @@ export function ObraExecucaoCard({
     <article className="flex h-full flex-col gap-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:border-slate-300 hover:shadow-md">
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
-          <h3 className="truncate text-xl font-bold tracking-tight text-slate-950">
-            {identificacao}
+          <span className="block text-xs font-semibold uppercase tracking-wide text-slate-500">
+            Numeração ERP
+          </span>
+
+          <h3
+            className={`mt-1 truncate text-xl font-bold tracking-tight ${
+              obra.codigo_erp
+                ? "text-slate-950"
+                : "text-slate-500"
+            }`}
+          >
+            {numeroErp}
           </h3>
 
-          <p className="truncate text-sm font-medium text-slate-600">
+          <div className="mt-3">
+            <span className="block text-xs font-medium text-slate-500">
+              Proposta comercial
+            </span>
+
+            <span className="block truncate text-sm font-semibold text-slate-800">
+              {numeroProposta}
+            </span>
+          </div>
+
+          <p className="mt-3 truncate text-sm font-medium text-slate-600">
             {cliente}
           </p>
         </div>
@@ -274,8 +305,8 @@ export function ObraExecucaoCard({
         </span>
       </div>
 
-      {onDelete && (
-        <div className="mt-auto pt-1">
+      <div className="mt-auto flex flex-wrap items-center justify-between gap-3 pt-1">
+        {onDelete ? (
           <button
             type="button"
             onClick={
@@ -285,8 +316,21 @@ export function ObraExecucaoCard({
           >
             Excluir
           </button>
-        </div>
-      )}
+        ) : (
+          <span />
+        )}
+
+        <Link
+          to="/execucao-obras/$id"
+          params={{
+            id:
+              obra.id,
+          }}
+          className="rounded-xl bg-slate-950 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
+        >
+          Abrir obra
+        </Link>
+      </div>
     </article>
   );
 }

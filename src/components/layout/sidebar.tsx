@@ -7,6 +7,7 @@ import {
   ArrowRightLeft,
   Building2,
   Calculator,
+  CalendarDays,
   FileClock,
   FileText,
   LayoutDashboard,
@@ -66,6 +67,14 @@ export function Sidebar() {
         "/execucao-obras",
       icone:
         Building2,
+    },
+    {
+      nome:
+        "Reuniões",
+      rota:
+        "/reunioes",
+      icone:
+        CalendarDays,
     },
     {
       nome:

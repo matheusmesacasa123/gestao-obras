@@ -18,18 +18,27 @@ import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedExecucaoObrasRouteImport } from './routes/_authenticated/execucao-obras'
 import { Route as AuthenticatedHistoricoObrasRouteImport } from './routes/_authenticated/historico-obras'
 import { Route as AuthenticatedMinhaContaRouteImport } from './routes/_authenticated/minha-conta'
+import { Route as AuthenticatedReunioesRouteImport } from './routes/_authenticated/reunioes'
 import { Route as AuthenticatedTramitacoesRouteImport } from './routes/_authenticated/tramitacoes'
 import { Route as AuthenticatedClientesIdRouteImport } from './routes/_authenticated/clientes/$id'
 import { Route as AuthenticatedExecucaoObrasIndexRouteImport } from './routes/_authenticated/execucao-obras/index'
+import { Route as AuthenticatedExecucaoObrasIdRouteImport } from './routes/_authenticated/execucao-obras/$id'
 import { Route as AuthenticatedExecucaoObrasNovaRouteImport } from './routes/_authenticated/execucao-obras/nova'
 import { Route as AuthenticatedObrasIndexRouteImport } from './routes/_authenticated/obras/index'
 import { Route as AuthenticatedObrasIdRouteImport } from './routes/_authenticated/obras/$id'
 import { Route as AuthenticatedObrasNovaRouteImport } from './routes/_authenticated/obras/nova'
+import { Route as AuthenticatedExecucaoObrasIdIndexRouteImport } from './routes/_authenticated/execucao-obras/$id/index'
+import { Route as AuthenticatedExecucaoObrasIdAnalisesCriticasRouteImport } from './routes/_authenticated/execucao-obras/$id/analises-criticas'
+import { Route as AuthenticatedExecucaoObrasIdDocumentosEngComercialRouteImport } from './routes/_authenticated/execucao-obras/$id/documentos-eng-comercial'
+import { Route as AuthenticatedExecucaoObrasIdEtapasRouteImport } from './routes/_authenticated/execucao-obras/$id/etapas'
+import { Route as AuthenticatedExecucaoObrasIdReunioesRouteImport } from './routes/_authenticated/execucao-obras/$id/reunioes'
 import { Route as AuthenticatedObrasIdIndexRouteImport } from './routes/_authenticated/obras/$id/index'
 import { Route as AuthenticatedObrasIdComercialRouteImport } from './routes/_authenticated/obras/$id/comercial'
 import { Route as AuthenticatedObrasIdEditarRouteImport } from './routes/_authenticated/obras/$id/editar'
 import { Route as AuthenticatedObrasIdEtapasRouteImport } from './routes/_authenticated/obras/$id/etapas'
 import { Route as AuthenticatedObrasIdHistoricoRouteImport } from './routes/_authenticated/obras/$id/historico'
+import { Route as AuthenticatedExecucaoObrasIdDemandasIndexRouteImport } from './routes/_authenticated/execucao-obras/$id/demandas/index'
+import { Route as AuthenticatedExecucaoObrasIdDemandasNovaRouteImport } from './routes/_authenticated/execucao-obras/$id/demandas/nova'
 import { Route as AuthenticatedObrasIdCronogramaIndexRouteImport } from './routes/_authenticated/obras/$id/cronograma/index'
 import { Route as AuthenticatedObrasIdDemandasIndexRouteImport } from './routes/_authenticated/obras/$id/demandas/index'
 import { Route as AuthenticatedObrasIdDemandasEditarRouteImport } from './routes/_authenticated/obras/$id/demandas/editar'
@@ -84,6 +93,11 @@ const AuthenticatedMinhaContaRoute = AuthenticatedMinhaContaRouteImport.update({
   path: '/minha-conta',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedReunioesRoute = AuthenticatedReunioesRouteImport.update({
+  id: '/_authenticated/reunioes',
+  path: '/reunioes',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedTramitacoesRoute =
   AuthenticatedTramitacoesRouteImport.update({
     id: '/_authenticated/tramitacoes',
@@ -99,6 +113,12 @@ const AuthenticatedExecucaoObrasIndexRoute =
   AuthenticatedExecucaoObrasIndexRouteImport.update({
     id: '/',
     path: '/',
+    getParentRoute: () => AuthenticatedExecucaoObrasRoute,
+  } as any)
+const AuthenticatedExecucaoObrasIdRoute =
+  AuthenticatedExecucaoObrasIdRouteImport.update({
+    id: '/$id',
+    path: '/$id',
     getParentRoute: () => AuthenticatedExecucaoObrasRoute,
   } as any)
 const AuthenticatedExecucaoObrasNovaRoute =
@@ -122,6 +142,36 @@ const AuthenticatedObrasNovaRoute = AuthenticatedObrasNovaRouteImport.update({
   path: '/obras/nova',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedExecucaoObrasIdIndexRoute =
+  AuthenticatedExecucaoObrasIdIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedExecucaoObrasIdRoute,
+  } as any)
+const AuthenticatedExecucaoObrasIdAnalisesCriticasRoute =
+  AuthenticatedExecucaoObrasIdAnalisesCriticasRouteImport.update({
+    id: '/analises-criticas',
+    path: '/analises-criticas',
+    getParentRoute: () => AuthenticatedExecucaoObrasIdRoute,
+  } as any)
+const AuthenticatedExecucaoObrasIdDocumentosEngComercialRoute =
+  AuthenticatedExecucaoObrasIdDocumentosEngComercialRouteImport.update({
+    id: '/documentos-eng-comercial',
+    path: '/documentos-eng-comercial',
+    getParentRoute: () => AuthenticatedExecucaoObrasIdRoute,
+  } as any)
+const AuthenticatedExecucaoObrasIdEtapasRoute =
+  AuthenticatedExecucaoObrasIdEtapasRouteImport.update({
+    id: '/etapas',
+    path: '/etapas',
+    getParentRoute: () => AuthenticatedExecucaoObrasIdRoute,
+  } as any)
+const AuthenticatedExecucaoObrasIdReunioesRoute =
+  AuthenticatedExecucaoObrasIdReunioesRouteImport.update({
+    id: '/reunioes',
+    path: '/reunioes',
+    getParentRoute: () => AuthenticatedExecucaoObrasIdRoute,
+  } as any)
 const AuthenticatedObrasIdIndexRoute =
   AuthenticatedObrasIdIndexRouteImport.update({
     id: '/',
@@ -151,6 +201,18 @@ const AuthenticatedObrasIdHistoricoRoute =
     id: '/historico',
     path: '/historico',
     getParentRoute: () => AuthenticatedObrasIdRoute,
+  } as any)
+const AuthenticatedExecucaoObrasIdDemandasIndexRoute =
+  AuthenticatedExecucaoObrasIdDemandasIndexRouteImport.update({
+    id: '/demandas/',
+    path: '/demandas/',
+    getParentRoute: () => AuthenticatedExecucaoObrasIdRoute,
+  } as any)
+const AuthenticatedExecucaoObrasIdDemandasNovaRoute =
+  AuthenticatedExecucaoObrasIdDemandasNovaRouteImport.update({
+    id: '/demandas/nova',
+    path: '/demandas/nova',
+    getParentRoute: () => AuthenticatedExecucaoObrasIdRoute,
   } as any)
 const AuthenticatedObrasIdCronogramaIndexRoute =
   AuthenticatedObrasIdCronogramaIndexRouteImport.update({
@@ -199,20 +261,29 @@ export interface FileRoutesByFullPath {
   '/execucao-obras': typeof AuthenticatedExecucaoObrasRouteWithChildren
   '/historico-obras': typeof AuthenticatedHistoricoObrasRoute
   '/minha-conta': typeof AuthenticatedMinhaContaRoute
+  '/reunioes': typeof AuthenticatedReunioesRoute
   '/tramitacoes': typeof AuthenticatedTramitacoesRoute
   '/clientes/$id': typeof AuthenticatedClientesIdRoute
+  '/execucao-obras/$id': typeof AuthenticatedExecucaoObrasIdRouteWithChildren
   '/execucao-obras/nova': typeof AuthenticatedExecucaoObrasNovaRoute
   '/obras/$id': typeof AuthenticatedObrasIdRouteWithChildren
   '/obras/nova': typeof AuthenticatedObrasNovaRoute
   '/execucao-obras/': typeof AuthenticatedExecucaoObrasIndexRoute
   '/obras/': typeof AuthenticatedObrasIndexRoute
+  '/execucao-obras/$id/analises-criticas': typeof AuthenticatedExecucaoObrasIdAnalisesCriticasRoute
+  '/execucao-obras/$id/documentos-eng-comercial': typeof AuthenticatedExecucaoObrasIdDocumentosEngComercialRoute
+  '/execucao-obras/$id/etapas': typeof AuthenticatedExecucaoObrasIdEtapasRoute
+  '/execucao-obras/$id/reunioes': typeof AuthenticatedExecucaoObrasIdReunioesRoute
   '/obras/$id/comercial': typeof AuthenticatedObrasIdComercialRoute
   '/obras/$id/editar': typeof AuthenticatedObrasIdEditarRoute
   '/obras/$id/etapas': typeof AuthenticatedObrasIdEtapasRoute
   '/obras/$id/historico': typeof AuthenticatedObrasIdHistoricoRoute
+  '/execucao-obras/$id/': typeof AuthenticatedExecucaoObrasIdIndexRoute
   '/obras/$id/': typeof AuthenticatedObrasIdIndexRoute
+  '/execucao-obras/$id/demandas/nova': typeof AuthenticatedExecucaoObrasIdDemandasNovaRoute
   '/obras/$id/demandas/editar': typeof AuthenticatedObrasIdDemandasEditarRoute
   '/obras/$id/demandas/nova': typeof AuthenticatedObrasIdDemandasNovaRoute
+  '/execucao-obras/$id/demandas/': typeof AuthenticatedExecucaoObrasIdDemandasIndexRoute
   '/obras/$id/cronograma/': typeof AuthenticatedObrasIdCronogramaIndexRoute
   '/obras/$id/demandas/': typeof AuthenticatedObrasIdDemandasIndexRoute
   '/obras/$id/documentos/': typeof AuthenticatedObrasIdDocumentosIndexRoute
@@ -227,19 +298,27 @@ export interface FileRoutesByTo {
   '/admin': typeof AuthenticatedAdminRoute
   '/historico-obras': typeof AuthenticatedHistoricoObrasRoute
   '/minha-conta': typeof AuthenticatedMinhaContaRoute
+  '/reunioes': typeof AuthenticatedReunioesRoute
   '/tramitacoes': typeof AuthenticatedTramitacoesRoute
   '/clientes/$id': typeof AuthenticatedClientesIdRoute
   '/execucao-obras/nova': typeof AuthenticatedExecucaoObrasNovaRoute
   '/obras/nova': typeof AuthenticatedObrasNovaRoute
   '/execucao-obras': typeof AuthenticatedExecucaoObrasIndexRoute
   '/obras': typeof AuthenticatedObrasIndexRoute
+  '/execucao-obras/$id/analises-criticas': typeof AuthenticatedExecucaoObrasIdAnalisesCriticasRoute
+  '/execucao-obras/$id/documentos-eng-comercial': typeof AuthenticatedExecucaoObrasIdDocumentosEngComercialRoute
+  '/execucao-obras/$id/etapas': typeof AuthenticatedExecucaoObrasIdEtapasRoute
+  '/execucao-obras/$id/reunioes': typeof AuthenticatedExecucaoObrasIdReunioesRoute
   '/obras/$id/comercial': typeof AuthenticatedObrasIdComercialRoute
   '/obras/$id/editar': typeof AuthenticatedObrasIdEditarRoute
   '/obras/$id/etapas': typeof AuthenticatedObrasIdEtapasRoute
   '/obras/$id/historico': typeof AuthenticatedObrasIdHistoricoRoute
+  '/execucao-obras/$id': typeof AuthenticatedExecucaoObrasIdIndexRoute
   '/obras/$id': typeof AuthenticatedObrasIdIndexRoute
+  '/execucao-obras/$id/demandas/nova': typeof AuthenticatedExecucaoObrasIdDemandasNovaRoute
   '/obras/$id/demandas/editar': typeof AuthenticatedObrasIdDemandasEditarRoute
   '/obras/$id/demandas/nova': typeof AuthenticatedObrasIdDemandasNovaRoute
+  '/execucao-obras/$id/demandas': typeof AuthenticatedExecucaoObrasIdDemandasIndexRoute
   '/obras/$id/cronograma': typeof AuthenticatedObrasIdCronogramaIndexRoute
   '/obras/$id/demandas': typeof AuthenticatedObrasIdDemandasIndexRoute
   '/obras/$id/documentos': typeof AuthenticatedObrasIdDocumentosIndexRoute
@@ -256,20 +335,29 @@ export interface FileRoutesById {
   '/_authenticated/execucao-obras': typeof AuthenticatedExecucaoObrasRouteWithChildren
   '/_authenticated/historico-obras': typeof AuthenticatedHistoricoObrasRoute
   '/_authenticated/minha-conta': typeof AuthenticatedMinhaContaRoute
+  '/_authenticated/reunioes': typeof AuthenticatedReunioesRoute
   '/_authenticated/tramitacoes': typeof AuthenticatedTramitacoesRoute
   '/_authenticated/clientes/$id': typeof AuthenticatedClientesIdRoute
+  '/_authenticated/execucao-obras/$id': typeof AuthenticatedExecucaoObrasIdRouteWithChildren
   '/_authenticated/execucao-obras/nova': typeof AuthenticatedExecucaoObrasNovaRoute
   '/_authenticated/obras/$id': typeof AuthenticatedObrasIdRouteWithChildren
   '/_authenticated/obras/nova': typeof AuthenticatedObrasNovaRoute
   '/_authenticated/execucao-obras/': typeof AuthenticatedExecucaoObrasIndexRoute
   '/_authenticated/obras/': typeof AuthenticatedObrasIndexRoute
+  '/_authenticated/execucao-obras/$id/analises-criticas': typeof AuthenticatedExecucaoObrasIdAnalisesCriticasRoute
+  '/_authenticated/execucao-obras/$id/documentos-eng-comercial': typeof AuthenticatedExecucaoObrasIdDocumentosEngComercialRoute
+  '/_authenticated/execucao-obras/$id/etapas': typeof AuthenticatedExecucaoObrasIdEtapasRoute
+  '/_authenticated/execucao-obras/$id/reunioes': typeof AuthenticatedExecucaoObrasIdReunioesRoute
   '/_authenticated/obras/$id/comercial': typeof AuthenticatedObrasIdComercialRoute
   '/_authenticated/obras/$id/editar': typeof AuthenticatedObrasIdEditarRoute
   '/_authenticated/obras/$id/etapas': typeof AuthenticatedObrasIdEtapasRoute
   '/_authenticated/obras/$id/historico': typeof AuthenticatedObrasIdHistoricoRoute
+  '/_authenticated/execucao-obras/$id/': typeof AuthenticatedExecucaoObrasIdIndexRoute
   '/_authenticated/obras/$id/': typeof AuthenticatedObrasIdIndexRoute
+  '/_authenticated/execucao-obras/$id/demandas/nova': typeof AuthenticatedExecucaoObrasIdDemandasNovaRoute
   '/_authenticated/obras/$id/demandas/editar': typeof AuthenticatedObrasIdDemandasEditarRoute
   '/_authenticated/obras/$id/demandas/nova': typeof AuthenticatedObrasIdDemandasNovaRoute
+  '/_authenticated/execucao-obras/$id/demandas/': typeof AuthenticatedExecucaoObrasIdDemandasIndexRoute
   '/_authenticated/obras/$id/cronograma/': typeof AuthenticatedObrasIdCronogramaIndexRoute
   '/_authenticated/obras/$id/demandas/': typeof AuthenticatedObrasIdDemandasIndexRoute
   '/_authenticated/obras/$id/documentos/': typeof AuthenticatedObrasIdDocumentosIndexRoute
@@ -287,20 +375,29 @@ export interface FileRouteTypes {
     | '/execucao-obras'
     | '/historico-obras'
     | '/minha-conta'
+    | '/reunioes'
     | '/tramitacoes'
     | '/clientes/$id'
+    | '/execucao-obras/$id'
     | '/execucao-obras/nova'
     | '/obras/$id'
     | '/obras/nova'
     | '/execucao-obras/'
     | '/obras/'
+    | '/execucao-obras/$id/analises-criticas'
+    | '/execucao-obras/$id/documentos-eng-comercial'
+    | '/execucao-obras/$id/etapas'
+    | '/execucao-obras/$id/reunioes'
     | '/obras/$id/comercial'
     | '/obras/$id/editar'
     | '/obras/$id/etapas'
     | '/obras/$id/historico'
+    | '/execucao-obras/$id/'
     | '/obras/$id/'
+    | '/execucao-obras/$id/demandas/nova'
     | '/obras/$id/demandas/editar'
     | '/obras/$id/demandas/nova'
+    | '/execucao-obras/$id/demandas/'
     | '/obras/$id/cronograma/'
     | '/obras/$id/demandas/'
     | '/obras/$id/documentos/'
@@ -315,19 +412,27 @@ export interface FileRouteTypes {
     | '/admin'
     | '/historico-obras'
     | '/minha-conta'
+    | '/reunioes'
     | '/tramitacoes'
     | '/clientes/$id'
     | '/execucao-obras/nova'
     | '/obras/nova'
     | '/execucao-obras'
     | '/obras'
+    | '/execucao-obras/$id/analises-criticas'
+    | '/execucao-obras/$id/documentos-eng-comercial'
+    | '/execucao-obras/$id/etapas'
+    | '/execucao-obras/$id/reunioes'
     | '/obras/$id/comercial'
     | '/obras/$id/editar'
     | '/obras/$id/etapas'
     | '/obras/$id/historico'
+    | '/execucao-obras/$id'
     | '/obras/$id'
+    | '/execucao-obras/$id/demandas/nova'
     | '/obras/$id/demandas/editar'
     | '/obras/$id/demandas/nova'
+    | '/execucao-obras/$id/demandas'
     | '/obras/$id/cronograma'
     | '/obras/$id/demandas'
     | '/obras/$id/documentos'
@@ -343,20 +448,29 @@ export interface FileRouteTypes {
     | '/_authenticated/execucao-obras'
     | '/_authenticated/historico-obras'
     | '/_authenticated/minha-conta'
+    | '/_authenticated/reunioes'
     | '/_authenticated/tramitacoes'
     | '/_authenticated/clientes/$id'
+    | '/_authenticated/execucao-obras/$id'
     | '/_authenticated/execucao-obras/nova'
     | '/_authenticated/obras/$id'
     | '/_authenticated/obras/nova'
     | '/_authenticated/execucao-obras/'
     | '/_authenticated/obras/'
+    | '/_authenticated/execucao-obras/$id/analises-criticas'
+    | '/_authenticated/execucao-obras/$id/documentos-eng-comercial'
+    | '/_authenticated/execucao-obras/$id/etapas'
+    | '/_authenticated/execucao-obras/$id/reunioes'
     | '/_authenticated/obras/$id/comercial'
     | '/_authenticated/obras/$id/editar'
     | '/_authenticated/obras/$id/etapas'
     | '/_authenticated/obras/$id/historico'
+    | '/_authenticated/execucao-obras/$id/'
     | '/_authenticated/obras/$id/'
+    | '/_authenticated/execucao-obras/$id/demandas/nova'
     | '/_authenticated/obras/$id/demandas/editar'
     | '/_authenticated/obras/$id/demandas/nova'
+    | '/_authenticated/execucao-obras/$id/demandas/'
     | '/_authenticated/obras/$id/cronograma/'
     | '/_authenticated/obras/$id/demandas/'
     | '/_authenticated/obras/$id/documentos/'
@@ -373,6 +487,7 @@ export interface RootRouteChildren {
   AuthenticatedExecucaoObrasRoute: typeof AuthenticatedExecucaoObrasRouteWithChildren
   AuthenticatedHistoricoObrasRoute: typeof AuthenticatedHistoricoObrasRoute
   AuthenticatedMinhaContaRoute: typeof AuthenticatedMinhaContaRoute
+  AuthenticatedReunioesRoute: typeof AuthenticatedReunioesRoute
   AuthenticatedTramitacoesRoute: typeof AuthenticatedTramitacoesRoute
   AuthenticatedClientesIdRoute: typeof AuthenticatedClientesIdRoute
   AuthenticatedObrasIdRoute: typeof AuthenticatedObrasIdRouteWithChildren
@@ -445,6 +560,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedMinhaContaRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/reunioes': {
+      id: '/_authenticated/reunioes'
+      path: '/reunioes'
+      fullPath: '/reunioes'
+      preLoaderRoute: typeof AuthenticatedReunioesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/tramitacoes': {
       id: '/_authenticated/tramitacoes'
       path: '/tramitacoes'
@@ -464,6 +586,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/execucao-obras/'
       preLoaderRoute: typeof AuthenticatedExecucaoObrasIndexRouteImport
+      parentRoute: typeof AuthenticatedExecucaoObrasRoute
+    }
+    '/_authenticated/execucao-obras/$id': {
+      id: '/_authenticated/execucao-obras/$id'
+      path: '/$id'
+      fullPath: '/execucao-obras/$id'
+      preLoaderRoute: typeof AuthenticatedExecucaoObrasIdRouteImport
       parentRoute: typeof AuthenticatedExecucaoObrasRoute
     }
     '/_authenticated/execucao-obras/nova': {
@@ -493,6 +622,41 @@ declare module '@tanstack/react-router' {
       fullPath: '/obras/nova'
       preLoaderRoute: typeof AuthenticatedObrasNovaRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/execucao-obras/$id/': {
+      id: '/_authenticated/execucao-obras/$id/'
+      path: '/'
+      fullPath: '/execucao-obras/$id/'
+      preLoaderRoute: typeof AuthenticatedExecucaoObrasIdIndexRouteImport
+      parentRoute: typeof AuthenticatedExecucaoObrasIdRoute
+    }
+    '/_authenticated/execucao-obras/$id/analises-criticas': {
+      id: '/_authenticated/execucao-obras/$id/analises-criticas'
+      path: '/analises-criticas'
+      fullPath: '/execucao-obras/$id/analises-criticas'
+      preLoaderRoute: typeof AuthenticatedExecucaoObrasIdAnalisesCriticasRouteImport
+      parentRoute: typeof AuthenticatedExecucaoObrasIdRoute
+    }
+    '/_authenticated/execucao-obras/$id/documentos-eng-comercial': {
+      id: '/_authenticated/execucao-obras/$id/documentos-eng-comercial'
+      path: '/documentos-eng-comercial'
+      fullPath: '/execucao-obras/$id/documentos-eng-comercial'
+      preLoaderRoute: typeof AuthenticatedExecucaoObrasIdDocumentosEngComercialRouteImport
+      parentRoute: typeof AuthenticatedExecucaoObrasIdRoute
+    }
+    '/_authenticated/execucao-obras/$id/etapas': {
+      id: '/_authenticated/execucao-obras/$id/etapas'
+      path: '/etapas'
+      fullPath: '/execucao-obras/$id/etapas'
+      preLoaderRoute: typeof AuthenticatedExecucaoObrasIdEtapasRouteImport
+      parentRoute: typeof AuthenticatedExecucaoObrasIdRoute
+    }
+    '/_authenticated/execucao-obras/$id/reunioes': {
+      id: '/_authenticated/execucao-obras/$id/reunioes'
+      path: '/reunioes'
+      fullPath: '/execucao-obras/$id/reunioes'
+      preLoaderRoute: typeof AuthenticatedExecucaoObrasIdReunioesRouteImport
+      parentRoute: typeof AuthenticatedExecucaoObrasIdRoute
     }
     '/_authenticated/obras/$id/': {
       id: '/_authenticated/obras/$id/'
@@ -528,6 +692,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/obras/$id/historico'
       preLoaderRoute: typeof AuthenticatedObrasIdHistoricoRouteImport
       parentRoute: typeof AuthenticatedObrasIdRoute
+    }
+    '/_authenticated/execucao-obras/$id/demandas/': {
+      id: '/_authenticated/execucao-obras/$id/demandas/'
+      path: '/demandas'
+      fullPath: '/execucao-obras/$id/demandas/'
+      preLoaderRoute: typeof AuthenticatedExecucaoObrasIdDemandasIndexRouteImport
+      parentRoute: typeof AuthenticatedExecucaoObrasIdRoute
+    }
+    '/_authenticated/execucao-obras/$id/demandas/nova': {
+      id: '/_authenticated/execucao-obras/$id/demandas/nova'
+      path: '/demandas/nova'
+      fullPath: '/execucao-obras/$id/demandas/nova'
+      preLoaderRoute: typeof AuthenticatedExecucaoObrasIdDemandasNovaRouteImport
+      parentRoute: typeof AuthenticatedExecucaoObrasIdRoute
     }
     '/_authenticated/obras/$id/cronograma/': {
       id: '/_authenticated/obras/$id/cronograma/'
@@ -574,13 +752,49 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AuthenticatedExecucaoObrasIdRouteChildren {
+  AuthenticatedExecucaoObrasIdAnalisesCriticasRoute: typeof AuthenticatedExecucaoObrasIdAnalisesCriticasRoute
+  AuthenticatedExecucaoObrasIdDocumentosEngComercialRoute: typeof AuthenticatedExecucaoObrasIdDocumentosEngComercialRoute
+  AuthenticatedExecucaoObrasIdEtapasRoute: typeof AuthenticatedExecucaoObrasIdEtapasRoute
+  AuthenticatedExecucaoObrasIdReunioesRoute: typeof AuthenticatedExecucaoObrasIdReunioesRoute
+  AuthenticatedExecucaoObrasIdIndexRoute: typeof AuthenticatedExecucaoObrasIdIndexRoute
+  AuthenticatedExecucaoObrasIdDemandasNovaRoute: typeof AuthenticatedExecucaoObrasIdDemandasNovaRoute
+  AuthenticatedExecucaoObrasIdDemandasIndexRoute: typeof AuthenticatedExecucaoObrasIdDemandasIndexRoute
+}
+
+const AuthenticatedExecucaoObrasIdRouteChildren: AuthenticatedExecucaoObrasIdRouteChildren =
+  {
+    AuthenticatedExecucaoObrasIdAnalisesCriticasRoute:
+      AuthenticatedExecucaoObrasIdAnalisesCriticasRoute,
+    AuthenticatedExecucaoObrasIdDocumentosEngComercialRoute:
+      AuthenticatedExecucaoObrasIdDocumentosEngComercialRoute,
+    AuthenticatedExecucaoObrasIdEtapasRoute:
+      AuthenticatedExecucaoObrasIdEtapasRoute,
+    AuthenticatedExecucaoObrasIdReunioesRoute:
+      AuthenticatedExecucaoObrasIdReunioesRoute,
+    AuthenticatedExecucaoObrasIdIndexRoute:
+      AuthenticatedExecucaoObrasIdIndexRoute,
+    AuthenticatedExecucaoObrasIdDemandasNovaRoute:
+      AuthenticatedExecucaoObrasIdDemandasNovaRoute,
+    AuthenticatedExecucaoObrasIdDemandasIndexRoute:
+      AuthenticatedExecucaoObrasIdDemandasIndexRoute,
+  }
+
+const AuthenticatedExecucaoObrasIdRouteWithChildren =
+  AuthenticatedExecucaoObrasIdRoute._addFileChildren(
+    AuthenticatedExecucaoObrasIdRouteChildren,
+  )
+
 interface AuthenticatedExecucaoObrasRouteChildren {
+  AuthenticatedExecucaoObrasIdRoute: typeof AuthenticatedExecucaoObrasIdRouteWithChildren
   AuthenticatedExecucaoObrasNovaRoute: typeof AuthenticatedExecucaoObrasNovaRoute
   AuthenticatedExecucaoObrasIndexRoute: typeof AuthenticatedExecucaoObrasIndexRoute
 }
 
 const AuthenticatedExecucaoObrasRouteChildren: AuthenticatedExecucaoObrasRouteChildren =
   {
+    AuthenticatedExecucaoObrasIdRoute:
+      AuthenticatedExecucaoObrasIdRouteWithChildren,
     AuthenticatedExecucaoObrasNovaRoute: AuthenticatedExecucaoObrasNovaRoute,
     AuthenticatedExecucaoObrasIndexRoute: AuthenticatedExecucaoObrasIndexRoute,
   }
@@ -636,6 +850,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedExecucaoObrasRoute: AuthenticatedExecucaoObrasRouteWithChildren,
   AuthenticatedHistoricoObrasRoute: AuthenticatedHistoricoObrasRoute,
   AuthenticatedMinhaContaRoute: AuthenticatedMinhaContaRoute,
+  AuthenticatedReunioesRoute: AuthenticatedReunioesRoute,
   AuthenticatedTramitacoesRoute: AuthenticatedTramitacoesRoute,
   AuthenticatedClientesIdRoute: AuthenticatedClientesIdRoute,
   AuthenticatedObrasIdRoute: AuthenticatedObrasIdRouteWithChildren,

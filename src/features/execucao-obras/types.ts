@@ -15,6 +15,7 @@ export interface SetorObraExecucao {
 export interface ClienteObraExecucao {
   id: string;
   nome: string;
+  cnpj: string | null;
   telefone: string | null;
   email: string | null;
 }
@@ -69,6 +70,11 @@ export interface ObraExecucao {
   prazo_entrega: string | null;
   data_entrega: string | null;
 
+  incluido_erp: boolean;
+  codigo_erp: string | null;
+  incluido_erp_em: string | null;
+  incluido_erp_por: string | null;
+
   observacoes: string | null;
   criado_por: string | null;
 
@@ -78,5 +84,6 @@ export interface ObraExecucao {
   cliente_relacionado?: ClienteObraExecucao | null;
   setor?: SetorObraExecucao | null;
   responsavel?: UsuarioObraExecucao | null;
+  incluido_erp_usuario?: UsuarioObraExecucao | null;
   orcamento?: OrcamentoVinculado | null;
 }

@@ -608,5 +608,55 @@ export async function registrarMovimentacaoComercial(
     );
   }
 
+  if (
+    dados.statusNovo ===
+    "aceita"
+  ) {
+    const {
+      data: demanda,
+      error: demandaError,
+    } = await supabase
+      .from("demandas")
+      .select(
+        "obra_id"
+      )
+      .eq(
+        "id",
+        dados.demandaId
+      )
+      .single();
+
+    if (demandaError) {
+      throw new Error(
+        `O acompanhamento foi salvo, mas não foi possível localizar o orçamento vinculado: ${demandaError.message}`
+      );
+    }
+
+    if (!demanda?.obra_id) {
+      throw new Error(
+        "O acompanhamento foi salvo, mas a demanda não possui um orçamento vinculado."
+      );
+    }
+
+    const {
+      error: aprovacaoError,
+    } = await supabase
+      .from("orcamentos")
+      .update({
+        status:
+          "aprovada",
+      })
+      .eq(
+        "id",
+        demanda.obra_id
+      );
+
+    if (aprovacaoError) {
+      throw new Error(
+        `O acompanhamento foi salvo, mas não foi possível aprovar o orçamento: ${aprovacaoError.message}`
+      );
+    }
+  }
+
   return data;
 }

@@ -1,0 +1,3095 @@
+import {
+  useEffect,
+  useMemo,
+  useState,
+  type FormEvent,
+} from "react";
+
+import {
+  Building2,
+  CalendarDays,
+  CheckCircle2,
+  CirclePause,
+  Clock3,
+  ExternalLink,
+  FileText,
+  ShieldAlert,
+  Layers3,
+  MessageSquareText,
+  Plus,
+  Trash2,
+  Upload,
+  UserRound,
+  X,
+  XCircle,
+} from "lucide-react";
+
+import * as Dialog from "@radix-ui/react-dialog";
+
+import {
+  useAuth,
+} from "@/features/auth/auth-context";
+
+import {
+  supabase,
+} from "@/integrations/supabase/client";
+
+import {
+  deletarDocumento,
+  getDocumentosPorDemanda,
+  uploadDocumentoDaDemanda,
+} from "@/features/execucao-obras/documentos/services/documentos-service";
+
+import type {
+  DocumentoExecucao,
+} from "@/features/execucao-obras/documentos/services/documentos-service";
+
+import type {
+  Demanda,
+  PrioridadeDemanda,
+  StatusDemanda,
+} from "../types";
+
+import {
+  atualizarItemDemanda,
+  criarItemDemanda,
+  deleteDemanda,
+  excluirItemDemanda,
+  listarItensDemanda,
+  updateDemanda,
+  type DemandaItem,
+} from "../services/demandas-service";
+
+interface ModalEditarDemandaProps {
+  demanda: Demanda | null;
+  onClose: () => void;
+  onSuccess: () => void;
+}
+
+interface SetorOpcao {
+  id: string;
+  nome: string;
+}
+
+interface UsuarioOpcao {
+  id: string;
+  nome: string;
+  email: string;
+  setor_id: string | null;
+}
+
+interface EtapaOpcao {
+  id: string;
+  obra_id: string;
+  setor_id: string;
+  titulo: string | null;
+  ordem: number | null;
+  status: string;
+  prazo: string | null;
+  setor:
+    | {
+        id: string;
+        nome: string;
+      }
+    | null;
+}
+
+interface RegistroSetor {
+  setor_id: string | null;
+}
+
+interface UsuarioObservacao {
+  id: string;
+  nome: string;
+  email: string;
+}
+
+interface DemandaObservacao {
+  id: string;
+  demanda_id: string;
+  usuario_id: string | null;
+  observacao: string;
+  created_at: string;
+  updated_at: string;
+
+  usuario?:
+    | UsuarioObservacao
+    | null;
+}
+
+function obterSomenteData(
+  data?: string | null
+): string {
+  if (!data) {
+    return "";
+  }
+
+  return data.split("T")[0];
+}
+
+function converterParaDataLocal(
+  data?: string | null
+): Date | null {
+  if (!data) {
+    return null;
+  }
+
+  const [
+    ano,
+    mes,
+    dia,
+  ] = obterSomenteData(data)
+    .split("-")
+    .map(Number);
+
+  if (
+    !ano ||
+    !mes ||
+    !dia
+  ) {
+    return null;
+  }
+
+  const dataLocal =
+    new Date(
+      ano,
+      mes - 1,
+      dia
+    );
+
+  dataLocal.setHours(
+    0,
+    0,
+    0,
+    0
+  );
+
+  return dataLocal;
+}
+
+function formatarDataHora(
+  data?: string | null
+): string {
+  if (!data) {
+    return "Não informado";
+  }
+
+  const dataConvertida =
+    new Date(data);
+
+  if (
+    Number.isNaN(
+      dataConvertida.getTime()
+    )
+  ) {
+    return "Não informado";
+  }
+
+  return new Intl.DateTimeFormat(
+    "pt-BR",
+    {
+      dateStyle:
+        "short",
+
+      timeStyle:
+        "short",
+    }
+  ).format(
+    dataConvertida
+  );
+}
+
+function obterStatusAutomatico(
+  cancelada: boolean,
+  dataInicio: string,
+  dataConclusao: string
+): StatusDemanda {
+  if (cancelada) {
+    return "cancelada";
+  }
+
+  if (dataConclusao) {
+    return "concluida";
+  }
+
+  if (dataInicio) {
+    return "em_andamento";
+  }
+
+  return "aberta";
+}
+
+function obterStatusVisual(
+  status: StatusDemanda
+) {
+  switch (status) {
+    case "em_andamento":
+      return {
+        label:
+          "Em andamento",
+
+        className:
+          "border-blue-200 bg-blue-50 text-blue-700",
+
+        icone:
+          Clock3,
+      };
+
+    case "concluida":
+      return {
+        label:
+          "Finalizada",
+
+        className:
+          "border-green-200 bg-green-50 text-green-700",
+
+        icone:
+          CheckCircle2,
+      };
+
+    case "cancelada":
+      return {
+        label:
+          "Cancelada",
+
+        className:
+          "border-red-200 bg-red-50 text-red-700",
+
+        icone:
+          XCircle,
+      };
+
+    default:
+      return {
+        label:
+          "Aguardando início",
+
+        className:
+          "border-slate-200 bg-slate-50 text-slate-700",
+
+        icone:
+          CirclePause,
+      };
+  }
+}
+
+function ModalEditarDemanda({
+  demanda,
+  onClose,
+  onSuccess,
+}: ModalEditarDemandaProps) {
+  const {
+    perfil,
+  } = useAuth();
+
+  const [
+    titulo,
+    setTitulo,
+  ] = useState("");
+
+  const [
+    descricao,
+    setDescricao,
+  ] = useState("");
+
+  const [
+    prioridade,
+    setPrioridade,
+  ] =
+    useState<PrioridadeDemanda>(
+      "media"
+    );
+
+  const [
+    etapaId,
+    setEtapaId,
+  ] = useState("");
+
+  const [
+    etapas,
+    setEtapas,
+  ] = useState<EtapaOpcao[]>(
+    []
+  );
+
+  const [
+    carregandoEtapas,
+    setCarregandoEtapas,
+  ] = useState(false);
+
+  const [
+    setorId,
+    setSetorId,
+  ] = useState("");
+
+  const [
+    responsavelId,
+    setResponsavelId,
+  ] = useState("");
+
+  const [
+    setores,
+    setSetores,
+  ] = useState<SetorOpcao[]>(
+    []
+  );
+
+  const [
+    usuarios,
+    setUsuarios,
+  ] = useState<UsuarioOpcao[]>(
+    []
+  );
+
+  const [
+    carregandoSetores,
+    setCarregandoSetores,
+  ] = useState(false);
+
+  const [
+    carregandoUsuarios,
+    setCarregandoUsuarios,
+  ] = useState(false);
+
+  const [
+    erroOpcoes,
+    setErroOpcoes,
+  ] = useState("");
+
+
+  const [
+    dataInicio,
+    setDataInicio,
+  ] = useState("");
+
+  const [
+    dataConclusao,
+    setDataConclusao,
+  ] = useState("");
+
+  const [
+    motivoAtraso,
+    setMotivoAtraso,
+  ] = useState("");
+
+  const [
+    cancelada,
+    setCancelada,
+  ] = useState(false);
+
+  const [
+    salvando,
+    setSalvando,
+  ] = useState(false);
+
+  const [
+    excluindo,
+    setExcluindo,
+  ] = useState(false);
+
+  const [
+    itensChecklist,
+    setItensChecklist,
+  ] = useState<DemandaItem[]>(
+    []
+  );
+
+  const [
+    novoItemTitulo,
+    setNovoItemTitulo,
+  ] = useState("");
+
+  const [
+    carregandoChecklist,
+    setCarregandoChecklist,
+  ] = useState(false);
+
+  const [
+    salvandoItemId,
+    setSalvandoItemId,
+  ] = useState<string | null>(
+    null
+  );
+
+  const [
+    adicionandoItem,
+    setAdicionandoItem,
+  ] = useState(false);
+
+  const [
+    documentosDemanda,
+    setDocumentosDemanda,
+  ] = useState<DocumentoExecucao[]>([]);
+
+  const [
+    nomeNovoDocumento,
+    setNomeNovoDocumento,
+  ] = useState("");
+
+  const [
+    arquivoNovoDocumento,
+    setArquivoNovoDocumento,
+  ] = useState<File | null>(null);
+
+  const [
+    carregandoDocumentos,
+    setCarregandoDocumentos,
+  ] = useState(false);
+
+  const [
+    enviandoDocumento,
+    setEnviandoDocumento,
+  ] = useState(false);
+
+  const [
+    excluindoDocumentoId,
+    setExcluindoDocumentoId,
+  ] = useState<string | null>(null);
+
+  const [
+    observacoes,
+    setObservacoes,
+  ] = useState<DemandaObservacao[]>(
+    []
+  );
+
+  const [
+    novaObservacao,
+    setNovaObservacao,
+  ] = useState("");
+
+  const [
+    carregandoObservacoes,
+    setCarregandoObservacoes,
+  ] = useState(false);
+
+  const [
+    adicionandoObservacao,
+    setAdicionandoObservacao,
+  ] = useState(false);
+
+  const [
+    excluindoObservacaoId,
+    setExcluindoObservacaoId,
+  ] = useState<string | null>(
+    null
+  );
+
+  const [
+    usuarioAtualId,
+    setUsuarioAtualId,
+  ] = useState<string | null>(
+    null
+  );
+
+  const administrador =
+    perfil?.administrador ===
+    true;
+
+  const demandaDoMeuSetor =
+    Boolean(
+      perfil?.setor_id &&
+      demanda?.setor_id &&
+      perfil.setor_id ===
+        demanda.setor_id
+    );
+
+  const podeEditar =
+    administrador ||
+    demandaDoMeuSetor;
+
+  useEffect(() => {
+    if (!demanda) {
+      return;
+    }
+
+    setTitulo(
+      demanda.titulo ??
+        ""
+    );
+
+    setDescricao(
+      demanda.descricao ??
+        ""
+    );
+
+    setPrioridade(
+      demanda.prioridade ??
+        "media"
+    );
+
+    setEtapaId(
+      demanda.etapa_id ??
+        ""
+    );
+
+    setSetorId(
+      demanda.setor_id ??
+        demanda.etapa?.setor_id ??
+        demanda.responsavel
+          ?.setor_id ??
+        ""
+    );
+
+    setResponsavelId(
+      demanda.responsavel_id ??
+        ""
+    );
+
+    setDataInicio(
+      obterSomenteData(
+        demanda.data_inicio
+      )
+    );
+
+    setDataConclusao(
+      obterSomenteData(
+        demanda.data_conclusao
+      )
+    );
+
+    setMotivoAtraso(
+      demanda.motivo_atraso ??
+        ""
+    );
+
+    setCancelada(
+      demanda.status ===
+        "cancelada"
+    );
+  }, [
+    demanda,
+  ]);
+
+  useEffect(() => {
+    if (!demanda) {
+      setItensChecklist(
+        []
+      );
+
+      return;
+    }
+
+    async function carregarChecklist() {
+      try {
+        setCarregandoChecklist(
+          true
+        );
+
+        const itens =
+          await listarItensDemanda(
+            demanda.id
+          );
+
+        setItensChecklist(
+          itens
+        );
+      } catch (error) {
+        console.error(
+          "Erro ao carregar checklist da demanda:",
+          error
+        );
+
+        setErroOpcoes(
+          "Não foi possível carregar o checklist da demanda."
+        );
+      } finally {
+        setCarregandoChecklist(
+          false
+        );
+      }
+    }
+
+    carregarChecklist();
+  }, [
+    demanda,
+  ]);
+
+  useEffect(() => {
+    async function carregarUsuarioAtual() {
+      const {
+        data,
+      } = await supabase.auth.getUser();
+
+      setUsuarioAtualId(
+        data.user?.id ??
+        null
+      );
+    }
+
+    carregarUsuarioAtual();
+  }, []);
+
+  useEffect(() => {
+    if (!demanda) {
+      setObservacoes([]);
+      setNovaObservacao("");
+
+      return;
+    }
+
+    async function carregarObservacoes() {
+      try {
+        setCarregandoObservacoes(
+          true
+        );
+
+        const {
+          data,
+          error,
+        } = await supabase
+          .from("demanda_observacoes_obras_execucao")
+          .select(`
+            id,
+            demanda_id,
+            usuario_id,
+            observacao,
+            created_at,
+            updated_at,
+            usuario:usuarios!demanda_observacoes_execucao_usuario_id_fkey (
+              id,
+              nome,
+              email
+            )
+          `)
+          .eq(
+            "demanda_id",
+            demanda.id
+          )
+          .order(
+            "created_at",
+            {
+              ascending:
+                true,
+            }
+          );
+
+        if (error) {
+          throw error;
+        }
+
+        setObservacoes(
+          (
+            data ??
+            []
+          ) as unknown as DemandaObservacao[]
+        );
+      } catch (error) {
+        console.error(
+          "Erro ao carregar observações da demanda:",
+          error
+        );
+
+        setErroOpcoes(
+          "Não foi possível carregar as observações da demanda."
+        );
+      } finally {
+        setCarregandoObservacoes(
+          false
+        );
+      }
+    }
+
+    carregarObservacoes();
+  }, [
+    demanda,
+  ]);
+
+  useEffect(() => {
+    if (!demanda) {
+      setDocumentosDemanda([]);
+      return;
+    }
+
+    async function carregarDocumentos() {
+      try {
+        setCarregandoDocumentos(true);
+
+        const documentos =
+          await getDocumentosPorDemanda(demanda.id);
+
+        setDocumentosDemanda(documentos);
+      } catch (error) {
+        console.error(
+          "Erro ao carregar documentos da demanda:",
+          error
+        );
+
+        setErroOpcoes(
+          "Não foi possível carregar os documentos da demanda."
+        );
+      } finally {
+        setCarregandoDocumentos(false);
+      }
+    }
+
+    carregarDocumentos();
+  }, [demanda]);
+
+  useEffect(() => {
+    if (
+      !demanda ||
+      !podeEditar
+    ) {
+      return;
+    }
+
+    async function carregarEtapas() {
+      try {
+        setCarregandoEtapas(
+          true
+        );
+
+        setErroOpcoes("");
+
+        const {
+          data,
+          error,
+        } = await supabase
+          .from("etapas_obras_execucao")
+          .select(`
+            id,
+            obra_id,
+            setor_id,
+            titulo,
+            ordem,
+            status,
+            prazo,
+            setor:setores (
+              id,
+              nome
+            )
+          `)
+          .eq(
+            "obra_id",
+            demanda.obra_id
+          )
+          .order(
+            "ordem",
+            {
+              ascending:
+                true,
+            }
+          );
+
+        if (error) {
+          throw error;
+        }
+
+        const etapasEncontradas =
+          (
+            data ??
+            []
+          ) as EtapaOpcao[];
+
+        const etapasPermitidas =
+          administrador
+            ? etapasEncontradas
+            : etapasEncontradas.filter(
+                (etapa) =>
+                  etapa.setor_id ===
+                  perfil?.setor_id
+              );
+
+        setEtapas(
+          etapasPermitidas
+        );
+      } catch (error) {
+        console.error(
+          "Erro ao carregar etapas da execução:",
+          error
+        );
+
+        setEtapas([]);
+
+        setErroOpcoes(
+          "Não foi possível carregar as etapas da execução."
+        );
+      } finally {
+        setCarregandoEtapas(
+          false
+        );
+      }
+    }
+
+    carregarEtapas();
+  }, [
+    demanda,
+    podeEditar,
+    administrador,
+    perfil?.setor_id,
+  ]);
+
+  useEffect(() => {
+    if (
+      !demanda ||
+      !podeEditar
+    ) {
+      return;
+    }
+
+    async function carregarSetores() {
+      try {
+        setCarregandoSetores(
+          true
+        );
+
+        setErroOpcoes("");
+
+        let consulta =
+          supabase
+            .from("setores")
+            .select(
+              "id, nome"
+            )
+            .eq(
+              "ativo",
+              true
+            )
+            .order(
+              "nome",
+              {
+                ascending:
+                  true,
+              }
+            );
+
+        if (
+          !administrador &&
+          perfil?.setor_id
+        ) {
+          consulta =
+            consulta.eq(
+              "id",
+              perfil.setor_id
+            );
+        }
+
+        const {
+          data,
+          error,
+        } = await consulta;
+
+        if (error) {
+          throw error;
+        }
+
+        setSetores(
+          (
+            data ??
+            []
+          ) as SetorOpcao[]
+        );
+      } catch (error) {
+        console.error(
+          "Erro ao carregar setores:",
+          error
+        );
+
+        setErroOpcoes(
+          "Não foi possível carregar os setores."
+        );
+      } finally {
+        setCarregandoSetores(
+          false
+        );
+      }
+    }
+
+    carregarSetores();
+  }, [
+    demanda,
+    podeEditar,
+    administrador,
+    perfil?.setor_id,
+  ]);
+
+  useEffect(() => {
+    if (
+      !demanda ||
+      !podeEditar
+    ) {
+      return;
+    }
+
+    if (!setorId) {
+      setUsuarios([]);
+
+      return;
+    }
+
+    async function carregarUsuarios() {
+      try {
+        setCarregandoUsuarios(
+          true
+        );
+
+        setErroOpcoes("");
+
+        const {
+          data,
+          error,
+        } = await supabase
+          .from("usuarios")
+          .select(
+            "id, nome, email, setor_id"
+          )
+          .eq(
+            "setor_id",
+            setorId
+          )
+          .eq(
+            "ativo",
+            true
+          )
+          .order(
+            "nome",
+            {
+              ascending:
+                true,
+            }
+          );
+
+        if (error) {
+          throw error;
+        }
+
+        const usuariosEncontrados =
+          (
+            data ??
+            []
+          ) as UsuarioOpcao[];
+
+        const responsavelAtualDaDemanda =
+          demanda.responsavel_id &&
+          demanda.responsavel
+            ? {
+                id:
+                  demanda.responsavel.id,
+
+                nome:
+                  demanda.responsavel.nome,
+
+                email:
+                  demanda.responsavel.email,
+
+                setor_id:
+                  demanda.responsavel.setor_id,
+              }
+            : null;
+
+        const responsavelJaEstaNaLista =
+          Boolean(
+            responsavelAtualDaDemanda &&
+            usuariosEncontrados.some(
+              (
+                usuario
+              ) =>
+                usuario.id ===
+                responsavelAtualDaDemanda.id
+            )
+          );
+
+        const usuariosComResponsavelAtual =
+          responsavelAtualDaDemanda &&
+          !responsavelJaEstaNaLista
+            ? [
+                responsavelAtualDaDemanda,
+                ...usuariosEncontrados,
+              ]
+            : usuariosEncontrados;
+
+        setUsuarios(
+          usuariosComResponsavelAtual
+        );
+
+        setResponsavelId(
+          (
+            responsavelAtual
+          ) => {
+            if (
+              !responsavelAtual
+            ) {
+              return "";
+            }
+
+            const responsavelValido =
+              usuariosComResponsavelAtual.some(
+                (
+                  usuario
+                ) =>
+                  usuario.id ===
+                  responsavelAtual
+              );
+
+            return responsavelValido
+              ? responsavelAtual
+              : "";
+          }
+        );
+      } catch (error) {
+        console.error(
+          "Erro ao carregar usuários do setor:",
+          error
+        );
+
+        setUsuarios([]);
+
+        setResponsavelId("");
+
+        setErroOpcoes(
+          "Não foi possível carregar os usuários do setor."
+        );
+      } finally {
+        setCarregandoUsuarios(
+          false
+        );
+      }
+    }
+
+    carregarUsuarios();
+  }, [
+    demanda,
+    setorId,
+    podeEditar,
+  ]);
+
+  const statusAutomatico =
+    useMemo(
+      () =>
+        obterStatusAutomatico(
+          cancelada,
+          dataInicio,
+          dataConclusao
+        ),
+      [
+        cancelada,
+        dataInicio,
+        dataConclusao,
+      ]
+    );
+
+  const statusVisual =
+    obterStatusVisual(
+      statusAutomatico
+    );
+
+  const StatusIcon =
+    statusVisual.icone;
+
+  const prazoEtapaSelecionada =
+    useMemo(
+      () =>
+        etapas.find(
+          (
+            etapa
+          ) =>
+            etapa.id ===
+            etapaId
+        )?.prazo ||
+        (
+          demanda?.etapa as
+            | {
+                prazo?: string | null;
+              }
+            | null
+            | undefined
+        )?.prazo ||
+        "",
+      [
+        etapas,
+        etapaId,
+        demanda?.etapa?.prazo,
+      ]
+    );
+
+  const finalizadaComAtraso =
+    useMemo(() => {
+      const dataPrazo =
+        converterParaDataLocal(
+          prazoEtapaSelecionada
+        );
+
+      const dataFinal =
+        converterParaDataLocal(
+          dataConclusao
+        );
+
+      return Boolean(
+        dataPrazo &&
+          dataFinal &&
+          dataFinal >
+            dataPrazo
+      );
+    }, [
+      prazoEtapaSelecionada,
+      dataConclusao,
+    ]);
+
+  const demandaAtrasada =
+    useMemo(() => {
+      if (
+        statusAutomatico ===
+          "concluida" ||
+        statusAutomatico ===
+          "cancelada"
+      ) {
+        return false;
+      }
+
+      const dataPrazo =
+        converterParaDataLocal(
+          prazoEtapaSelecionada
+        );
+
+      if (!dataPrazo) {
+        return false;
+      }
+
+      const hoje =
+        new Date();
+
+      hoje.setHours(
+        0,
+        0,
+        0,
+        0
+      );
+
+      return (
+        dataPrazo <
+        hoje
+      );
+    }, [
+      prazoEtapaSelecionada,
+      statusAutomatico,
+    ]);
+
+  const deveInformarMotivo =
+    demandaAtrasada ||
+    finalizadaComAtraso;
+
+  function handleAlterarEtapa(
+    novaEtapaId: string
+  ) {
+    setEtapaId(
+      novaEtapaId
+    );
+
+    const etapaSelecionada =
+      etapas.find(
+        (etapa) =>
+          etapa.id ===
+          novaEtapaId
+      );
+
+    if (!etapaSelecionada) {
+      return;
+    }
+
+    setSetorId(
+      etapaSelecionada.setor_id
+    );
+
+    setResponsavelId("");
+  }
+
+  function handleAlterarSetor(
+    novoSetorId: string
+  ) {
+    if (
+      !administrador
+    ) {
+      return;
+    }
+
+    setSetorId(
+      novoSetorId
+    );
+
+    setResponsavelId("");
+  }
+
+  function handleAlterarInicio(
+    valor: string
+  ) {
+    setCancelada(false);
+
+    setDataInicio(
+      valor
+    );
+
+    if (
+      !valor &&
+      dataConclusao
+    ) {
+      setDataConclusao("");
+    }
+  }
+
+  function handleAlterarConclusao(
+    valor: string
+  ) {
+    setCancelada(false);
+
+    setDataConclusao(
+      valor
+    );
+
+    if (
+      valor &&
+      !dataInicio
+    ) {
+      setDataInicio(
+        valor
+      );
+    }
+  }
+
+  const totalItensChecklist =
+    itensChecklist.length;
+
+  const totalItensConcluidos =
+    itensChecklist.filter(
+      (
+        item
+      ) =>
+        item.concluido
+    ).length;
+
+  const checklistCompleto =
+    totalItensChecklist ===
+      0 ||
+    totalItensConcluidos ===
+      totalItensChecklist;
+
+  async function adicionarItemChecklist() {
+    if (
+      !demanda ||
+      !novoItemTitulo.trim()
+    ) {
+      return;
+    }
+
+    try {
+      setAdicionandoItem(
+        true
+      );
+
+      const itemCriado =
+        await criarItemDemanda(
+          demanda.id,
+          novoItemTitulo
+        );
+
+      setItensChecklist(
+        (
+          itensAtuais
+        ) => [
+          ...itensAtuais,
+          itemCriado,
+        ]
+      );
+
+      setNovoItemTitulo(
+        ""
+      );
+    } catch (error) {
+      console.error(
+        "Erro ao adicionar item ao checklist:",
+        error
+      );
+
+      alert(
+        error instanceof Error
+          ? error.message
+          : "Não foi possível adicionar o item."
+      );
+    } finally {
+      setAdicionandoItem(
+        false
+      );
+    }
+  }
+
+  async function alternarItemChecklist(
+    item: DemandaItem
+  ) {
+    try {
+      setSalvandoItemId(
+        item.id
+      );
+
+      const itemAtualizado =
+        await atualizarItemDemanda(
+          item.id,
+          {
+            concluido:
+              !item.concluido,
+          }
+        );
+
+      setItensChecklist(
+        (
+          itensAtuais
+        ) =>
+          itensAtuais.map(
+            (
+              itemAtual
+            ) =>
+              itemAtual.id ===
+                item.id
+                ? itemAtualizado
+                : itemAtual
+          )
+      );
+    } catch (error) {
+      console.error(
+        "Erro ao atualizar item do checklist:",
+        error
+      );
+
+      alert(
+        "Não foi possível atualizar o item."
+      );
+    } finally {
+      setSalvandoItemId(
+        null
+      );
+    }
+  }
+
+  async function removerItemChecklist(
+    item: DemandaItem
+  ) {
+    const confirmou =
+      window.confirm(
+        `Deseja excluir o item "${item.titulo}"?`
+      );
+
+    if (!confirmou) {
+      return;
+    }
+
+    try {
+      setSalvandoItemId(
+        item.id
+      );
+
+      await excluirItemDemanda(
+        item.id
+      );
+
+      setItensChecklist(
+        (
+          itensAtuais
+        ) =>
+          itensAtuais.filter(
+            (
+              itemAtual
+            ) =>
+              itemAtual.id !==
+              item.id
+          )
+      );
+    } catch (error) {
+      console.error(
+        "Erro ao excluir item do checklist:",
+        error
+      );
+
+      alert(
+        "Não foi possível excluir o item."
+      );
+    } finally {
+      setSalvandoItemId(
+        null
+      );
+    }
+  }
+
+  async function adicionarObservacao() {
+    if (
+      !demanda ||
+      !novaObservacao.trim()
+    ) {
+      return;
+    }
+
+    try {
+      setAdicionandoObservacao(
+        true
+      );
+
+      const permissaoAtual =
+        await validarPermissaoAtual();
+
+      if (!permissaoAtual) {
+        alert(
+          "Você não possui permissão para adicionar observações nesta demanda."
+        );
+
+        return;
+      }
+
+      const {
+        data,
+        error,
+      } = await supabase
+        .from("demanda_observacoes_obras_execucao")
+        .insert({
+          demanda_id:
+            demanda.id,
+
+          usuario_id:
+            usuarioAtualId,
+
+          observacao:
+            novaObservacao.trim(),
+        })
+        .select(`
+          id,
+          demanda_id,
+          usuario_id,
+          observacao,
+          created_at,
+          updated_at,
+          usuario:usuarios!demanda_observacoes_execucao_usuario_id_fkey (
+            id,
+            nome,
+            email
+          )
+        `)
+        .single();
+
+      if (error) {
+        throw error;
+      }
+
+      setObservacoes(
+        (
+          observacoesAtuais
+        ) => [
+          ...observacoesAtuais,
+          data as unknown as DemandaObservacao,
+        ]
+      );
+
+      setNovaObservacao(
+        ""
+      );
+    } catch (error: any) {
+      console.error(
+        "Erro ao adicionar observação:",
+        error
+      );
+
+      alert(
+        error?.message ||
+        error?.details ||
+        "Não foi possível adicionar a observação."
+      );
+    } finally {
+      setAdicionandoObservacao(
+        false
+      );
+    }
+  }
+
+  async function excluirObservacao(
+    observacao: DemandaObservacao
+  ) {
+    const podeExcluirObservacao =
+      administrador ||
+      (
+        Boolean(
+          usuarioAtualId
+        ) &&
+        observacao.usuario_id ===
+          usuarioAtualId
+      );
+
+    if (!podeExcluirObservacao) {
+      alert(
+        "Você só pode excluir suas próprias observações."
+      );
+
+      return;
+    }
+
+    const confirmou =
+      window.confirm(
+        "Deseja excluir esta observação? Esta ação não poderá ser desfeita."
+      );
+
+    if (!confirmou) {
+      return;
+    }
+
+    try {
+      setExcluindoObservacaoId(
+        observacao.id
+      );
+
+      const {
+        error,
+      } = await supabase
+        .from("demanda_observacoes_obras_execucao")
+        .delete()
+        .eq(
+          "id",
+          observacao.id
+        );
+
+      if (error) {
+        throw error;
+      }
+
+      setObservacoes(
+        (
+          observacoesAtuais
+        ) =>
+          observacoesAtuais.filter(
+            (
+              observacaoAtual
+            ) =>
+              observacaoAtual.id !==
+              observacao.id
+          )
+      );
+    } catch (error: any) {
+      console.error(
+        "Erro ao excluir observação:",
+        error
+      );
+
+      alert(
+        error?.message ||
+        error?.details ||
+        "Não foi possível excluir a observação."
+      );
+    } finally {
+      setExcluindoObservacaoId(
+        null
+      );
+    }
+  }
+
+  async function enviarDocumentoDemanda() {
+    if (
+      !demanda ||
+      !arquivoNovoDocumento ||
+      !nomeNovoDocumento.trim()
+    ) {
+      alert("Informe o nome e selecione o arquivo.");
+      return;
+    }
+
+    try {
+      setEnviandoDocumento(true);
+
+      const permissaoAtual =
+        await validarPermissaoAtual();
+
+      if (!permissaoAtual) {
+        alert(
+          "Você não possui permissão para adicionar documentos nesta demanda."
+        );
+        return;
+      }
+
+      const documentoCriado =
+        await uploadDocumentoDaDemanda(
+          demanda.id,
+          demanda.obra_id,
+          arquivoNovoDocumento,
+          nomeNovoDocumento
+        );
+
+      setDocumentosDemanda(
+        (atuais) => [documentoCriado, ...atuais]
+      );
+
+      setNomeNovoDocumento("");
+      setArquivoNovoDocumento(null);
+      onSuccess();
+    } catch (error: any) {
+      console.error(
+        "Erro ao enviar documento da demanda:",
+        error
+      );
+
+      alert(
+        error?.message ||
+        error?.details ||
+        "Não foi possível enviar o documento."
+      );
+    } finally {
+      setEnviandoDocumento(false);
+    }
+  }
+
+  async function excluirDocumentoDemanda(
+    documento: DocumentoExecucao
+  ) {
+    const confirmou = window.confirm(
+      `Deseja excluir o documento “${documento.nome}”? Esta ação não poderá ser desfeita.`
+    );
+
+    if (!confirmou) {
+      return;
+    }
+
+    try {
+      setExcluindoDocumentoId(documento.id);
+
+      const permissaoAtual =
+        await validarPermissaoAtual();
+
+      if (!permissaoAtual) {
+        alert(
+          "Você não possui permissão para excluir documentos desta demanda."
+        );
+        return;
+      }
+
+      await deletarDocumento(
+        documento.id,
+        documento.arquivo_url
+      );
+
+      setDocumentosDemanda(
+        (atuais) =>
+          atuais.filter(
+            (item) =>
+              item.id !== documento.id
+          )
+      );
+
+      onSuccess();
+    } catch (error: any) {
+      console.error(
+        "Erro ao excluir documento da demanda:",
+        error
+      );
+
+      alert(
+        error?.message ||
+        error?.details ||
+        "Não foi possível excluir o documento."
+      );
+    } finally {
+      setExcluindoDocumentoId(null);
+    }
+  }
+
+  async function validarPermissaoAtual(): Promise<boolean> {
+    if (
+      administrador
+    ) {
+      return true;
+    }
+
+    const setorUsuarioId =
+      perfil?.setor_id;
+
+    if (
+      !setorUsuarioId ||
+      !demanda
+    ) {
+      return false;
+    }
+
+    const {
+      data,
+      error,
+    } = await supabase
+      .from("demandas_obras_execucao")
+      .select(
+        "setor_id"
+      )
+      .eq(
+        "id",
+        demanda.id
+      )
+      .single();
+
+    if (error) {
+      console.error(
+        "Erro ao validar permissão da demanda:",
+        error
+      );
+
+      throw new Error(
+        "Não foi possível confirmar sua permissão."
+      );
+    }
+
+    const demandaAtual =
+      data as RegistroSetor;
+
+    return (
+      demandaAtual.setor_id ===
+      setorUsuarioId
+    );
+  }
+
+  async function excluirDemandaAtual() {
+    if (
+      !demanda
+    ) {
+      return;
+    }
+
+    if (
+      !podeEditar
+    ) {
+      alert(
+        "Você não possui permissão para excluir esta demanda."
+      );
+
+      return;
+    }
+
+    const confirmou =
+      window.confirm(
+        `Deseja excluir a demanda “${demanda.titulo}”? As observações e os itens do checklist serão excluídos. A exclusão será bloqueada enquanto existirem documentos vinculados. Esta ação não poderá ser desfeita.`
+      );
+
+    if (
+      !confirmou
+    ) {
+      return;
+    }
+
+    try {
+      setExcluindo(
+        true
+      );
+
+      const permissaoAtual =
+        await validarPermissaoAtual();
+
+      if (
+        !permissaoAtual
+      ) {
+        alert(
+          "A demanda não pertence mais ao seu setor e não pode ser excluída."
+        );
+
+        onClose();
+
+        return;
+      }
+
+      await deleteDemanda(
+        demanda.id
+      );
+
+      onSuccess();
+    } catch (error: any) {
+      console.error(
+        "Erro ao excluir demanda:",
+        error
+      );
+
+      alert(
+        error?.message ||
+          error?.details ||
+          "Não foi possível excluir a demanda."
+      );
+    } finally {
+      setExcluindo(
+        false
+      );
+    }
+  }
+
+  async function handleSubmit(
+    event:
+      FormEvent<HTMLFormElement>
+  ) {
+    event.preventDefault();
+
+    if (!demanda) {
+      return;
+    }
+
+    if (!podeEditar) {
+      alert(
+        "Você não possui permissão para editar esta demanda."
+      );
+
+      onClose();
+
+      return;
+    }
+
+    if (!titulo.trim()) {
+      alert(
+        "Informe o título da demanda."
+      );
+
+      return;
+    }
+
+    if (!etapaId) {
+      alert(
+        "Selecione a etapa à qual esta demanda pertence."
+      );
+
+      return;
+    }
+
+    if (!setorId) {
+      alert(
+        "A etapa selecionada não possui um setor válido."
+      );
+
+      return;
+    }
+
+    if (
+      !administrador &&
+      setorId !==
+        perfil?.setor_id
+    ) {
+      alert(
+        "Você não pode transferir esta demanda para outro setor."
+      );
+
+      return;
+    }
+
+    if (
+      dataConclusao &&
+      !checklistCompleto
+    ) {
+      alert(
+        `Conclua todos os itens do checklist antes de finalizar a demanda. Restam ${
+          totalItensChecklist -
+          totalItensConcluidos
+        } item(ns).`
+      );
+
+      return;
+    }
+
+    if (
+      dataInicio &&
+      dataConclusao
+    ) {
+      const inicio =
+        converterParaDataLocal(
+          dataInicio
+        );
+
+      const conclusao =
+        converterParaDataLocal(
+          dataConclusao
+        );
+
+      if (
+        inicio &&
+        conclusao &&
+        conclusao <
+          inicio
+      ) {
+        alert(
+          "A data de conclusão não pode ser anterior à data de início."
+        );
+
+        return;
+      }
+    }
+
+    if (
+      deveInformarMotivo &&
+      !motivoAtraso.trim()
+    ) {
+      alert(
+        "Informe o motivo do atraso."
+      );
+
+      return;
+    }
+
+    try {
+      setSalvando(true);
+
+      const permissaoAtual =
+        await validarPermissaoAtual();
+
+      if (
+        !permissaoAtual
+      ) {
+        alert(
+          "A demanda não pertence mais ao seu setor. As alterações não foram salvas."
+        );
+
+        onClose();
+
+        return;
+      }
+
+      await updateDemanda(
+        demanda.id,
+        {
+          titulo:
+            titulo.trim(),
+
+          descricao:
+            descricao.trim() ||
+            null,
+
+          status:
+            statusAutomatico,
+
+          prioridade,
+
+          etapa_id:
+            etapaId,
+
+          setor_id:
+            administrador
+              ? setorId
+              : perfil?.setor_id ??
+                setorId,
+
+          responsavel_id:
+            responsavelId ||
+            null,
+
+          data_inicio:
+            dataInicio ||
+            null,
+
+          data_conclusao:
+            dataConclusao ||
+            null,
+
+          motivo_atraso:
+            deveInformarMotivo
+              ? motivoAtraso.trim()
+              : null,
+        }
+      );
+
+      onSuccess();
+    } catch (error) {
+      console.error(
+        "Erro ao atualizar demanda:",
+        error
+      );
+
+      alert(
+        error instanceof Error
+          ? error.message
+          : "Erro ao salvar as alterações."
+      );
+    } finally {
+      setSalvando(false);
+    }
+  }
+
+  return (
+    <Dialog.Root
+      open={
+        Boolean(demanda)
+      }
+      onOpenChange={(
+        aberto
+      ) => {
+        if (!aberto) {
+          onClose();
+        }
+      }}
+    >
+      <Dialog.Portal>
+        <Dialog.Overlay className="fixed inset-0 z-50 bg-black/70 backdrop-blur-[1px]" />
+
+        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 max-h-[92vh] w-[calc(100%-2rem)] max-w-3xl -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-2xl border bg-white shadow-2xl">
+          {!podeEditar ? (
+            <div className="p-8">
+              <div className="flex flex-col items-center text-center">
+                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-amber-100 text-amber-700">
+                  <ShieldAlert className="h-7 w-7" />
+                </div>
+
+                <Dialog.Title className="mt-4 text-xl font-bold text-gray-900">
+                  Edição não permitida
+                </Dialog.Title>
+
+                <Dialog.Description className="mt-2 max-w-md text-sm text-gray-600">
+                  Você só pode alterar demandas do seu próprio setor.
+                </Dialog.Description>
+
+                <button
+                  type="button"
+                  onClick={
+                    onClose
+                  }
+                  className="mt-6 inline-flex h-11 items-center justify-center rounded-xl bg-black px-5 text-sm font-semibold text-white transition hover:bg-gray-800"
+                >
+                  Fechar
+                </button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="border-b px-6 py-5 pr-16">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <Dialog.Title className="text-2xl font-bold tracking-tight text-gray-900">
+                      Editar demanda
+                    </Dialog.Title>
+
+                    <Dialog.Description className="mt-1 text-sm text-gray-500">
+                      Atualize as informações e registre o andamento da atividade.
+                    </Dialog.Description>
+                  </div>
+
+                  <span
+                    className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold ${statusVisual.className}`}
+                  >
+                    <StatusIcon className="h-3.5 w-3.5" />
+
+                    {
+                      statusVisual.label
+                    }
+                  </span>
+                </div>
+              </div>
+
+              <form
+                onSubmit={
+                  handleSubmit
+                }
+                className="space-y-6 p-6"
+              >
+                {erroOpcoes && (
+                  <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+                    {
+                      erroOpcoes
+                    }
+                  </div>
+                )}
+
+                <section className="space-y-4 rounded-2xl border bg-white p-5">
+                  <div>
+                    <h3 className="font-semibold text-gray-900">
+                      Informações da demanda
+                    </h3>
+
+                    <p className="mt-1 text-xs text-gray-500">
+                      Dados principais, setor e responsável pela atividade.
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label
+                      htmlFor="editar-demanda-titulo"
+                      className="text-sm font-semibold text-gray-700"
+                    >
+                      Título
+                    </label>
+
+                    <input
+                      id="editar-demanda-titulo"
+                      type="text"
+                      value={
+                        titulo
+                      }
+                      onChange={(
+                        event
+                      ) =>
+                        setTitulo(
+                          event.target.value
+                        )
+                      }
+                      required
+                      className="h-11 w-full rounded-xl border border-gray-300 bg-white px-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                      placeholder="Título da demanda"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label
+                      htmlFor="editar-demanda-descricao"
+                      className="text-sm font-semibold text-gray-700"
+                    >
+                      Descrição
+                    </label>
+
+                    <textarea
+                      id="editar-demanda-descricao"
+                      value={
+                        descricao
+                      }
+                      onChange={(
+                        event
+                      ) =>
+                        setDescricao(
+                          event.target.value
+                        )
+                      }
+                      rows={4}
+                      className="w-full resize-y rounded-xl border border-gray-300 bg-white px-3 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                      placeholder="Descrição detalhada da demanda"
+                    />
+                  </div>
+
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-2 sm:col-span-2">
+                      <label
+                        htmlFor="editar-demanda-etapa"
+                        className="flex items-center gap-2 text-sm font-semibold text-gray-700"
+                      >
+                        <Layers3 className="h-4 w-4 text-gray-500" />
+
+                        Etapa da obra *
+                      </label>
+
+                      <select
+                        id="editar-demanda-etapa"
+                        value={
+                          etapaId
+                        }
+                        onChange={(
+                          event
+                        ) =>
+                          handleAlterarEtapa(
+                            event.target.value
+                          )
+                        }
+                        disabled={
+                          carregandoEtapas
+                        }
+                        required
+                        className="h-11 w-full cursor-pointer rounded-xl border border-gray-300 bg-white px-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-gray-100"
+                      >
+                        <option value="">
+                          {carregandoEtapas
+                            ? "Carregando etapas..."
+                            : etapas.length === 0
+                              ? "Nenhuma etapa disponível"
+                              : "Selecione a etapa"}
+                        </option>
+
+                        {etapas.map(
+                          (
+                            etapa
+                          ) => (
+                            <option
+                              key={
+                                etapa.id
+                              }
+                              value={
+                                etapa.id
+                              }
+                            >
+                              Etapa{" "}
+                              {etapa.ordem ??
+                                "?"} —{" "}
+                              {etapa.setor?.nome ||
+                                "Setor não informado"} —{" "}
+                              {etapa.titulo ||
+                                "Sem título"}
+                            </option>
+                          )
+                        )}
+                      </select>
+
+                      <p className="text-xs text-gray-500">
+                        O setor responsável acompanha automaticamente a etapa selecionada.
+                      </p>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label
+                        htmlFor="editar-demanda-setor"
+                        className="flex items-center gap-2 text-sm font-semibold text-gray-700"
+                      >
+                        <Building2 className="h-4 w-4 text-gray-500" />
+
+                        Setor responsável
+                      </label>
+
+                      <select
+                        id="editar-demanda-setor"
+                        value={
+                          setorId
+                        }
+                        onChange={(
+                          event
+                        ) =>
+                          handleAlterarSetor(
+                            event.target.value
+                          )
+                        }
+                        disabled={
+                          true
+                        }
+                        required
+                        className="h-11 w-full cursor-pointer rounded-xl border border-gray-300 bg-white px-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-gray-100"
+                      >
+                        <option value="">
+                          {carregandoSetores
+                            ? "Carregando setores..."
+                            : "Selecione o setor"}
+                        </option>
+
+                        {setores.map(
+                          (
+                            setor
+                          ) => (
+                            <option
+                              key={
+                                setor.id
+                              }
+                              value={
+                                setor.id
+                              }
+                            >
+                              {
+                                setor.nome
+                              }
+                            </option>
+                          )
+                        )}
+                      </select>
+
+                      {!administrador && (
+                        <p className="text-xs text-gray-500">
+                          O setor da demanda não pode ser alterado por usuários comuns.
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="space-y-2">
+                      <label
+                        htmlFor="editar-demanda-responsavel"
+                        className="flex items-center gap-2 text-sm font-semibold text-gray-700"
+                      >
+                        <UserRound className="h-4 w-4 text-gray-500" />
+
+                        Responsável
+                      </label>
+
+                      <select
+                        id="editar-demanda-responsavel"
+                        value={
+                          responsavelId
+                        }
+                        onChange={(
+                          event
+                        ) =>
+                          setResponsavelId(
+                            event.target.value
+                          )
+                        }
+                        disabled={
+                          !setorId ||
+                          carregandoUsuarios
+                        }
+                        className="h-11 w-full cursor-pointer rounded-xl border border-gray-300 bg-white px-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-gray-100"
+                      >
+                        <option value="">
+                          {!setorId
+                            ? "Selecione primeiro o setor"
+                            : carregandoUsuarios
+                              ? "Carregando pessoas..."
+                              : "Sem responsável definido"}
+                        </option>
+
+                        {usuarios.map(
+                          (
+                            usuario
+                          ) => (
+                            <option
+                              key={
+                                usuario.id
+                              }
+                              value={
+                                usuario.id
+                              }
+                            >
+                              {
+                                usuario.nome
+                              }
+                            </option>
+                          )
+                        )}
+                      </select>
+
+                      {setorId &&
+                        !carregandoUsuarios &&
+                        usuarios.length ===
+                          0 && (
+                          <p className="text-xs text-amber-700">
+                            Nenhum usuário ativo foi encontrado neste setor.
+                          </p>
+                        )}
+                    </div>
+
+                    <div className="space-y-2">
+                      <label
+                        htmlFor="editar-demanda-prioridade"
+                        className="text-sm font-semibold text-gray-700"
+                      >
+                        Prioridade
+                      </label>
+
+                      <select
+                        id="editar-demanda-prioridade"
+                        value={
+                          prioridade
+                        }
+                        onChange={(
+                          event
+                        ) =>
+                          setPrioridade(
+                            event.target
+                              .value as PrioridadeDemanda
+                          )
+                        }
+                        className="h-11 w-full cursor-pointer rounded-xl border border-gray-300 bg-white px-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                      >
+                        <option value="baixa">
+                          Baixa
+                        </option>
+
+                        <option value="media">
+                          Média
+                        </option>
+
+                        <option value="alta">
+                          Alta
+                        </option>
+                      </select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <span className="block text-sm font-semibold text-gray-700">
+                        Data de inclusão
+                      </span>
+
+                      <div className="flex h-11 items-center gap-2 rounded-xl border bg-slate-50 px-3 text-sm font-medium text-slate-700">
+                        <CalendarDays className="h-4 w-4 text-slate-500" />
+
+                        {formatarDataHora(
+                          demanda?.created_at
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </section>
+
+                <section className="space-y-4 rounded-2xl border bg-white p-5">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <h3 className="font-semibold text-gray-900">
+                        Checklist da demanda
+                      </h3>
+
+                      <p className="mt-1 text-xs text-gray-500">
+                        Divida a demanda em tarefas menores e acompanhe o progresso.
+                      </p>
+                    </div>
+
+                    <span
+                      className={`rounded-full border px-3 py-1 text-xs font-semibold ${
+                        checklistCompleto &&
+                        totalItensChecklist >
+                          0
+                          ? "border-green-200 bg-green-50 text-green-700"
+                          : "border-slate-200 bg-slate-50 text-slate-700"
+                      }`}
+                    >
+                      {totalItensConcluidos} de {totalItensChecklist} concluído(s)
+                    </span>
+                  </div>
+
+                  <div className="flex flex-col gap-2 sm:flex-row">
+                    <input
+                      type="text"
+                      value={
+                        novoItemTitulo
+                      }
+                      onChange={(
+                        event
+                      ) =>
+                        setNovoItemTitulo(
+                          event.target.value
+                        )
+                      }
+                      onKeyDown={(
+                        event
+                      ) => {
+                        if (
+                          event.key ===
+                          "Enter"
+                        ) {
+                          event.preventDefault();
+
+                          adicionarItemChecklist();
+                        }
+                      }}
+                      placeholder="Ex.: Calcular bombas"
+                      disabled={
+                        adicionandoItem
+                      }
+                      className="h-11 flex-1 rounded-xl border border-gray-300 bg-white px-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:cursor-not-allowed disabled:opacity-50"
+                    />
+
+                    <button
+                      type="button"
+                      onClick={
+                        adicionarItemChecklist
+                      }
+                      disabled={
+                        adicionandoItem ||
+                        !novoItemTitulo.trim()
+                      }
+                      className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-slate-950 px-4 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      <Plus className="h-4 w-4" />
+
+                      {adicionandoItem
+                        ? "Adicionando..."
+                        : "Adicionar item"}
+                    </button>
+                  </div>
+
+                  {carregandoChecklist ? (
+                    <p className="text-sm text-gray-500">
+                      Carregando checklist...
+                    </p>
+                  ) : itensChecklist.length ===
+                    0 ? (
+                    <div className="rounded-xl border border-dashed bg-slate-50 p-5 text-center text-sm text-gray-500">
+                      Nenhum item adicionado. Demandas sem checklist podem ser concluídas normalmente.
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {itensChecklist.map(
+                        (
+                          item
+                        ) => (
+                          <div
+                            key={
+                              item.id
+                            }
+                            className="flex items-center gap-3 rounded-xl border bg-slate-50 px-3 py-3"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={
+                                item.concluido
+                              }
+                              onChange={() =>
+                                alternarItemChecklist(
+                                  item
+                                )
+                              }
+                              disabled={
+                                salvandoItemId ===
+                                item.id
+                              }
+                              className="h-4 w-4 cursor-pointer disabled:cursor-not-allowed"
+                            />
+
+                            <span
+                              className={`min-w-0 flex-1 text-sm ${
+                                item.concluido
+                                  ? "text-gray-400 line-through"
+                                  : "font-medium text-gray-800"
+                              }`}
+                            >
+                              {item.titulo}
+                            </span>
+
+                            <button
+                              type="button"
+                              onClick={() =>
+                                removerItemChecklist(
+                                  item
+                                )
+                              }
+                              disabled={
+                                salvandoItemId ===
+                                item.id
+                              }
+                              title="Excluir item"
+                              className="rounded-lg p-2 text-gray-400 transition hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </div>
+                        )
+                      )}
+                    </div>
+                  )}
+
+                  {totalItensChecklist >
+                    0 &&
+                    !checklistCompleto && (
+                      <p className="text-xs font-medium text-amber-700">
+                        A demanda só poderá ser finalizada depois que todos os itens forem concluídos.
+                      </p>
+                    )}
+                </section>
+
+                <section className="space-y-4 rounded-2xl border bg-white p-5">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <h3 className="flex items-center gap-2 font-semibold text-gray-900">
+                        <MessageSquareText className="h-4 w-4 text-gray-500" />
+
+                        Observações da demanda
+                      </h3>
+
+                      <p className="mt-1 text-xs text-gray-500">
+                        Registre atualizações, decisões e informações importantes desta atividade.
+                      </p>
+                    </div>
+
+                    <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-700">
+                      {observacoes.length}{" "}
+                      {observacoes.length ===
+                      1
+                        ? "observação"
+                        : "observações"}
+                    </span>
+                  </div>
+
+                  <div className="space-y-3">
+                    <textarea
+                      value={
+                        novaObservacao
+                      }
+                      onChange={(
+                        event
+                      ) =>
+                        setNovaObservacao(
+                          event.target.value
+                        )
+                      }
+                      onKeyDown={(
+                        event
+                      ) => {
+                        if (
+                          event.key ===
+                            "Enter" &&
+                          (
+                            event.ctrlKey ||
+                            event.metaKey
+                          )
+                        ) {
+                          event.preventDefault();
+
+                          adicionarObservacao();
+                        }
+                      }}
+                      rows={3}
+                      maxLength={2000}
+                      disabled={
+                        adicionandoObservacao
+                      }
+                      placeholder="Escreva uma observação sobre esta demanda..."
+                      className="w-full resize-y rounded-xl border border-gray-300 bg-white px-3 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:cursor-not-allowed disabled:opacity-50"
+                    />
+
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                      <p className="text-xs text-gray-500">
+                        Use Ctrl + Enter para adicionar.
+                      </p>
+
+                      <button
+                        type="button"
+                        onClick={
+                          adicionarObservacao
+                        }
+                        disabled={
+                          adicionandoObservacao ||
+                          !novaObservacao.trim()
+                        }
+                        className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-slate-950 px-4 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        <Plus className="h-4 w-4" />
+
+                        {adicionandoObservacao
+                          ? "Adicionando..."
+                          : "Adicionar observação"}
+                      </button>
+                    </div>
+                  </div>
+
+                  {carregandoObservacoes ? (
+                    <p className="text-sm text-gray-500">
+                      Carregando observações...
+                    </p>
+                  ) : observacoes.length ===
+                    0 ? (
+                    <div className="rounded-xl border border-dashed bg-slate-50 p-5 text-center text-sm text-gray-500">
+                      Nenhuma observação registrada nesta demanda.
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {observacoes.map(
+                        (
+                          observacao
+                        ) => {
+                          const podeExcluirObservacao =
+                            administrador ||
+                            (
+                              Boolean(
+                                usuarioAtualId
+                              ) &&
+                              observacao.usuario_id ===
+                                usuarioAtualId
+                            );
+
+                          return (
+                            <article
+                              key={
+                                observacao.id
+                              }
+                              className="rounded-xl border bg-slate-50 p-4"
+                            >
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="min-w-0">
+                                  <p className="truncate text-sm font-semibold text-gray-900">
+                                    {observacao.usuario?.nome ||
+                                      "Usuário não identificado"}
+                                  </p>
+
+                                  <p className="mt-0.5 text-xs text-gray-500">
+                                    {formatarDataHora(
+                                      observacao.created_at
+                                    )}
+                                  </p>
+                                </div>
+
+                                {podeExcluirObservacao && (
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      excluirObservacao(
+                                        observacao
+                                      )
+                                    }
+                                    disabled={
+                                      excluindoObservacaoId ===
+                                        observacao.id
+                                    }
+                                    title="Excluir observação"
+                                    className="shrink-0 rounded-lg p-2 text-gray-400 transition hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-50"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </button>
+                                )}
+                              </div>
+
+                              <p className="mt-3 whitespace-pre-wrap break-words text-sm leading-6 text-gray-700">
+                                {observacao.observacao}
+                              </p>
+                            </article>
+                          );
+                        }
+                      )}
+                    </div>
+                  )}
+                </section>
+
+                <section className="space-y-4 rounded-2xl border bg-white p-5">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <h3 className="font-semibold text-gray-900">
+                        Documentos da demanda
+                      </h3>
+
+                      <p className="mt-1 text-xs text-gray-500">
+                        Anexe os arquivos produzidos ou recebidos nesta atividade.
+                      </p>
+                    </div>
+
+                    <span className="rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
+                      {documentosDemanda.length} documento(s)
+                    </span>
+                  </div>
+
+                  <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
+                    <input
+                      type="text"
+                      value={nomeNovoDocumento}
+                      onChange={(event) =>
+                        setNomeNovoDocumento(
+                          event.target.value
+                        )
+                      }
+                      placeholder="Nome do documento"
+                      disabled={enviandoDocumento}
+                      className="h-11 w-full rounded-xl border border-gray-300 bg-white px-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:opacity-50"
+                    />
+
+                    <label className="inline-flex h-11 cursor-pointer items-center justify-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-4 text-sm font-semibold text-blue-700 transition hover:bg-blue-100">
+                      <Upload className="h-4 w-4" />
+
+                      {arquivoNovoDocumento
+                        ? "Trocar arquivo"
+                        : "Selecionar arquivo"}
+
+                      <input
+                        type="file"
+                        className="hidden"
+                        disabled={enviandoDocumento}
+                        onChange={(event) => {
+                          setArquivoNovoDocumento(
+                            event.target.files?.[0] ||
+                            null
+                          );
+
+                          event.target.value = "";
+                        }}
+                      />
+                    </label>
+                  </div>
+
+                  {arquivoNovoDocumento && (
+                    <div className="flex items-center justify-between gap-3 rounded-xl border bg-slate-50 px-3 py-3">
+                      <div className="flex min-w-0 items-center gap-2">
+                        <FileText className="h-5 w-5 shrink-0 text-blue-600" />
+
+                        <span className="truncate text-sm font-medium text-gray-800">
+                          {arquivoNovoDocumento.name}
+                        </span>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setArquivoNovoDocumento(null)
+                        }
+                        disabled={enviandoDocumento}
+                        className="rounded-lg p-1.5 text-gray-400 transition hover:bg-red-50 hover:text-red-600"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={enviarDocumentoDemanda}
+                    disabled={
+                      enviandoDocumento ||
+                      !nomeNovoDocumento.trim() ||
+                      !arquivoNovoDocumento
+                    }
+                    className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <Upload className="h-4 w-4" />
+
+                    {enviandoDocumento
+                      ? "Enviando documento..."
+                      : "Adicionar documento"}
+                  </button>
+
+                  {carregandoDocumentos ? (
+                    <p className="text-sm text-gray-500">
+                      Carregando documentos...
+                    </p>
+                  ) : documentosDemanda.length === 0 ? (
+                    <div className="rounded-xl border border-dashed bg-slate-50 p-5 text-center text-sm text-gray-500">
+                      Nenhum documento anexado a esta demanda.
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {documentosDemanda.map(
+                        (documento) => (
+                          <div
+                            key={documento.id}
+                            className="flex flex-col gap-3 rounded-xl border bg-slate-50 px-3 py-3 sm:flex-row sm:items-center"
+                          >
+                            <div className="flex min-w-0 flex-1 items-center gap-3">
+                              <FileText className="h-5 w-5 shrink-0 text-blue-600" />
+
+                              <div className="min-w-0">
+                                <p className="truncate text-sm font-semibold text-gray-900">
+                                  {documento.nome}
+                                </p>
+
+                                <p className="text-xs text-gray-500">
+                                  {formatarDataHora(
+                                    documento.created_at
+                                  )}
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                              <a
+                                href={documento.arquivo_url}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="inline-flex h-9 flex-1 items-center justify-center gap-2 rounded-lg border bg-white px-3 text-xs font-semibold text-gray-700 hover:bg-gray-50 sm:flex-none"
+                              >
+                                <ExternalLink className="h-4 w-4" />
+                                Abrir
+                              </a>
+
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  excluirDocumentoDemanda(
+                                    documento
+                                  )
+                                }
+                                disabled={
+                                  excluindoDocumentoId ===
+                                  documento.id
+                                }
+                                className="inline-flex h-9 flex-1 items-center justify-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 text-xs font-semibold text-red-700 hover:bg-red-100 disabled:opacity-50 sm:flex-none"
+                              >
+                                <Trash2 className="h-4 w-4" />
+
+                                {excluindoDocumentoId ===
+                                documento.id
+                                  ? "Excluindo..."
+                                  : "Excluir"}
+                              </button>
+                            </div>
+                          </div>
+                        )
+                      )}
+                    </div>
+                  )}
+                </section>
+
+                <section className="space-y-4 rounded-2xl border bg-slate-50/60 p-5">
+                  <div>
+                    <h3 className="font-semibold text-gray-900">
+                      Execução e prazos
+                    </h3>
+
+                    <p className="mt-1 text-xs text-gray-500">
+                      O status é atualizado automaticamente pelas datas informadas.
+                    </p>
+                  </div>
+
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <label
+                        htmlFor="editar-demanda-data-inicio"
+                        className="text-sm font-semibold text-gray-700"
+                      >
+                        Data de início
+                      </label>
+
+                      <input
+                        id="editar-demanda-data-inicio"
+                        type="date"
+                        value={
+                          dataInicio
+                        }
+                        onChange={(
+                          event
+                        ) =>
+                          handleAlterarInicio(
+                            event.target.value
+                          )
+                        }
+                        className="h-11 w-full rounded-xl border border-gray-300 bg-white px-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label
+                        htmlFor="editar-demanda-data-conclusao"
+                        className="text-sm font-semibold text-gray-700"
+                      >
+                        Data de conclusão
+                      </label>
+
+                      <input
+                        id="editar-demanda-data-conclusao"
+                        type="date"
+                        value={
+                          dataConclusao
+                        }
+                        onChange={(
+                          event
+                        ) =>
+                          handleAlterarConclusao(
+                            event.target.value
+                          )
+                        }
+                        className="h-11 w-full rounded-xl border border-gray-300 bg-white px-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-800">
+                    <span className="font-semibold">
+                      Prazo da demanda:
+                    </span>{" "}
+                    definido automaticamente pelo prazo da etapa selecionada
+                    {prazoEtapaSelecionada
+                      ? ` (${new Intl.DateTimeFormat(
+                          "pt-BR"
+                        ).format(
+                          converterParaDataLocal(
+                            prazoEtapaSelecionada
+                          )!
+                        )})`
+                      : "."}
+                  </div>
+
+                  <label className="flex cursor-pointer items-start gap-3 rounded-xl border bg-white p-4">
+                    <input
+                      type="checkbox"
+                      checked={
+                        cancelada
+                      }
+                      onChange={(
+                        event
+                      ) =>
+                        setCancelada(
+                          event.target.checked
+                        )
+                      }
+                      className="mt-0.5 h-4 w-4 cursor-pointer"
+                    />
+
+                    <span>
+                      <span className="block text-sm font-semibold text-gray-800">
+                        Marcar como cancelada
+                      </span>
+
+                      <span className="mt-0.5 block text-xs text-gray-500">
+                        O cancelamento tem prioridade sobre as datas informadas.
+                      </span>
+                    </span>
+                  </label>
+
+                  {finalizadaComAtraso && (
+                    <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+                      A conclusão foi registrada depois do prazo. A demanda será exibida como finalizada com atraso.
+                    </div>
+                  )}
+                </section>
+
+                {deveInformarMotivo && (
+                  <section className="space-y-3 rounded-2xl border border-amber-200 bg-amber-50 p-5">
+                    <div>
+                      <label
+                        htmlFor="editar-demanda-motivo-atraso"
+                        className="text-sm font-semibold text-amber-900"
+                      >
+                        Motivo do atraso
+                      </label>
+
+                      <p className="mt-1 text-xs text-amber-700">
+                        Obrigatório para demandas atrasadas ou concluídas depois do prazo.
+                      </p>
+                    </div>
+
+                    <textarea
+                      id="editar-demanda-motivo-atraso"
+                      value={
+                        motivoAtraso
+                      }
+                      onChange={(
+                        event
+                      ) =>
+                        setMotivoAtraso(
+                          event.target.value
+                        )
+                      }
+                      required
+                      rows={3}
+                      className="w-full resize-y rounded-xl border border-amber-300 bg-white px-3 py-3 text-sm outline-none transition focus:border-amber-500 focus:ring-2 focus:ring-amber-100"
+                      placeholder="Ex.: aguardando aprovação do cliente."
+                    />
+                  </section>
+                )}
+
+                <div className="flex flex-col gap-3 border-t pt-5 sm:flex-row sm:items-center sm:justify-between">
+                  <button
+                    type="button"
+                    onClick={
+                      excluirDemandaAtual
+                    }
+                    disabled={
+                      salvando ||
+                      excluindo
+                    }
+                    className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-red-300 bg-red-50 px-5 text-sm font-semibold text-red-700 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <Trash2 className="h-4 w-4" />
+
+                    {excluindo
+                      ? "Excluindo..."
+                      : "Excluir demanda"}
+                  </button>
+
+                  <div className="flex flex-col-reverse gap-3 sm:flex-row">
+                    <button
+                      type="button"
+                      onClick={
+                        onClose
+                      }
+                      disabled={
+                        salvando ||
+                        excluindo
+                      }
+                      className="inline-flex h-11 items-center justify-center rounded-xl border border-gray-300 bg-white px-5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      Cancelar
+                    </button>
+
+                    <button
+                      type="submit"
+                      disabled={
+                        salvando ||
+                        excluindo ||
+                        carregandoSetores ||
+                        carregandoUsuarios
+                      }
+                      className="inline-flex h-11 items-center justify-center rounded-xl bg-black px-5 text-sm font-semibold text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {salvando
+                        ? "Salvando..."
+                        : "Salvar alterações"}
+                    </button>
+                  </div>
+                </div>
+              </form>
+            </>
+          )}
+
+          <Dialog.Close asChild>
+            <button
+              type="button"
+              disabled={
+                salvando ||
+                excluindo
+              }
+              className="absolute right-5 top-5 rounded-lg p-1.5 text-gray-500 transition hover:bg-gray-100 hover:text-gray-900 disabled:opacity-50"
+              aria-label="Fechar"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </Dialog.Close>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
+  );
+}
+
+export {
+  ModalEditarDemanda,
+};
+
+export default ModalEditarDemanda;
