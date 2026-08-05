@@ -268,10 +268,10 @@ function getStatusGeralStyle(
   if (todasConcluidas) {
     return {
       label:
-        "Em andamento",
+        "Concluído",
 
       className:
-        "border-blue-300 bg-blue-100 text-blue-800",
+        "border-green-300 bg-green-100 text-green-800",
     };
   }
 
