@@ -1,10 +1,10 @@
-import {
-  supabase,
-} from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/client";
 
 export interface Cliente {
   id: string;
   nome: string;
+  razao_social?: string | null;
+  cnpj?: string | null;
   email?: string | null;
   telefone?: string | null;
   created_at?: string;
@@ -33,14 +33,15 @@ export interface ObraCliente {
   created_at: string;
 }
 
-export interface ClienteComObras
-  extends Cliente {
+export interface ClienteComObras extends Cliente {
   obras: ObraCliente[];
 }
 
 type ClienteComResumoSupabase = {
   id: string;
   nome: string;
+  razao_social: string | null;
+  cnpj: string | null;
   email: string | null;
   telefone: string | null;
   created_at?: string;
@@ -52,17 +53,15 @@ type ClienteComResumoSupabase = {
     | null;
 };
 
-export async function getClientes(): Promise<
-  Cliente[]
-> {
-  const {
-    data,
-    error,
-  } = await supabase
+export async function getClientes(): Promise<Cliente[]> {
+  const { data, error } = await supabase
     .from("clientes")
-    .select(`
+    .select(
+      `
       id,
       nome,
+      razao_social,
+      cnpj,
       email,
       telefone,
       created_at,
@@ -70,111 +69,67 @@ export async function getClientes(): Promise<
         id,
         valor_vendido
       )
-    `)
-    .order(
-      "nome",
-      {
-        ascending:
-          true,
-      }
-    );
+    `,
+    )
+    .order("nome", {
+      ascending: true,
+    });
 
   if (error) {
-    console.error(
-      "Erro ao buscar clientes:",
-      error
-    );
+    console.error("Erro ao buscar clientes:", error);
 
     throw error;
   }
 
-  return (
-    (
-      data ??
-      []
-    ) as ClienteComResumoSupabase[]
-  ).map(
-    (
-      cliente
-    ) => {
-      const obras =
-        cliente.obras ??
-        [];
+  return ((data ?? []) as ClienteComResumoSupabase[]).map((cliente) => {
+    const obras = cliente.obras ?? [];
 
-      const valorTotalVendido =
-        obras.reduce(
-          (
-            total,
-            obra
-          ) =>
-            total +
-            (
-              Number(
-                obra.valor_vendido
-              ) ||
-              0
-            ),
-          0
-        );
+    const valorTotalVendido = obras.reduce(
+      (total, obra) => total + (Number(obra.valor_vendido) || 0),
+      0,
+    );
 
-      return {
-        id:
-          cliente.id,
+    return {
+      id: cliente.id,
 
-        nome:
-          cliente.nome,
+      nome: cliente.nome,
 
-        email:
-          cliente.email,
+      razao_social: cliente.razao_social,
 
-        telefone:
-          cliente.telefone,
+      cnpj: cliente.cnpj,
 
-        created_at:
-          cliente.created_at,
+      email: cliente.email,
 
-        quantidade_obras:
-          obras.length,
+      telefone: cliente.telefone,
 
-        valor_total_vendido:
-          valorTotalVendido,
-      };
-    }
-  );
+      created_at: cliente.created_at,
+
+      quantidade_obras: obras.length,
+
+      valor_total_vendido: valorTotalVendido,
+    };
+  });
 }
 
 export async function getClienteComObras(
-  clienteId: string
+  clienteId: string,
 ): Promise<ClienteComObras> {
-  const {
-    data: cliente,
-    error: erroCliente,
-  } = await supabase
+  const { data: cliente, error: erroCliente } = await supabase
     .from("clientes")
-    .select(
-      "id, nome, email, telefone, created_at"
-    )
-    .eq(
-      "id",
-      clienteId
-    )
+    .select("id, nome, razao_social, cnpj, email, telefone, created_at")
+    .eq("id", clienteId)
     .single();
 
   if (erroCliente) {
-    console.error(
-      "Erro ao buscar cliente:",
-      erroCliente
-    );
+    console.error("Erro ao buscar cliente:", erroCliente);
 
     throw erroCliente;
   }
 
-  const {
-    data: obras,
-    error: erroObras,
-  } = await supabase
+  const { data: obras, error: erroObras } = await supabase
     .from("orcamentos")
-    .select(`
+    .select(
+      `
       id,
       cliente_id,
       codigo,
@@ -192,58 +147,32 @@ export async function getClienteComObras(
       valor_orcado,
       valor_vendido,
       created_at
-    `)
-    .eq(
-      "cliente_id",
-      clienteId
+    `,
     )
-    .order(
-      "created_at",
-      {
-        ascending:
-          false,
-      }
-    );
+    .eq("cliente_id", clienteId)
+    .order("created_at", {
+      ascending: false,
+    });
 
   if (erroObras) {
-    console.error(
-      "Erro ao buscar orçamentos do cliente:",
-      erroObras
-    );
+    console.error("Erro ao buscar orçamentos do cliente:", erroObras);
 
     throw erroObras;
   }
 
-  const obrasTratadas =
-    (
-      obras ??
-      []
-    ) as ObraCliente[];
+  const obrasTratadas = (obras ?? []) as ObraCliente[];
 
   return {
     ...cliente,
 
-    quantidade_obras:
-      obrasTratadas.length,
+    quantidade_obras: obrasTratadas.length,
 
-    valor_total_vendido:
-      obrasTratadas.reduce(
-        (
-          total,
-          obra
-        ) =>
-          total +
-          (
-            Number(
-              obra.valor_vendido
-            ) ||
-            0
-          ),
-        0
-      ),
+    valor_total_vendido: obrasTratadas.reduce(
+      (total, obra) => total + (Number(obra.valor_vendido) || 0),
+      0,
+    ),
 
-    obras:
-      obrasTratadas,
+    obras: obrasTratadas,
   };
 }
 
@@ -251,49 +180,37 @@ export async function atualizarCliente(
   id: string,
   dados: {
     nome: string;
+    razao_social: string | null;
+    cnpj: string | null;
     email: string | null;
     telefone: string | null;
-  }
+  },
 ): Promise<Cliente> {
-  const nome =
-    dados.nome.trim();
+  const nome = dados.nome.trim();
 
   if (!nome) {
-    throw new Error(
-      "O nome do cliente é obrigatório."
-    );
+    throw new Error("O nome do cliente é obrigatório.");
   }
 
-  const {
-    data,
-    error,
-  } = await supabase
+  const { data, error } = await supabase
     .from("clientes")
     .update({
       nome,
 
-      email:
-        dados.email?.trim() ||
-        null,
+      razao_social: dados.razao_social?.trim() || null,
 
-      telefone:
-        dados.telefone?.trim() ||
-        null,
+      cnpj: dados.cnpj?.trim() || null,
+
+      email: dados.email?.trim() || null,
+
+      telefone: dados.telefone?.trim() || null,
     })
-    .eq(
-      "id",
-      id
-    )
-    .select(
-      "id, nome, email, telefone, created_at"
-    )
+    .eq("id", id)
+    .select("id, nome, razao_social, cnpj, email, telefone, created_at")
     .single();
 
   if (error) {
-    console.error(
-      "Erro ao atualizar cliente:",
-      error
-    );
+    console.error("Erro ao atualizar cliente:", error);
 
     throw error;
   }
@@ -304,28 +221,17 @@ export async function atualizarCliente(
 export async function criarCliente(
   cliente: Omit<
     Cliente,
-    | "id"
-    | "created_at"
-    | "quantidade_obras"
-    | "valor_total_vendido"
-  >
+    "id" | "created_at" | "quantidade_obras" | "valor_total_vendido"
+  >,
 ) {
-  const {
-    data,
-    error,
-  } = await supabase
+  const { data, error } = await supabase
     .from("clientes")
-    .insert([
-      cliente,
-    ])
+    .insert([cliente])
     .select()
     .single();
 
   if (error) {
-    console.error(
-      "Erro ao criar cliente:",
-      error
-    );
+    console.error("Erro ao criar cliente:", error);
 
     throw error;
   }
@@ -333,65 +239,31 @@ export async function criarCliente(
   return data;
 }
 
-export async function excluirCliente(
-  id: string
-) {
-  const {
-    count,
-    error:
-      erroContagem,
-  } = await supabase
+export async function excluirCliente(id: string) {
+  const { count, error: erroContagem } = await supabase
     .from("orcamentos")
-    .select(
-      "id",
-      {
-        count:
-          "exact",
-        head:
-          true,
-      }
-    )
-    .eq(
-      "cliente_id",
-      id
-    );
+    .select("id", {
+      count: "exact",
+      head: true,
+    })
+    .eq("cliente_id", id);
 
   if (erroContagem) {
-    console.error(
-      "Erro ao verificar orçamentos do cliente:",
-      erroContagem
-    );
+    console.error("Erro ao verificar orçamentos do cliente:", erroContagem);
 
     throw erroContagem;
   }
 
-  if (
-    (
-      count ??
-      0
-    ) >
-    0
-  ) {
+  if ((count ?? 0) > 0) {
     throw new Error(
-      "Este cliente possui orçamentos vinculados e não pode ser excluído."
+      "Este cliente possui orçamentos vinculados e não pode ser excluído.",
     );
   }
 
-  const {
-    error,
-  } = await supabase
-    .from("clientes")
-    .delete()
-    .eq(
-      "id",
-      id
-    );
+  const { error } = await supabase.from("clientes").delete().eq("id", id);
 
   if (error) {
-    console.error(
-      "Erro ao excluir cliente:",
-      error
-    );
+    console.error("Erro ao excluir cliente:", error);
 
     throw error;
   }

@@ -1,19 +1,13 @@
-import {
-  createFileRoute,
-  useNavigate,
-} from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 
-import {
-  useEffect,
-  useState,
-} from "react";
+import { useEffect, useState } from "react";
 
-import {
-  supabase,
-} from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/client";
 
 import {
   criarObra,
+  getObrasExecucaoDisponiveisParaVinculo,
+  type ObraExecucaoDisponivelVinculo,
 } from "@/features/obras/services/obras-service";
 
 import {
@@ -37,83 +31,51 @@ type PerfilUsuarioObra = {
   administrador: boolean;
 };
 
-export const Route =
-  createFileRoute(
-    "/_authenticated/obras/nova"
-  )({
-    component:
-      NovaObraPage,
-  });
+export const Route = createFileRoute("/_authenticated/obras/nova")({
+  component: NovaObraPage,
+});
 
 function NovaObraPage() {
-  const navigate =
-    useNavigate();
+  const navigate = useNavigate();
 
-  const [
-    loading,
-    setLoading,
-  ] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const [
-    clientesLista,
-    setClientesLista,
-  ] = useState<Cliente[]>(
-    []
-  );
+  const [clientesLista, setClientesLista] = useState<Cliente[]>([]);
 
-  const [
-    setoresLista,
-    setSetoresLista,
-  ] = useState<SetorObra[]>(
-    []
-  );
+  const [setoresLista, setSetoresLista] = useState<SetorObra[]>([]);
 
-  const [
-    vendedoresLista,
-    setVendedoresLista,
-  ] = useState<VendedorObra[]>(
-    []
-  );
+  const [vendedoresLista, setVendedoresLista] = useState<VendedorObra[]>([]);
 
-  const [
-    modoNovoCliente,
-    setModoNovoCliente,
-  ] = useState(false);
+  const [usarObraExistente, setUsarObraExistente] = useState(false);
 
-  const [
-    usuarioAdministrador,
-    setUsuarioAdministrador,
-  ] = useState(false);
+  const [obrasExecucaoDisponiveis, setObrasExecucaoDisponiveis] = useState<
+    ObraExecucaoDisponivelVinculo[]
+  >([]);
 
-  const [
-    carregandoPermissoes,
-    setCarregandoPermissoes,
-  ] = useState(true);
+  const [carregandoObrasExecucao, setCarregandoObrasExecucao] = useState(true);
 
-  const [
-    carregandoVendedores,
-    setCarregandoVendedores,
-  ] = useState(true);
+  const [erroObrasExecucao, setErroObrasExecucao] = useState("");
 
-  const [
-    erroPermissoes,
-    setErroPermissoes,
-  ] = useState("");
+  const [modoNovoCliente, setModoNovoCliente] = useState(false);
 
-  const [
-    erroVendedores,
-    setErroVendedores,
-  ] = useState("");
+  const [usuarioAdministrador, setUsuarioAdministrador] = useState(false);
 
-  const [
-    form,
-    setForm,
-  ] = useState({
+  const [carregandoPermissoes, setCarregandoPermissoes] = useState(true);
+
+  const [carregandoVendedores, setCarregandoVendedores] = useState(true);
+
+  const [erroPermissoes, setErroPermissoes] = useState("");
+
+  const [erroVendedores, setErroVendedores] = useState("");
+
+  const [form, setForm] = useState({
+    obra_execucao_id: "",
     codigo: "",
     setor_id: "",
 
     cliente_id: "",
     novoClienteNome: "",
+    novoClienteRazaoSocial: "",
     novoClienteCnpj: "",
     novoClienteEmail: "",
     novoClienteTelefone: "",
@@ -139,8 +101,7 @@ function NovaObraPage() {
     tipo_projeto: "",
     tipo_efluente: "",
 
-    status:
-      "recebida",
+    status: "recebida",
 
     observacoes: "",
   });
@@ -148,391 +109,264 @@ function NovaObraPage() {
   useEffect(() => {
     async function carregarDadosIniciais() {
       try {
-        setCarregandoPermissoes(
-          true
-        );
+        setCarregandoPermissoes(true);
 
-        setCarregandoVendedores(
-          true
-        );
+        setCarregandoVendedores(true);
+
+        setCarregandoObrasExecucao(true);
 
         setErroPermissoes("");
         setErroVendedores("");
+        setErroObrasExecucao("");
 
-        const [
-          clientes,
-          respostaAuth,
-          respostaCargoVendedor,
-        ] = await Promise.all([
-          getClientes(),
+        const [clientes, respostaAuth, respostaCargoVendedor, obrasExecucao] =
+          await Promise.all([
+            getClientes(),
 
-          supabase.auth.getUser(),
+            supabase.auth.getUser(),
 
-          supabase
-            .from("cargos")
-            .select(
-              "id, nome"
-            )
-            .eq(
-              "nome",
-              "Vendedor"
-            )
-            .eq(
-              "ativo",
-              true
-            )
-            .maybeSingle(),
-        ]);
+            supabase
+              .from("cargos")
+              .select("id, nome")
+              .eq("nome", "Vendedor")
+              .eq("ativo", true)
+              .maybeSingle(),
 
-        setClientesLista(
-          clientes
-        );
+            getObrasExecucaoDisponiveisParaVinculo(),
+          ]);
 
-        const usuarioAuth =
-          respostaAuth.data.user;
+        setClientesLista(clientes);
 
-        if (
-          respostaAuth.error ||
-          !usuarioAuth
-        ) {
-          throw (
-            respostaAuth.error ||
-            new Error(
-              "Usuário não autenticado."
-            )
-          );
+        setObrasExecucaoDisponiveis(obrasExecucao);
+
+        const usuarioAuth = respostaAuth.data.user;
+
+        if (respostaAuth.error || !usuarioAuth) {
+          throw respostaAuth.error || new Error("Usuário não autenticado.");
         }
 
-        if (
-          respostaCargoVendedor.error
-        ) {
+        if (respostaCargoVendedor.error) {
           throw respostaCargoVendedor.error;
         }
 
-        if (
-          respostaCargoVendedor
-            .data?.id
-        ) {
-          const {
-            data: vendedores,
-            error:
-              erroBuscaVendedores,
-          } = await supabase
-            .from("usuarios")
-            .select(
-              "id, nome, email"
-            )
-            .eq(
-              "cargo_id",
-              respostaCargoVendedor
-                .data.id
-            )
-            .eq(
-              "ativo",
-              true
-            )
-            .order(
-              "nome",
-              {
-                ascending:
-                  true,
-              }
-            );
+        if (respostaCargoVendedor.data?.id) {
+          const { data: vendedores, error: erroBuscaVendedores } =
+            await supabase
+              .from("usuarios")
+              .select("id, nome, email")
+              .eq("cargo_id", respostaCargoVendedor.data.id)
+              .eq("ativo", true)
+              .order("nome", {
+                ascending: true,
+              });
 
-          if (
-            erroBuscaVendedores
-          ) {
+          if (erroBuscaVendedores) {
             throw erroBuscaVendedores;
           }
 
-          setVendedoresLista(
-            (
-              vendedores ||
-              []
-            ) as VendedorObra[]
-          );
+          setVendedoresLista((vendedores || []) as VendedorObra[]);
         } else {
-          setVendedoresLista(
-            []
-          );
+          setVendedoresLista([]);
 
-          setErroVendedores(
-            'O cargo ativo "Vendedor" não foi encontrado.'
-          );
+          setErroVendedores('O cargo ativo "Vendedor" não foi encontrado.');
         }
 
-        const {
-          data: perfil,
-          error: erroPerfil,
-        } = await supabase
+        const { data: perfil, error: erroPerfil } = await supabase
           .from("usuarios")
-          .select(
-            "setor_id, administrador"
-          )
-          .eq(
-            "id",
-            usuarioAuth.id
-          )
+          .select("setor_id, administrador")
+          .eq("id", usuarioAuth.id)
           .single();
 
         if (erroPerfil) {
           throw erroPerfil;
         }
 
-        const perfilUsuario =
-          perfil as PerfilUsuarioObra;
+        const perfilUsuario = perfil as PerfilUsuarioObra;
 
-        const administrador =
-          Boolean(
-            perfilUsuario.administrador
-          );
+        const administrador = Boolean(perfilUsuario.administrador);
 
-        setUsuarioAdministrador(
-          administrador
-        );
+        setUsuarioAdministrador(administrador);
 
-        let consultaSetores =
-          supabase
-            .from("setores")
-            .select(
-              "id, nome"
-            )
-            .eq(
-              "ativo",
-              true
-            )
-            .order(
-              "nome",
-              {
-                ascending:
-                  true,
-              }
-            );
+        let consultaSetores = supabase
+          .from("setores")
+          .select("id, nome")
+          .eq("ativo", true)
+          .order("nome", {
+            ascending: true,
+          });
 
         if (!administrador) {
-          if (
-            !perfilUsuario.setor_id
-          ) {
-            setSetoresLista(
-              []
-            );
+          if (!perfilUsuario.setor_id) {
+            setSetoresLista([]);
 
             setErroPermissoes(
-              "Seu usuário ainda não possui um setor definido. Solicite o ajuste no painel administrativo."
+              "Seu usuário ainda não possui um setor definido. Solicite o ajuste no painel administrativo.",
             );
 
             return;
           }
 
-          consultaSetores =
-            consultaSetores.eq(
-              "id",
-              perfilUsuario.setor_id
-            );
+          consultaSetores = consultaSetores.eq("id", perfilUsuario.setor_id);
         }
 
-        const {
-          data: setores,
-          error: erroSetores,
-        } =
-          await consultaSetores;
+        const { data: setores, error: erroSetores } = await consultaSetores;
 
         if (erroSetores) {
           throw erroSetores;
         }
 
-        const setoresEncontrados =
-          (
-            setores ||
-            []
-          ) as SetorObra[];
+        const setoresEncontrados = (setores || []) as SetorObra[];
 
-        setSetoresLista(
-          setoresEncontrados
-        );
+        setSetoresLista(setoresEncontrados);
 
-        if (
-          !administrador &&
-          perfilUsuario.setor_id
-        ) {
-          setForm(
-            (
-              estadoAtual
-            ) => ({
-              ...estadoAtual,
+        if (!administrador && perfilUsuario.setor_id) {
+          setForm((estadoAtual) => ({
+            ...estadoAtual,
 
-              setor_id:
-                perfilUsuario.setor_id ||
-                "",
-            })
-          );
+            setor_id: perfilUsuario.setor_id || "",
+          }));
         }
       } catch (error) {
-        console.error(
-          "Erro ao carregar dados iniciais da obra:",
-          error
-        );
+        console.error("Erro ao carregar dados iniciais da obra:", error);
 
         setErroPermissoes(
-          "Não foi possível carregar os dados necessários para cadastrar a obra."
-        );
-      } finally {
-        setCarregandoPermissoes(
-          false
+          "Não foi possível carregar os dados necessários para cadastrar o orçamento.",
         );
 
-        setCarregandoVendedores(
-          false
+        setErroObrasExecucao(
+          "Não foi possível carregar as obras disponíveis para vínculo.",
         );
+      } finally {
+        setCarregandoPermissoes(false);
+
+        setCarregandoVendedores(false);
+
+        setCarregandoObrasExecucao(false);
       }
     }
 
     carregarDadosIniciais();
   }, []);
 
-  function formatarCnpj(
-    valor: string
-  ) {
+  function formatarCnpj(valor: string) {
     return valor
-      .replace(
-        /\D/g,
-        ""
-      )
-      .slice(
-        0,
-        14
-      )
-      .replace(
-        /^(\d{2})(\d)/,
-        "$1.$2"
-      )
-      .replace(
-        /^(\d{2})\.(\d{3})(\d)/,
-        "$1.$2.$3"
-      )
-      .replace(
-        /\.(\d{3})(\d)/,
-        ".$1/$2"
-      )
-      .replace(
-        /(\d{4})(\d)/,
-        "$1-$2"
-      );
+      .replace(/\D/g, "")
+      .slice(0, 14)
+      .replace(/^(\d{2})(\d)/, "$1.$2")
+      .replace(/^(\d{2})\.(\d{3})(\d)/, "$1.$2.$3")
+      .replace(/\.(\d{3})(\d)/, ".$1/$2")
+      .replace(/(\d{4})(\d)/, "$1-$2");
   }
 
-  function formatarTelefone(
-    valor: string
-  ) {
+  function formatarTelefone(valor: string) {
     return valor
-      .replace(
-        /\D/g,
-        ""
-      )
-      .slice(
-        0,
-        11
-      )
-      .replace(
-        /^(\d{2})(\d)/,
-        "($1) $2"
-      )
-      .replace(
-        /(\d{5})(\d)/,
-        "$1-$2"
-      );
+      .replace(/\D/g, "")
+      .slice(0, 11)
+      .replace(/^(\d{2})(\d)/, "($1) $2")
+      .replace(/(\d{5})(\d)/, "$1-$2");
   }
 
   function handleChange(
     event: React.ChangeEvent<
-      | HTMLInputElement
-      | HTMLTextAreaElement
-      | HTMLSelectElement
-    >
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >,
   ) {
-    const {
-      name,
-    } = event.target;
+    const { name } = event.target;
 
-    let valor =
-      event.target.value;
+    let valor = event.target.value;
 
-
-    if (
-      name ===
-        "novoClienteCnpj"
-    ) {
-      valor =
-        formatarCnpj(
-          valor
-        );
+    if (name === "novoClienteCnpj") {
+      valor = formatarCnpj(valor);
     }
 
-    if (
-      name ===
-        "novoClienteTelefone"
-    ) {
-      valor =
-        formatarTelefone(
-          valor
-        );
+    if (name === "novoClienteTelefone") {
+      valor = formatarTelefone(valor);
     }
 
-    setForm(
-      (
-        estadoAtual
-      ) => ({
-        ...estadoAtual,
+    setForm((estadoAtual) => ({
+      ...estadoAtual,
 
-        [name]:
-          valor,
-      })
-    );
+      [name]: valor,
+    }));
   }
 
   function handleSelecionarVendedor(
-    event:
-      React.ChangeEvent<HTMLSelectElement>
+    event: React.ChangeEvent<HTMLSelectElement>,
   ) {
-    const vendedorId =
-      event.target.value;
+    const vendedorId = event.target.value;
 
-    const vendedorSelecionado =
-      vendedoresLista.find(
-        (
-          vendedor
-        ) =>
-          vendedor.id ===
-          vendedorId
-      );
-
-    setForm(
-      (
-        estadoAtual
-      ) => ({
-        ...estadoAtual,
-
-        vendedor_id:
-          vendedorId,
-
-        vendedor:
-          vendedorSelecionado?.nome ||
-          "",
-      })
+    const vendedorSelecionado = vendedoresLista.find(
+      (vendedor) => vendedor.id === vendedorId,
     );
+
+    setForm((estadoAtual) => ({
+      ...estadoAtual,
+
+      vendedor_id: vendedorId,
+
+      vendedor: vendedorSelecionado?.nome || "",
+    }));
   }
 
-  async function handleSubmit(
-    event:
-      React.FormEvent
+  function handleAlterarOrigemOrcamento(vincularObraExistente: boolean) {
+    setUsarObraExistente(vincularObraExistente);
+
+    setForm((estadoAtual) => ({
+      ...estadoAtual,
+
+      obra_execucao_id: "",
+    }));
+  }
+
+  function handleSelecionarObraExistente(
+    event: React.ChangeEvent<HTMLSelectElement>,
   ) {
+    const obraExecucaoId = event.target.value;
+
+    const obraSelecionada = obrasExecucaoDisponiveis.find(
+      (obra) => obra.id === obraExecucaoId,
+    );
+
+    setForm((estadoAtual) => ({
+      ...estadoAtual,
+
+      obra_execucao_id: obraExecucaoId,
+
+      nome_obra: obraSelecionada?.nome_obra || estadoAtual.nome_obra,
+
+      cliente_id: obraSelecionada?.cliente_id || estadoAtual.cliente_id,
+
+      setor_id: obraSelecionada?.setor_id || estadoAtual.setor_id,
+
+      cidade: obraSelecionada?.cidade || estadoAtual.cidade,
+
+      estado: obraSelecionada?.estado || estadoAtual.estado,
+    }));
+
+    if (obraSelecionada?.cliente_id) {
+      setModoNovoCliente(false);
+    }
+  }
+
+  const obraExecucaoSelecionada = obrasExecucaoDisponiveis.find(
+    (obra) => obra.id === form.obra_execucao_id,
+  );
+
+  const clienteSelecionado = clientesLista.find(
+    (cliente) => cliente.id === form.cliente_id,
+  );
+
+  async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
 
-    if (
-      !form.setor_id
-    ) {
-      alert(
-        "Selecione o setor responsável pela obra."
-      );
+    if (usarObraExistente && !form.obra_execucao_id) {
+      alert("Selecione a obra existente no ERP.");
+
+      return;
+    }
+
+    if (!form.setor_id) {
+      alert("Selecione o setor responsável pela obra.");
 
       return;
     }
@@ -541,126 +375,73 @@ function NovaObraPage() {
       setLoading(true);
 
       await criarObra({
-        codigo:
-          form.codigo ||
-          null,
+        obra_execucao_id: usarObraExistente ? form.obra_execucao_id : null,
 
-        setor_id:
-          form.setor_id,
+        codigo: form.codigo || null,
 
-        cliente_id:
-          form.cliente_id ||
-          null,
+        setor_id: form.setor_id,
 
-        novoClienteNome:
-          modoNovoCliente
-            ? form.novoClienteNome
-            : undefined,
+        cliente_id: form.cliente_id || null,
 
-        novoClienteCnpj:
-          modoNovoCliente
-            ? form.novoClienteCnpj
-            : undefined,
+        novoClienteNome: modoNovoCliente ? form.novoClienteNome : undefined,
 
-        novoClienteEmail:
-          modoNovoCliente
-            ? form.novoClienteEmail
-            : undefined,
+        novoClienteRazaoSocial: modoNovoCliente
+          ? form.novoClienteRazaoSocial
+          : undefined,
 
-        novoClienteTelefone:
-          modoNovoCliente
-            ? form.novoClienteTelefone
-            : undefined,
+        novoClienteCnpj: modoNovoCliente ? form.novoClienteCnpj : undefined,
 
-        cidade:
-          form.cidade ||
-          null,
+        novoClienteEmail: modoNovoCliente ? form.novoClienteEmail : undefined,
 
-        estado:
-          form.estado ||
-          null,
+        novoClienteTelefone: modoNovoCliente
+          ? form.novoClienteTelefone
+          : undefined,
 
-        numero_proposta:
-          form.numero_proposta ||
-          null,
+        cidade: form.cidade || null,
 
-        vendedor_id:
-          form.vendedor_id ||
-          null,
+        estado: form.estado || null,
 
-        vendedor:
-          form.vendedor ||
-          null,
+        numero_proposta: form.numero_proposta || null,
 
-        data_entrada:
-          form.data_entrada ||
-          null,
+        vendedor_id: form.vendedor_id || null,
 
-        data_entrega_esperada:
-          form.data_entrega_esperada ||
-          null,
+        vendedor: form.vendedor || null,
 
-        tipo_proposta:
-          form.tipo_proposta ||
-          null,
+        data_entrada: form.data_entrada || null,
 
-        tipo_orcamentacao:
-          form.tipo_orcamentacao ||
-          null,
+        data_entrega_esperada: form.data_entrega_esperada || null,
 
-        nome_obra:
-          form.nome_obra ||
-          "Obra sem nome",
+        tipo_proposta: form.tipo_proposta || null,
 
-        descricao:
-          form.descricao ||
-          null,
+        tipo_orcamentacao: form.tipo_orcamentacao || null,
 
-        complexidade:
-          form.complexidade ||
-          null,
+        nome_obra: form.nome_obra || "Obra sem nome",
 
-        vazao:
-          form.vazao
-            ? Number(
-                form.vazao
-              )
-            : null,
+        descricao: form.descricao || null,
 
-        tipo_projeto:
-          form.tipo_projeto ||
-          null,
+        complexidade: form.complexidade || null,
 
-        tipo_efluente:
-          form.tipo_efluente ||
-          null,
+        vazao: form.vazao ? Number(form.vazao) : null,
 
-        status:
-          form.status,
+        tipo_projeto: form.tipo_projeto || null,
 
-        observacoes:
-          form.observacoes ||
-          null,
+        tipo_efluente: form.tipo_efluente || null,
+
+        status: form.status,
+
+        observacoes: form.observacoes || null,
       });
 
       navigate({
-        to:
-          "/obras",
+        to: "/obras",
       });
     } catch (error) {
-      console.error(
-        "Erro ao criar obra:",
-        error
-      );
+      console.error("Erro ao criar obra:", error);
 
       const mensagem =
-        error instanceof Error
-          ? error.message
-          : "Erro desconhecido.";
+        error instanceof Error ? error.message : "Erro desconhecido.";
 
-      alert(
-        `Erro ao cadastrar obra: ${mensagem}`
-      );
+      alert(`Erro ao cadastrar orçamento: ${mensagem}`);
     } finally {
       setLoading(false);
     }
@@ -676,20 +457,147 @@ function NovaObraPage() {
     <div className="max-w-5xl space-y-8 p-8">
       <div>
         <h1 className="text-3xl font-bold tracking-tight text-gray-900">
-          Nova obra
+          Novo orçamento
         </h1>
 
         <p className="mt-1 text-sm text-gray-500">
-          Cadastro comercial e técnico da obra.
+          Cadastro comercial e técnico do orçamento.
         </p>
       </div>
 
-      <form
-        onSubmit={
-          handleSubmit
-        }
-        className="space-y-6"
-      >
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <section className="space-y-5 rounded-2xl border bg-white p-6 shadow-sm">
+          <div>
+            <h2 className="text-xl font-semibold text-gray-900">
+              Origem do orçamento
+            </h2>
+
+            <p className="mt-1 text-sm text-gray-500">
+              Informe se este orçamento pertence a uma obra já cadastrada no
+              ERP.
+            </p>
+          </div>
+
+          <div className="grid gap-3 md:grid-cols-2">
+            <button
+              type="button"
+              onClick={() => handleAlterarOrigemOrcamento(false)}
+              className={`rounded-xl border p-4 text-left transition ${
+                !usarObraExistente
+                  ? "border-blue-500 bg-blue-50 ring-2 ring-blue-100"
+                  : "border-gray-200 bg-white hover:border-gray-300"
+              }`}
+            >
+              <p className="font-semibold text-gray-900">
+                Não, é um orçamento novo
+              </p>
+
+              <p className="mt-1 text-sm text-gray-500">
+                Se for aprovado, uma nova obra será criada automaticamente.
+              </p>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleAlterarOrigemOrcamento(true)}
+              className={`rounded-xl border p-4 text-left transition ${
+                usarObraExistente
+                  ? "border-blue-500 bg-blue-50 ring-2 ring-blue-100"
+                  : "border-gray-200 bg-white hover:border-gray-300"
+              }`}
+            >
+              <p className="font-semibold text-gray-900">
+                Sim, já existe no ERP
+              </p>
+
+              <p className="mt-1 text-sm text-gray-500">
+                O orçamento será vinculado à obra existente, sem criar outra.
+              </p>
+            </button>
+          </div>
+
+          {usarObraExistente && (
+            <div className="space-y-4 rounded-xl border border-blue-200 bg-blue-50/50 p-4">
+              <div className="space-y-2">
+                <label
+                  htmlFor="obra_execucao_id"
+                  className="text-sm font-semibold text-gray-700"
+                >
+                  Obra existente no ERP *
+                </label>
+
+                <select
+                  id="obra_execucao_id"
+                  name="obra_execucao_id"
+                  value={form.obra_execucao_id}
+                  onChange={handleSelecionarObraExistente}
+                  disabled={carregandoObrasExecucao}
+                  required={usarObraExistente}
+                  className={`${inputClassName} cursor-pointer disabled:cursor-not-allowed disabled:bg-gray-100`}
+                >
+                  <option value="">
+                    {carregandoObrasExecucao
+                      ? "Carregando obras..."
+                      : "Selecione a obra"}
+                  </option>
+
+                  {obrasExecucaoDisponiveis.map((obra) => (
+                    <option key={obra.id} value={obra.id}>
+                      {obra.codigo_erp} — {obra.nome_obra || "Obra sem nome"}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {erroObrasExecucao && (
+                <p className="text-sm text-red-700">{erroObrasExecucao}</p>
+              )}
+
+              {!carregandoObrasExecucao &&
+                !erroObrasExecucao &&
+                obrasExecucaoDisponiveis.length === 0 && (
+                  <p className="text-sm text-amber-700">
+                    Não existem obras com ERP disponíveis para vínculo.
+                  </p>
+                )}
+
+              {obraExecucaoSelecionada && (
+                <div className="grid gap-3 rounded-xl border border-blue-200 bg-white p-4 sm:grid-cols-3">
+                  <div>
+                    <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
+                      Número ERP
+                    </p>
+
+                    <p className="mt-1 font-bold text-gray-900">
+                      {obraExecucaoSelecionada.codigo_erp}
+                    </p>
+                  </div>
+
+                  <div>
+                    <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
+                      Nome da obra
+                    </p>
+
+                    <p className="mt-1 font-semibold text-gray-900">
+                      {obraExecucaoSelecionada.nome_obra || "Não informado"}
+                    </p>
+                  </div>
+
+                  <div>
+                    <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
+                      Cliente
+                    </p>
+
+                    <p className="mt-1 font-semibold text-gray-900">
+                      {obraExecucaoSelecionada.cliente || "Não informado"}
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </section>
+
         <section className="space-y-5 rounded-2xl border bg-white p-6 shadow-sm">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
@@ -705,35 +613,23 @@ function NovaObraPage() {
             <button
               type="button"
               onClick={() => {
-                setModoNovoCliente(
-                  (
-                    estadoAtual
-                  ) =>
-                    !estadoAtual
-                );
+                setModoNovoCliente((estadoAtual) => !estadoAtual);
 
-                setForm(
-                  (
-                    estadoAtual
-                  ) => ({
-                    ...estadoAtual,
+                setForm((estadoAtual) => ({
+                  ...estadoAtual,
 
-                    cliente_id:
-                      "",
+                  cliente_id: "",
 
-                    novoClienteNome:
-                      "",
+                  novoClienteNome: "",
 
-                    novoClienteCnpj:
-                      "",
+                  novoClienteRazaoSocial: "",
 
-                    novoClienteEmail:
-                      "",
+                  novoClienteCnpj: "",
 
-                    novoClienteTelefone:
-                      "",
-                  })
-                );
+                  novoClienteEmail: "",
+
+                  novoClienteTelefone: "",
+                }));
               }}
               className="text-sm font-semibold text-blue-600 transition hover:text-blue-800"
             >
@@ -745,9 +641,7 @@ function NovaObraPage() {
 
           {erroPermissoes && (
             <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-              {
-                erroPermissoes
-              }
+              {erroPermissoes}
             </div>
           )}
 
@@ -764,15 +658,9 @@ function NovaObraPage() {
                 id="codigo"
                 name="codigo"
                 placeholder="Ex.: 1234/2026"
-                value={
-                  form.codigo
-                }
-                onChange={
-                  handleChange
-                }
-                className={
-                  inputClassName
-                }
+                value={form.codigo}
+                onChange={handleChange}
+                className={inputClassName}
               />
             </div>
 
@@ -788,15 +676,9 @@ function NovaObraPage() {
                 id="nome_obra"
                 name="nome_obra"
                 placeholder="Ex.: ETE Chapecó"
-                value={
-                  form.nome_obra
-                }
-                onChange={
-                  handleChange
-                }
-                className={
-                  inputClassName
-                }
+                value={form.nome_obra}
+                onChange={handleChange}
+                className={inputClassName}
                 required
               />
             </div>
@@ -812,16 +694,9 @@ function NovaObraPage() {
               <select
                 id="setor_id"
                 name="setor_id"
-                value={
-                  form.setor_id
-                }
-                onChange={
-                  handleChange
-                }
-                disabled={
-                  carregandoPermissoes ||
-                  !usuarioAdministrador
-                }
+                value={form.setor_id}
+                onChange={handleChange}
+                disabled={carregandoPermissoes || !usuarioAdministrador}
                 required
                 className={`${inputClassName} cursor-pointer disabled:cursor-not-allowed disabled:bg-gray-100`}
               >
@@ -831,32 +706,18 @@ function NovaObraPage() {
                     : "Selecione o setor"}
                 </option>
 
-                {setoresLista.map(
-                  (
-                    setor
-                  ) => (
-                    <option
-                      key={
-                        setor.id
-                      }
-                      value={
-                        setor.id
-                      }
-                    >
-                      {
-                        setor.nome
-                      }
-                    </option>
-                  )
-                )}
+                {setoresLista.map((setor) => (
+                  <option key={setor.id} value={setor.id}>
+                    {setor.nome}
+                  </option>
+                ))}
               </select>
 
-              {!usuarioAdministrador &&
-                form.setor_id && (
-                  <p className="text-xs text-gray-500">
-                    A obra será vinculada automaticamente ao seu setor.
-                  </p>
-                )}
+              {!usuarioAdministrador && form.setor_id && (
+                <p className="text-xs text-gray-500">
+                  A obra será vinculada automaticamente ao seu setor.
+                </p>
+              )}
             </div>
 
             {!modoNovoCliente ? (
@@ -871,36 +732,17 @@ function NovaObraPage() {
                 <select
                   id="cliente_id"
                   name="cliente_id"
-                  value={
-                    form.cliente_id
-                  }
-                  onChange={
-                    handleChange
-                  }
+                  value={form.cliente_id}
+                  onChange={handleChange}
                   className={`${inputClassName} cursor-pointer`}
                 >
-                  <option value="">
-                    Selecione um cliente
-                  </option>
+                  <option value="">Selecione um cliente</option>
 
-                  {clientesLista.map(
-                    (
-                      cliente
-                    ) => (
-                      <option
-                        key={
-                          cliente.id
-                        }
-                        value={
-                          cliente.id
-                        }
-                      >
-                        {
-                          cliente.nome
-                        }
-                      </option>
-                    )
-                  )}
+                  {clientesLista.map((cliente) => (
+                    <option key={cliente.id} value={cliente.id}>
+                      {cliente.nome}
+                    </option>
+                  ))}
                 </select>
               </div>
             ) : (
@@ -917,18 +759,29 @@ function NovaObraPage() {
                     id="novoClienteNome"
                     name="novoClienteNome"
                     placeholder="Nome do cliente"
-                    value={
-                      form.novoClienteNome
-                    }
-                    onChange={
-                      handleChange
-                    }
-                    className={
-                      inputClassName
-                    }
-                    required={
-                      modoNovoCliente
-                    }
+                    value={form.novoClienteNome}
+                    onChange={handleChange}
+                    className={inputClassName}
+                    required={modoNovoCliente}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label
+                    htmlFor="novoClienteRazaoSocial"
+                    className="text-sm font-semibold text-gray-700"
+                  >
+                    Razão social *
+                  </label>
+
+                  <input
+                    id="novoClienteRazaoSocial"
+                    name="novoClienteRazaoSocial"
+                    placeholder="Razão social"
+                    value={form.novoClienteRazaoSocial}
+                    onChange={handleChange}
+                    className={inputClassName}
+                    required={modoNovoCliente}
                   />
                 </div>
 
@@ -937,25 +790,19 @@ function NovaObraPage() {
                     htmlFor="novoClienteCnpj"
                     className="text-sm font-semibold text-gray-700"
                   >
-                    CNPJ
+                    CNPJ *
                   </label>
 
                   <input
                     id="novoClienteCnpj"
                     name="novoClienteCnpj"
                     placeholder="00.000.000/0000-00"
-                    value={
-                      form.novoClienteCnpj
-                    }
-                    onChange={
-                      handleChange
-                    }
-                    maxLength={
-                      18
-                    }
-                    className={
-                      inputClassName
-                    }
+                    value={form.novoClienteCnpj}
+                    onChange={handleChange}
+                    maxLength={18}
+                    inputMode="numeric"
+                    className={inputClassName}
+                    required={modoNovoCliente}
                   />
                 </div>
 
@@ -972,15 +819,9 @@ function NovaObraPage() {
                     name="novoClienteEmail"
                     type="email"
                     placeholder="cliente@empresa.com"
-                    value={
-                      form.novoClienteEmail
-                    }
-                    onChange={
-                      handleChange
-                    }
-                    className={
-                      inputClassName
-                    }
+                    value={form.novoClienteEmail}
+                    onChange={handleChange}
+                    className={inputClassName}
                   />
                 </div>
 
@@ -996,26 +837,50 @@ function NovaObraPage() {
                     id="novoClienteTelefone"
                     name="novoClienteTelefone"
                     placeholder="(00) 00000-0000"
-                    value={
-                      form.novoClienteTelefone
-                    }
-                    onChange={
-                      handleChange
-                    }
-                    maxLength={
-                      15
-                    }
-                    className={
-                      inputClassName
-                    }
+                    value={form.novoClienteTelefone}
+                    onChange={handleChange}
+                    maxLength={15}
+                    className={inputClassName}
                   />
                 </div>
               </>
             )}
 
+            {!modoNovoCliente && clienteSelecionado && (
+              <>
+                <div className="space-y-2">
+                  <label
+                    htmlFor="cliente_razao_social"
+                    className="text-sm font-semibold text-gray-700"
+                  >
+                    Razão social
+                  </label>
 
+                  <input
+                    id="cliente_razao_social"
+                    value={clienteSelecionado.razao_social || "Não informada"}
+                    disabled
+                    className={`${inputClassName} cursor-not-allowed bg-gray-100 text-gray-600`}
+                  />
+                </div>
 
+                <div className="space-y-2">
+                  <label
+                    htmlFor="cliente_cnpj"
+                    className="text-sm font-semibold text-gray-700"
+                  >
+                    CNPJ
+                  </label>
 
+                  <input
+                    id="cliente_cnpj"
+                    value={clienteSelecionado.cnpj || "Não informado"}
+                    disabled
+                    className={`${inputClassName} cursor-not-allowed bg-gray-100 text-gray-600`}
+                  />
+                </div>
+              </>
+            )}
 
             <div className="space-y-2">
               <label
@@ -1029,15 +894,9 @@ function NovaObraPage() {
                 id="cidade"
                 name="cidade"
                 placeholder="Cidade"
-                value={
-                  form.cidade
-                }
-                onChange={
-                  handleChange
-                }
-                className={
-                  inputClassName
-                }
+                value={form.cidade}
+                onChange={handleChange}
+                className={inputClassName}
               />
             </div>
 
@@ -1053,15 +912,9 @@ function NovaObraPage() {
                 id="estado"
                 name="estado"
                 placeholder="Ex.: SC"
-                value={
-                  form.estado
-                }
-                onChange={
-                  handleChange
-                }
-                className={
-                  inputClassName
-                }
+                value={form.estado}
+                onChange={handleChange}
+                className={inputClassName}
               />
             </div>
           </div>
@@ -1080,9 +933,7 @@ function NovaObraPage() {
 
           {erroVendedores && (
             <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
-              {
-                erroVendedores
-              }
+              {erroVendedores}
             </div>
           )}
 
@@ -1099,15 +950,9 @@ function NovaObraPage() {
                 id="numero_proposta"
                 name="numero_proposta"
                 placeholder="Ex.: 123/2026"
-                value={
-                  form.numero_proposta
-                }
-                onChange={
-                  handleChange
-                }
-                className={
-                  inputClassName
-                }
+                value={form.numero_proposta}
+                onChange={handleChange}
+                className={inputClassName}
               />
             </div>
 
@@ -1122,15 +967,9 @@ function NovaObraPage() {
               <select
                 id="vendedor_id"
                 name="vendedor_id"
-                value={
-                  form.vendedor_id
-                }
-                onChange={
-                  handleSelecionarVendedor
-                }
-                disabled={
-                  carregandoVendedores
-                }
+                value={form.vendedor_id}
+                onChange={handleSelecionarVendedor}
+                disabled={carregandoVendedores}
                 className={`${inputClassName} cursor-pointer disabled:cursor-not-allowed disabled:bg-gray-100`}
               >
                 <option value="">
@@ -1139,33 +978,18 @@ function NovaObraPage() {
                     : "Selecione o vendedor"}
                 </option>
 
-                {vendedoresLista.map(
-                  (
-                    vendedor
-                  ) => (
-                    <option
-                      key={
-                        vendedor.id
-                      }
-                      value={
-                        vendedor.id
-                      }
-                    >
-                      {
-                        vendedor.nome
-                      }
-                    </option>
-                  )
-                )}
+                {vendedoresLista.map((vendedor) => (
+                  <option key={vendedor.id} value={vendedor.id}>
+                    {vendedor.nome}
+                  </option>
+                ))}
               </select>
 
-              {!carregandoVendedores &&
-                vendedoresLista.length ===
-                  0 && (
-                  <p className="text-xs text-amber-700">
-                    Nenhum usuário ativo com o cargo Vendedor foi encontrado.
-                  </p>
-                )}
+              {!carregandoVendedores && vendedoresLista.length === 0 && (
+                <p className="text-xs text-amber-700">
+                  Nenhum usuário ativo com o cargo Vendedor foi encontrado.
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -1180,15 +1004,9 @@ function NovaObraPage() {
                 id="data_entrada"
                 name="data_entrada"
                 type="date"
-                value={
-                  form.data_entrada
-                }
-                onChange={
-                  handleChange
-                }
-                className={
-                  inputClassName
-                }
+                value={form.data_entrada}
+                onChange={handleChange}
+                className={inputClassName}
               />
             </div>
 
@@ -1204,15 +1022,9 @@ function NovaObraPage() {
                 id="data_entrega_esperada"
                 name="data_entrega_esperada"
                 type="date"
-                value={
-                  form.data_entrega_esperada
-                }
-                onChange={
-                  handleChange
-                }
-                className={
-                  inputClassName
-                }
+                value={form.data_entrega_esperada}
+                onChange={handleChange}
+                className={inputClassName}
               />
             </div>
 
@@ -1227,29 +1039,17 @@ function NovaObraPage() {
               <select
                 id="tipo_proposta"
                 name="tipo_proposta"
-                value={
-                  form.tipo_proposta
-                }
-                onChange={
-                  handleChange
-                }
+                value={form.tipo_proposta}
+                onChange={handleChange}
                 className={`${inputClassName} cursor-pointer`}
               >
-                <option value="">
-                  Selecione o tipo de proposta
-                </option>
+                <option value="">Selecione o tipo de proposta</option>
 
-                <option value="Simplificado">
-                  Simplificado
-                </option>
+                <option value="Simplificado">Simplificado</option>
 
-                <option value="Detalhado">
-                  Detalhado
-                </option>
+                <option value="Detalhado">Detalhado</option>
 
-                <option value="Preliminar">
-                  Preliminar
-                </option>
+                <option value="Preliminar">Preliminar</option>
               </select>
             </div>
 
@@ -1264,45 +1064,25 @@ function NovaObraPage() {
               <select
                 id="tipo_orcamentacao"
                 name="tipo_orcamentacao"
-                value={
-                  form.tipo_orcamentacao
-                }
-                onChange={
-                  handleChange
-                }
+                value={form.tipo_orcamentacao}
+                onChange={handleChange}
                 className={`${inputClassName} cursor-pointer`}
               >
-                <option value="">
-                  Selecione o tipo de orçamentação
-                </option>
+                <option value="">Selecione o tipo de orçamentação</option>
 
-                <option value="Comp. Licitação">
-                  Comp. Licitação
-                </option>
+                <option value="Comp. Licitação">Comp. Licitação</option>
 
-                <option value="Equipamentos">
-                  Equipamentos
-                </option>
+                <option value="Equipamentos">Equipamentos</option>
 
-                <option value="ETA">
-                  ETA
-                </option>
+                <option value="ETA">ETA</option>
 
-                <option value="Industrial">
-                  Industrial
-                </option>
+                <option value="Industrial">Industrial</option>
 
-                <option value="Licitação">
-                  Licitação
-                </option>
+                <option value="Licitação">Licitação</option>
 
-                <option value="Sanitário">
-                  Sanitário
-                </option>
+                <option value="Sanitário">Sanitário</option>
 
-                <option value="Serviços">
-                  Serviços
-                </option>
+                <option value="Serviços">Serviços</option>
               </select>
             </div>
           </div>
@@ -1335,15 +1115,9 @@ function NovaObraPage() {
                 min="0"
                 step="any"
                 placeholder="Ex.: 500"
-                value={
-                  form.vazao
-                }
-                onChange={
-                  handleChange
-                }
-                className={
-                  inputClassName
-                }
+                value={form.vazao}
+                onChange={handleChange}
+                className={inputClassName}
               />
             </div>
 
@@ -1359,15 +1133,9 @@ function NovaObraPage() {
                 id="tipo_projeto"
                 name="tipo_projeto"
                 placeholder="Ex.: ETE"
-                value={
-                  form.tipo_projeto
-                }
-                onChange={
-                  handleChange
-                }
-                className={
-                  inputClassName
-                }
+                value={form.tipo_projeto}
+                onChange={handleChange}
+                className={inputClassName}
               />
             </div>
 
@@ -1383,15 +1151,9 @@ function NovaObraPage() {
                 id="tipo_efluente"
                 name="tipo_efluente"
                 placeholder="Ex.: Sanitário"
-                value={
-                  form.tipo_efluente
-                }
-                onChange={
-                  handleChange
-                }
-                className={
-                  inputClassName
-                }
+                value={form.tipo_efluente}
+                onChange={handleChange}
+                className={inputClassName}
               />
             </div>
 
@@ -1406,29 +1168,17 @@ function NovaObraPage() {
               <select
                 id="complexidade"
                 name="complexidade"
-                value={
-                  form.complexidade
-                }
-                onChange={
-                  handleChange
-                }
+                value={form.complexidade}
+                onChange={handleChange}
                 className={`${inputClassName} cursor-pointer`}
               >
-                <option value="">
-                  Selecione a complexidade
-                </option>
+                <option value="">Selecione a complexidade</option>
 
-                <option value="Baixa">
-                  Baixa
-                </option>
+                <option value="Baixa">Baixa</option>
 
-                <option value="Média">
-                  Média
-                </option>
+                <option value="Média">Média</option>
 
-                <option value="Alta">
-                  Alta
-                </option>
+                <option value="Alta">Alta</option>
               </select>
             </div>
           </div>
@@ -1447,16 +1197,10 @@ function NovaObraPage() {
               id="descricao"
               name="descricao"
               placeholder="Descrição geral da obra"
-              value={
-                form.descricao
-              }
-              onChange={
-                handleChange
-              }
+              value={form.descricao}
+              onChange={handleChange}
               rows={4}
-              className={
-                textareaClassName
-              }
+              className={textareaClassName}
             />
           </div>
 
@@ -1472,16 +1216,10 @@ function NovaObraPage() {
               id="observacoes"
               name="observacoes"
               placeholder="Observações adicionais"
-              value={
-                form.observacoes
-              }
-              onChange={
-                handleChange
-              }
+              value={form.observacoes}
+              onChange={handleChange}
               rows={4}
-              className={
-                textareaClassName
-              }
+              className={textareaClassName}
             />
           </div>
         </section>
@@ -1497,12 +1235,10 @@ function NovaObraPage() {
             }
             className="rounded-xl bg-black px-8 py-3 text-sm font-semibold text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {loading
-              ? "Salvando..."
-              : "Cadastrar obra"}
+            {loading ? "Salvando..." : "Cadastrar orçamento"}
           </button>
         </div>
       </form>
     </div>
   );
-  }
+}

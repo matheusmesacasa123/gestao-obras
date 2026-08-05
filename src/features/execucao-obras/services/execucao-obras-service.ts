@@ -1,18 +1,63 @@
-import {
-  supabase,
-} from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/client";
 
-import type {
-  ObraExecucao,
-  StatusObraExecucao,
-} from "../types";
+import type { ObraExecucao, StatusObraExecucao } from "../types";
+
+type OrigemCriacaoObra = "manual" | "orcamento_aprovado";
+
+type AcompanhamentoComercialResumo = {
+  status: string;
+  updated_at: string;
+};
+
+type ObraExecucaoComRegraComercial = ObraExecucao & {
+  origem_criacao?: OrigemCriacaoObra;
+
+  orcamento?: {
+    id: string;
+    codigo: string | null;
+    numero_proposta: string | null;
+    status: string | null;
+
+    acompanhamentos_comerciais?: AcompanhamentoComercialResumo[] | null;
+  } | null;
+};
+
+function obterStatusComercialAtual(obra: ObraExecucaoComRegraComercial) {
+  const acompanhamentos = obra.orcamento?.acompanhamentos_comerciais ?? [];
+
+  return [...acompanhamentos].sort(
+    (primeiro, segundo) =>
+      new Date(segundo.updated_at).getTime() -
+      new Date(primeiro.updated_at).getTime(),
+  )[0]?.status;
+}
+
+function obraDeveAparecerNaExecucao(obra: ObraExecucaoComRegraComercial) {
+  if (obra.origem_criacao !== "orcamento_aprovado") {
+    return true;
+  }
+
+  const jaFoiLancadaNoErp =
+    obra.incluido_erp || Boolean(obra.codigo_erp?.trim());
+
+  const jaFoiIniciada =
+    obra.status !== "nao_iniciada" || Boolean(obra.data_inicio);
+
+  if (jaFoiLancadaNoErp || jaFoiIniciada) {
+    return true;
+  }
+
+  return obterStatusComercialAtual(obra) === "aceita";
+}
 
 export interface CriarObraExecucaoPayload {
+  orcamento_id?: string | null;
   cliente_id?: string | null;
   setor_id?: string | null;
   responsavel_id?: string | null;
 
   codigo?: string | null;
+  codigo_erp?: string | null;
   cliente?: string | null;
   razao_social?: string | null;
   cnpj?: string | null;
@@ -35,6 +80,18 @@ export interface CriarObraExecucaoPayload {
 
   observacoes?: string | null;
   criado_por: string;
+}
+
+export interface OrcamentoDisponivelVinculo {
+  id: string;
+  codigo: string | null;
+  numero_proposta: string | null;
+  nome_obra: string | null;
+  cliente: string | null;
+  cliente_id: string | null;
+  setor_id: string | null;
+  cidade: string | null;
+  estado: string | null;
 }
 
 export interface AtualizarObraExecucaoPayload {
@@ -87,70 +144,43 @@ const consultaObraExecucao = `
     id,
     codigo,
     numero_proposta,
-    status
+    status,
+    acompanhamentos_comerciais (
+      status,
+      updated_at
+    )
   )
 `;
 
-export async function getObrasExecucao(): Promise<
-  ObraExecucao[]
-> {
-  const {
-    data,
-    error,
-  } = await supabase
-    .from(
-      "obras_execucao"
-    )
-    .select(
-      consultaObraExecucao
-    )
-    .order(
-      "created_at",
-      {
-        ascending:
-          false,
-      }
-    );
+export async function getObrasExecucao(): Promise<ObraExecucao[]> {
+  const { data, error } = await supabase
+    .from("obras_execucao")
+    .select(consultaObraExecucao)
+    .order("created_at", {
+      ascending: false,
+    });
 
   if (error) {
-    console.error(
-      "Erro ao buscar obras em execução:",
-      error
-    );
+    console.error("Erro ao buscar obras em execução:", error);
 
     throw error;
   }
 
-  return (
-    data ??
-    []
-  ) as unknown as ObraExecucao[];
+  const obrasEncontradas = (data ??
+    []) as unknown as ObraExecucaoComRegraComercial[];
+
+  return obrasEncontradas.filter(obraDeveAparecerNaExecucao);
 }
 
-export async function getObraExecucaoPorId(
-  id: string
-): Promise<ObraExecucao> {
-  const {
-    data,
-    error,
-  } = await supabase
-    .from(
-      "obras_execucao"
-    )
-    .select(
-      consultaObraExecucao
-    )
-    .eq(
-      "id",
-      id
-    )
+export async function getObraExecucaoPorId(id: string): Promise<ObraExecucao> {
+  const { data, error } = await supabase
+    .from("obras_execucao")
+    .select(consultaObraExecucao)
+    .eq("id", id)
     .single();
 
   if (error) {
-    console.error(
-      "Erro ao buscar obra em execução:",
-      error
-    );
+    console.error("Erro ao buscar obra em execução:", error);
 
     throw error;
   }
@@ -159,33 +189,47 @@ export async function getObraExecucaoPorId(
 }
 
 export async function criarObraExecucao(
-  payload: CriarObraExecucaoPayload
+  payload: CriarObraExecucaoPayload,
 ): Promise<ObraExecucao> {
-  const {
-    data,
-    error,
-  } = await supabase
-    .from(
-      "obras_execucao"
-    )
+  const codigoErp = payload.codigo_erp?.trim() || null;
+
+  let incluidoErpEm: string | null = null;
+
+  let incluidoErpPor: string | null = null;
+
+  if (codigoErp) {
+    const { data: usuarioData, error: usuarioError } =
+      await supabase.auth.getUser();
+
+    if (usuarioError || !usuarioData.user) {
+      throw new Error(
+        "Não foi possível identificar o usuário que lançou a obra no ERP.",
+      );
+    }
+
+    incluidoErpEm = new Date().toISOString();
+
+    incluidoErpPor = usuarioData.user.id;
+  }
+
+  const { data, error } = await supabase
+    .from("obras_execucao")
     .insert([
       {
         ...payload,
 
-        orcamento_id:
-          null,
+        orcamento_id: payload.orcamento_id || null,
+        codigo_erp: codigoErp,
+        incluido_erp: Boolean(codigoErp),
+        incluido_erp_em: incluidoErpEm,
+        incluido_erp_por: incluidoErpPor,
       },
     ])
-    .select(
-      consultaObraExecucao
-    )
+    .select(consultaObraExecucao)
     .single();
 
   if (error) {
-    console.error(
-      "Erro ao criar obra em execução:",
-      error
-    );
+    console.error("Erro ao criar obra em execução:", error);
 
     throw error;
   }
@@ -193,136 +237,128 @@ export async function criarObraExecucao(
   return data as unknown as ObraExecucao;
 }
 
+export async function getOrcamentosDisponiveisParaVinculo(): Promise<
+  OrcamentoDisponivelVinculo[]
+> {
+  const { data, error } = await supabase
+    .from("orcamentos")
+    .select(
+      `
+        id,
+        codigo,
+        numero_proposta,
+        nome_obra,
+        cliente,
+        cliente_id,
+        setor_id,
+        cidade,
+        estado,
+        obras_execucao (
+          id
+        )
+      `,
+    )
+    .order("created_at", {
+      ascending: false,
+    });
+
+  if (error) {
+    console.error("Erro ao listar orçamentos disponíveis para vínculo:", error);
+
+    throw error;
+  }
+
+  return (data ?? [])
+    .filter(
+      (orcamento) =>
+        !orcamento.obras_execucao || orcamento.obras_execucao.length === 0,
+    )
+    .map((orcamento) => ({
+      id: orcamento.id,
+      codigo: orcamento.codigo,
+      numero_proposta: orcamento.numero_proposta,
+      nome_obra: orcamento.nome_obra,
+      cliente: orcamento.cliente,
+      cliente_id: orcamento.cliente_id,
+      setor_id: orcamento.setor_id,
+      cidade: orcamento.cidade,
+      estado: orcamento.estado,
+    })) as OrcamentoDisponivelVinculo[];
+}
+
 export async function atualizarObraExecucao(
   id: string,
-  payload: AtualizarObraExecucaoPayload
+  payload: AtualizarObraExecucaoPayload,
 ): Promise<ObraExecucao> {
-  const {
-    data: obraAtual,
-    error: erroObraAtual,
-  } = await supabase
-    .from(
-      "obras_execucao"
-    )
+  const { data: obraAtual, error: erroObraAtual } = await supabase
+    .from("obras_execucao")
     .select(
       `
         incluido_erp,
         codigo_erp,
         incluido_erp_em,
         incluido_erp_por
-      `
+      `,
     )
-    .eq(
-      "id",
-      id
-    )
+    .eq("id", id)
     .single();
 
   if (erroObraAtual) {
-    console.error(
-      "Erro ao consultar situação atual da obra:",
-      erroObraAtual
-    );
+    console.error("Erro ao consultar situação atual da obra:", erroObraAtual);
 
     throw erroObraAtual;
   }
 
-  const dadosAtualizacao: Record<
-    string,
-    unknown
-  > = {
+  const dadosAtualizacao: Record<string, unknown> = {
     ...payload,
 
-    updated_at:
-      new Date().toISOString(),
+    updated_at: new Date().toISOString(),
   };
 
-  if (
-    payload.incluido_erp ===
-    true
-  ) {
-    const codigoErp =
-      payload.codigo_erp?.trim();
+  if (payload.incluido_erp === true) {
+    const codigoErp = payload.codigo_erp?.trim();
 
     if (!codigoErp) {
-      throw new Error(
-        "Informe o código da obra no ERP."
-      );
+      throw new Error("Informe o código da obra no ERP.");
     }
 
-    dadosAtualizacao.codigo_erp =
-      codigoErp;
+    dadosAtualizacao.codigo_erp = codigoErp;
 
-    if (
-      !obraAtual.incluido_erp
-    ) {
-      const {
-        data: usuarioData,
-        error: usuarioError,
-      } =
+    if (!obraAtual.incluido_erp) {
+      const { data: usuarioData, error: usuarioError } =
         await supabase.auth.getUser();
 
-      if (
-        usuarioError ||
-        !usuarioData.user
-      ) {
-        throw new Error(
-          "Não foi possível identificar o usuário autenticado."
-        );
+      if (usuarioError || !usuarioData.user) {
+        throw new Error("Não foi possível identificar o usuário autenticado.");
       }
 
-      dadosAtualizacao.incluido_erp_em =
-        new Date().toISOString();
+      dadosAtualizacao.incluido_erp_em = new Date().toISOString();
 
-      dadosAtualizacao.incluido_erp_por =
-        usuarioData.user.id;
+      dadosAtualizacao.incluido_erp_por = usuarioData.user.id;
     } else {
-      dadosAtualizacao.incluido_erp_em =
-        obraAtual.incluido_erp_em;
+      dadosAtualizacao.incluido_erp_em = obraAtual.incluido_erp_em;
 
-      dadosAtualizacao.incluido_erp_por =
-        obraAtual.incluido_erp_por;
+      dadosAtualizacao.incluido_erp_por = obraAtual.incluido_erp_por;
     }
   }
 
-  if (
-    payload.incluido_erp ===
-    false
-  ) {
-    dadosAtualizacao.codigo_erp =
-      null;
+  if (payload.incluido_erp === false) {
+    dadosAtualizacao.codigo_erp = null;
 
-    dadosAtualizacao.incluido_erp_em =
-      null;
+    dadosAtualizacao.incluido_erp_em = null;
 
-    dadosAtualizacao.incluido_erp_por =
-      null;
+    dadosAtualizacao.incluido_erp_por = null;
   }
 
-  const {
-    data,
-    error,
-  } = await supabase
-    .from(
-      "obras_execucao"
-    )
-    .update(
-      dadosAtualizacao
-    )
-    .eq(
-      "id",
-      id
-    )
-    .select(
-      consultaObraExecucao
-    )
+  const { data, error } = await supabase
+    .from("obras_execucao")
+    .update(dadosAtualizacao)
+    .eq("id", id)
+    .select(consultaObraExecucao)
     .single();
 
   if (error) {
-    console.error(
-      "Erro ao atualizar obra em execução:",
-      error
-    );
+    console.error("Erro ao atualizar obra em execução:", error);
 
     throw error;
   }
@@ -330,26 +366,11 @@ export async function atualizarObraExecucao(
   return data as unknown as ObraExecucao;
 }
 
-export async function excluirObraExecucao(
-  id: string
-) {
-  const {
-    error,
-  } = await supabase
-    .from(
-      "obras_execucao"
-    )
-    .delete()
-    .eq(
-      "id",
-      id
-    );
+export async function excluirObraExecucao(id: string) {
+  const { error } = await supabase.from("obras_execucao").delete().eq("id", id);
 
   if (error) {
-    console.error(
-      "Erro ao excluir obra em execução:",
-      error
-    );
+    console.error("Erro ao excluir obra em execução:", error);
 
     throw error;
   }

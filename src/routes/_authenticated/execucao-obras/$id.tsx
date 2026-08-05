@@ -3,6 +3,7 @@ import {
   Link,
   Outlet,
   useLoaderData,
+  useRouter,
 } from "@tanstack/react-router";
 
 import {
@@ -13,12 +14,21 @@ import {
   FileText,
   History,
   Layers3,
+  Loader2,
   MapPin,
   FileSearch2,
+  Save,
   UsersRound,
+  X,
 } from "lucide-react";
 
 import {
+  useState,
+  type FormEvent,
+} from "react";
+
+import {
+  atualizarObraExecucao,
   getObraExecucaoPorId,
 } from "@/features/execucao-obras/services/execucao-obras-service";
 
@@ -148,6 +158,40 @@ function ObraExecucaoDetalhesLayout() {
         "/_authenticated/execucao-obras/$id",
     });
 
+  const router =
+    useRouter();
+
+  const [
+    modalErpAberto,
+    setModalErpAberto,
+  ] = useState(
+    false
+  );
+
+  const [
+    codigoErp,
+    setCodigoErp,
+  ] = useState(
+    obra.codigo_erp ||
+      ""
+  );
+
+  const [
+    salvandoErp,
+    setSalvandoErp,
+  ] = useState(
+    false
+  );
+
+  const [
+    erroErp,
+    setErroErp,
+  ] = useState<
+    string | null
+  >(
+    null
+  );
+
   const numeroErp =
     obra.codigo_erp ||
     "Ainda não lançado no ERP";
@@ -255,6 +299,95 @@ function ObraExecucaoDetalhesLayout() {
     },
   ] as const;
 
+  function abrirModalErp() {
+    setCodigoErp(
+      obra.codigo_erp ||
+        ""
+    );
+
+    setErroErp(
+      null
+    );
+
+    setModalErpAberto(
+      true
+    );
+  }
+
+  function fecharModalErp() {
+    if (salvandoErp) {
+      return;
+    }
+
+    setModalErpAberto(
+      false
+    );
+
+    setErroErp(
+      null
+    );
+  }
+
+  async function handleSalvarErp(
+    event:
+      FormEvent<HTMLFormElement>
+  ) {
+    event.preventDefault();
+
+    const codigo =
+      codigoErp.trim();
+
+    if (!codigo) {
+      setErroErp(
+        "Informe a numeração da obra no ERP."
+      );
+
+      return;
+    }
+
+    try {
+      setSalvandoErp(
+        true
+      );
+
+      setErroErp(
+        null
+      );
+
+      await atualizarObraExecucao(
+        obra.id,
+        {
+          incluido_erp:
+            true,
+
+          codigo_erp:
+            codigo,
+        }
+      );
+
+      await router.invalidate();
+
+      setModalErpAberto(
+        false
+      );
+    } catch (error) {
+      console.error(
+        "Erro ao lançar obra no ERP:",
+        error
+      );
+
+      setErroErp(
+        error instanceof Error
+          ? error.message
+          : "Não foi possível lançar a obra no ERP."
+      );
+    } finally {
+      setSalvandoErp(
+        false
+      );
+    }
+  }
+
   return (
     <div className="space-y-6 p-8">
       <div>
@@ -287,15 +420,31 @@ function ObraExecucaoDetalhesLayout() {
               Numeração ERP
             </span>
 
-            <h1
-              className={`mt-1 truncate text-3xl font-bold tracking-tight ${
-                obra.codigo_erp
-                  ? "text-slate-950"
-                  : "text-amber-700"
-              }`}
-            >
-              {numeroErp}
-            </h1>
+            <div className="mt-1 flex flex-wrap items-center gap-3">
+              <h1
+                className={`break-words text-3xl font-bold tracking-tight ${
+                  obra.codigo_erp
+                    ? "text-slate-950"
+                    : "text-amber-700"
+                }`}
+              >
+                {numeroErp}
+              </h1>
+
+              {!obra.codigo_erp && (
+                <button
+                  type="button"
+                  onClick={
+                    abrirModalErp
+                  }
+                  className="inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-xl bg-amber-600 px-4 text-sm font-semibold text-white transition hover:bg-amber-700"
+                >
+                  <Save className="h-4 w-4" />
+
+                  Lançar no ERP
+                </button>
+              )}
+            </div>
 
             <div className="mt-3">
               <span className="block text-xs font-medium text-slate-500">
@@ -412,6 +561,133 @@ function ObraExecucaoDetalhesLayout() {
       </nav>
 
       <Outlet />
+
+      {modalErpAberto && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          onMouseDown={(
+            event
+          ) => {
+            if (
+              event.target ===
+              event.currentTarget
+            ) {
+              fecharModalErp();
+            }
+          }}
+        >
+          <div className="w-full max-w-md overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
+            <div className="flex items-start justify-between gap-4 border-b border-slate-200 bg-slate-50 px-6 py-5">
+              <div>
+                <h2 className="text-xl font-bold text-slate-950">
+                  Lançar obra no ERP
+                </h2>
+
+                <p className="mt-1 text-sm text-slate-500">
+                  Informe a numeração recebida no sistema ERP.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={
+                  fecharModalErp
+                }
+                disabled={
+                  salvandoErp
+                }
+                className="rounded-lg p-2 text-slate-500 transition hover:bg-slate-200 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-50"
+                aria-label="Fechar"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <form
+              onSubmit={
+                handleSalvarErp
+              }
+            >
+              <div className="space-y-5 p-6">
+                {erroErp && (
+                  <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-medium text-red-700">
+                    {erroErp}
+                  </div>
+                )}
+
+                <div>
+                  <label
+                    htmlFor="codigo-erp-rapido"
+                    className="block text-sm font-semibold text-slate-700"
+                  >
+                    Numeração ERP
+                  </label>
+
+                  <input
+                    id="codigo-erp-rapido"
+                    type="text"
+                    value={
+                      codigoErp
+                    }
+                    onChange={(
+                      event
+                    ) =>
+                      setCodigoErp(
+                        event.target.value
+                      )
+                    }
+                    disabled={
+                      salvandoErp
+                    }
+                    autoFocus
+                    placeholder="Digite a numeração da obra"
+                    className="mt-2 h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-900 outline-none transition placeholder:font-normal placeholder:text-slate-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-100 disabled:cursor-not-allowed disabled:bg-slate-100"
+                  />
+                </div>
+
+                <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+                  <p className="text-sm text-amber-900">
+                    Ao salvar, a obra será registrada como incluída no ERP, junto com a data e o usuário responsável.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex flex-col-reverse gap-3 border-t border-slate-200 bg-slate-50 px-6 py-4 sm:flex-row sm:justify-end">
+                <button
+                  type="button"
+                  onClick={
+                    fecharModalErp
+                  }
+                  disabled={
+                    salvandoErp
+                  }
+                  className="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Cancelar
+                </button>
+
+                <button
+                  type="submit"
+                  disabled={
+                    salvandoErp
+                  }
+                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-amber-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {salvandoErp ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Save className="h-4 w-4" />
+                  )}
+
+                  {salvandoErp
+                    ? "Salvando..."
+                    : "Confirmar lançamento"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

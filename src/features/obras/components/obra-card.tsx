@@ -86,7 +86,6 @@ function formatarData(
   );
 }
 
-
 function obraEstaFinalizada(
   obra: Obra
 ) {
@@ -208,6 +207,15 @@ function getStatusGeralStyle(
     switch (
       obra.status
     ) {
+      case "concluida":
+        return {
+          label:
+            "Concluído",
+
+          className:
+            "border-green-300 bg-green-100 text-green-800",
+        };
+
       case "em_desenvolvimento":
         return {
           label:
@@ -268,10 +276,10 @@ function getStatusGeralStyle(
   if (todasConcluidas) {
     return {
       label:
-        "Em andamento",
+        "Concluído",
 
       className:
-        "border-blue-300 bg-blue-100 text-blue-800",
+        "border-green-300 bg-green-100 text-green-800",
     };
   }
 
@@ -389,7 +397,6 @@ function getStatusGeralStyle(
   };
 }
 
-
 function calcularProgressoEtapas(
   obra: Obra
 ) {
@@ -483,7 +490,6 @@ function calcularProgressoEtapas(
       finalizada,
   };
 }
-
 
 function encontrarEtapaExibida(
   obra: Obra,
@@ -627,7 +633,6 @@ export function ObraCard({
     obra.numero_proposta ||
     obra.codigo ||
     "Sem número";
-
 
   const nomeCliente =
     obra.clientes?.nome ||

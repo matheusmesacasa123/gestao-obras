@@ -363,6 +363,17 @@ function AnalisesCriticasPage() {
   function abrirAnalise(
     demanda: StatusAnaliseCriticaDemanda
   ) {
+    if (
+      demanda.status_demanda !==
+      "concluida"
+    ) {
+      window.alert(
+        "Conclua a demanda antes de realizar a análise crítica."
+      );
+
+      return;
+    }
+
     setDemandaEmAnalise(
       demanda
     );
@@ -398,6 +409,21 @@ function AnalisesCriticasPage() {
 
   async function salvarAnalise() {
     if (!demandaEmAnalise) {
+      return;
+    }
+
+    if (
+      demandaEmAnalise.status_demanda !==
+      "concluida"
+    ) {
+      window.alert(
+        "Conclua a demanda antes de realizar a análise crítica."
+      );
+
+      setDemandaEmAnalise(
+        null
+      );
+
       return;
     }
 
@@ -881,9 +907,22 @@ function AnalisesCriticasPage() {
                                         demanda
                                       )
                                     }
-                                    className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
+                                    disabled={
+                                      demanda.status_demanda !==
+                                      "concluida"
+                                    }
+                                    title={
+                                      demanda.status_demanda !==
+                                      "concluida"
+                                        ? "Conclua a demanda para liberar a análise crítica."
+                                        : undefined
+                                    }
+                                    className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500 disabled:hover:bg-slate-200"
                                   >
-                                    {demanda.analise_id ? (
+                                    {demanda.status_demanda !==
+                                    "concluida" ? (
+                                      "Aguardando conclusão"
+                                    ) : demanda.analise_id ? (
                                       <>
                                         <Pencil className="h-4 w-4" />
 

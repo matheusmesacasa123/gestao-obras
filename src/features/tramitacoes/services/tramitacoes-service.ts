@@ -1,10 +1,10 @@
-import {
-  supabase,
-} from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/client";
 
 export type ObraTramitacao = {
   id: string;
   codigo: string | null;
+  numero_proposta: string | null;
+  numero_obra: string | null;
   nome_obra: string | null;
   cliente: string | null;
   setor_id: string | null;
@@ -22,7 +22,8 @@ export type SetorTramitacao = {
 
 export type HistoricoTramitacao = {
   id: string;
-  obra_id: string;
+  obra_id: string | null;
+  obra_execucao_id: string | null;
 
   setor_origem_id: string | null;
   setor_destino_id: string | null;
@@ -44,13 +45,16 @@ export type HistoricoTramitacao = {
 
 export async function listarObrasParaTramitacao(
   setorId: string | null,
-  administrador: boolean
+  administrador: boolean,
 ): Promise<ObraTramitacao[]> {
   let consulta = supabase
-    .from("orcamentos")
-    .select(`
+    .from("obras_execucao")
+    .select(
+      `
       id,
       codigo,
+      numero_proposta,
+      codigo_erp,
       nome_obra,
       cliente,
       setor_id,
@@ -58,9 +62,11 @@ export async function listarObrasParaTramitacao(
         id,
         nome
       )
-    `)
-    .order("codigo", {
+    `,
+    )
+    .order("codigo_erp", {
       ascending: true,
+      nullsFirst: false,
     });
 
   if (!administrador) {
@@ -68,113 +74,84 @@ export async function listarObrasParaTramitacao(
       return [];
     }
 
-    consulta = consulta.eq(
-      "setor_id",
-      setorId
-    );
+    consulta = consulta.eq("setor_id", setorId);
   }
 
-  const {
-    data,
-    error,
-  } = await consulta;
+  const { data, error } = await consulta;
 
   if (error) {
-    console.error(
-      "Erro ao listar obras para tramitação:",
-      error
-    );
+    console.error("Erro ao listar obras para tramitação:", error);
 
     throw error;
   }
 
-  return (
-    data ?? []
-  ) as unknown as ObraTramitacao[];
+  return (data ?? []).map((obra) => ({
+    id: obra.id,
+    codigo: obra.codigo,
+    numero_proposta: obra.numero_proposta,
+    numero_obra: obra.codigo_erp,
+    nome_obra: obra.nome_obra,
+    cliente: obra.cliente,
+    setor_id: obra.setor_id,
+    setor: obra.setor,
+  })) as unknown as ObraTramitacao[];
 }
 
-export async function listarSetoresDestino(): Promise<
-  SetorTramitacao[]
-> {
-  const {
-    data,
-    error,
-  } = await supabase
+export async function listarSetoresDestino(): Promise<SetorTramitacao[]> {
+  const { data, error } = await supabase
     .from("setores")
-    .select(`
+    .select(
+      `
       id,
       nome
-    `)
-    .eq(
-      "ativo",
-      true
+    `,
     )
+    .eq("ativo", true)
     .order("nome", {
       ascending: true,
     });
 
   if (error) {
-    console.error(
-      "Erro ao listar setores de destino:",
-      error
-    );
+    console.error("Erro ao listar setores de destino:", error);
 
     throw error;
   }
 
-  return (
-    data ?? []
-  ) as SetorTramitacao[];
+  return (data ?? []) as SetorTramitacao[];
 }
 
 export async function tramitarObras(
   obrasIds: string[],
   setorDestinoId: string,
-  observacao?: string
+  observacao?: string,
 ): Promise<number> {
-  const {
-    data,
-    error,
-  } = await supabase.rpc(
-    "tramitar_obras",
-    {
-      p_obras_ids:
-        obrasIds,
+  const { data, error } = await supabase.rpc("tramitar_obras_execucao", {
+    p_obras_execucao_ids: obrasIds,
 
-      p_setor_destino_id:
-        setorDestinoId,
+    p_setor_destino_id: setorDestinoId,
 
-      p_observacao:
-        observacao?.trim() ||
-        null,
-    }
-  );
+    p_observacao: observacao?.trim() || null,
+  });
 
   if (error) {
-    console.error(
-      "Erro ao tramitar obras:",
-      error
-    );
+    console.error("Erro ao tramitar obras:", error);
 
     throw error;
   }
 
-  return Number(
-    data ?? 0
-  );
+  return Number(data ?? 0);
 }
 
 export async function listarHistoricoTramitacoes(): Promise<
   HistoricoTramitacao[]
 > {
-  const {
-    data,
-    error,
-  } = await supabase
+  const { data, error } = await supabase
     .from("tramitacoes")
-    .select(`
+    .select(
+      `
       id,
       obra_id,
+      obra_execucao_id,
       setor_origem_id,
       setor_destino_id,
       tramitado_por,
@@ -186,21 +163,17 @@ export async function listarHistoricoTramitacoes(): Promise<
       usuario_email,
       observacao,
       created_at
-    `)
+    `,
+    )
     .order("created_at", {
       ascending: false,
     });
 
   if (error) {
-    console.error(
-      "Erro ao listar histórico de tramitações:",
-      error
-    );
+    console.error("Erro ao listar histórico de tramitações:", error);
 
     throw error;
   }
 
-  return (
-    data ?? []
-  ) as HistoricoTramitacao[];
+  return (data ?? []) as HistoricoTramitacao[];
 }

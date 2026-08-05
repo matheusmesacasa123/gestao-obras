@@ -6,6 +6,7 @@ import {
   Building2,
   CalendarDays,
   FileCheck2,
+  Layers3,
   MapPin,
 } from "lucide-react";
 
@@ -164,6 +165,10 @@ export function ObraExecucaoCard({
       .join(" / ") ||
     "Local não informado";
 
+  const setorAtual =
+    obra.setor?.nome ||
+    "Setor não informado";
+
   const vinculadaAoOrcamento =
     Boolean(
       obra.orcamento_id
@@ -285,6 +290,20 @@ export function ObraExecucaoCard({
 
           <span className="mt-2 block truncate text-sm font-bold text-slate-800">
             {localizacao}
+          </span>
+        </div>
+
+        <div className="col-span-2 rounded-xl border border-blue-200 bg-blue-50 p-3">
+          <div className="flex items-center gap-2">
+            <Layers3 className="h-4 w-4 shrink-0 text-blue-600" />
+
+            <span className="text-xs font-medium text-blue-700">
+              Setor atual
+            </span>
+          </div>
+
+          <span className="mt-2 block truncate text-sm font-bold text-blue-950">
+            {setorAtual}
           </span>
         </div>
       </div>

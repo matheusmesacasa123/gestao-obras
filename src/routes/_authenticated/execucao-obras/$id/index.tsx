@@ -928,7 +928,7 @@ function ObraExecucaoVisaoGeralPage() {
           </div>
 
           {obra.orcamento_id ? (
-            <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
               <InformacaoCard
                 icone={
                   FileCheck2
@@ -937,16 +937,6 @@ function ObraExecucaoVisaoGeralPage() {
                 valor="Orçamento aprovado"
               />
 
-              <InformacaoCard
-                icone={
-                  ClipboardList
-                }
-                titulo="Código do orçamento"
-                valor={
-                  obra.orcamento?.codigo ||
-                  "Não informado"
-                }
-              />
 
               <InformacaoCard
                 icone={

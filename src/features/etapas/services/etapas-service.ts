@@ -49,7 +49,6 @@ export type EtapaObra = {
   responsavel_id: string | null;
 
   titulo: string | null;
-
   status: StatusEtapaObra;
 
   data_inicio: string | null;
@@ -74,7 +73,6 @@ export type EtapaObra = {
     nome: string;
     email: string;
   } | null;
-
 };
 
 export type CriarEtapaObraDados = {
@@ -136,7 +134,6 @@ type EtapaConsulta = {
     nome: string;
     email: string;
   } | null;
-
 };
 
 const selectEtapa = `
@@ -216,7 +213,6 @@ function normalizarEtapa(
 
     responsavel:
       etapa.responsavel ?? null,
-
   };
 }
 
@@ -382,6 +378,98 @@ export async function criarEtapaObra(
   );
 }
 
+async function sincronizarStatusOrcamento(
+  obraId: string
+): Promise<void> {
+  const {
+    data: etapas,
+    error: etapasError,
+  } = await supabase
+    .from("etapas_orcamentos")
+    .select(
+      "status, obrigatoria"
+    )
+    .eq(
+      "obra_id",
+      obraId
+    );
+
+  if (etapasError) {
+    throw etapasError;
+  }
+
+  const etapasEncontradas =
+    etapas ?? [];
+
+  const etapasObrigatorias =
+    etapasEncontradas.filter(
+      (etapa) =>
+        etapa.obrigatoria
+    );
+
+  const etapasConsideradas =
+    etapasObrigatorias.length > 0
+      ? etapasObrigatorias
+      : etapasEncontradas;
+
+  const todasConcluidas =
+    etapasConsideradas.length > 0 &&
+    etapasConsideradas.every(
+      (etapa) =>
+        etapa.status ===
+        "concluida"
+    );
+
+  const {
+    data: orcamento,
+    error: orcamentoError,
+  } = await supabase
+    .from("orcamentos")
+    .select("status")
+    .eq(
+      "id",
+      obraId
+    )
+    .single();
+
+  if (orcamentoError) {
+    throw orcamentoError;
+  }
+
+  const novoStatus =
+    todasConcluidas
+      ? "concluida"
+      : orcamento.status ===
+          "concluida"
+        ? "em_desenvolvimento"
+        : null;
+
+  if (
+    !novoStatus ||
+    orcamento.status ===
+      novoStatus
+  ) {
+    return;
+  }
+
+  const {
+    error: atualizacaoError,
+  } = await supabase
+    .from("orcamentos")
+    .update({
+      status:
+        novoStatus,
+    })
+    .eq(
+      "id",
+      obraId
+    );
+
+  if (atualizacaoError) {
+    throw atualizacaoError;
+  }
+}
+
 export async function atualizarEtapaObra(
   etapaId: string,
   dados: AtualizarEtapaObraDados
@@ -526,9 +614,27 @@ export async function atualizarEtapaObra(
     throw error;
   }
 
-  return buscarEtapaNormalizada(
-    etapaId
-  );
+  const etapaAtualizada =
+    await buscarEtapaNormalizada(
+      etapaId
+    );
+
+  if (
+    Object.prototype.hasOwnProperty.call(
+      payload,
+      "status"
+    ) ||
+    Object.prototype.hasOwnProperty.call(
+      payload,
+      "obrigatoria"
+    )
+  ) {
+    await sincronizarStatusOrcamento(
+      etapaAtualizada.obra_id
+    );
+  }
+
+  return etapaAtualizada;
 }
 
 /**
