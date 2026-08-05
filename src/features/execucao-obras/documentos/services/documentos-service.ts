@@ -2,6 +2,12 @@ import {
   supabase,
 } from "@/integrations/supabase/client";
 
+const BUCKET_DOCUMENTOS =
+  "documentos";
+
+const DURACAO_URL_ASSINADA_SEGUNDOS =
+  60 * 60;
+
 export interface DocumentoExecucao {
   id: string;
 
@@ -51,36 +57,113 @@ function criarNomeArquivoSeguro(
 }
 
 function extrairCaminhoStorage(
-  arquivoUrl: string
+  arquivoUrlOuCaminho: string
 ): string | null {
-  const marcador =
-    "/documentos/";
+  const valor =
+    arquivoUrlOuCaminho.trim();
 
-  const indiceMarcador =
-    arquivoUrl.indexOf(
-      marcador
-    );
-
-  if (
-    indiceMarcador ===
-    -1
-  ) {
+  if (!valor) {
     return null;
   }
 
+  if (
+    !valor.startsWith("http://") &&
+    !valor.startsWith("https://")
+  ) {
+    const caminhoDireto =
+      valor.replace(
+        /^\/+/,
+        ""
+      );
+
+    return caminhoDireto || null;
+  }
+
+  try {
+    const url =
+      new URL(valor);
+
+    const marcadores = [
+      `/storage/v1/object/public/${BUCKET_DOCUMENTOS}/`,
+      `/storage/v1/object/sign/${BUCKET_DOCUMENTOS}/`,
+      `/storage/v1/object/authenticated/${BUCKET_DOCUMENTOS}/`,
+      `/${BUCKET_DOCUMENTOS}/`,
+    ];
+
+    for (
+      const marcador
+      of marcadores
+    ) {
+      const indice =
+        url.pathname.indexOf(
+          marcador
+        );
+
+      if (indice === -1) {
+        continue;
+      }
+
+      const caminho =
+        url.pathname.slice(
+          indice +
+          marcador.length
+        );
+
+      if (!caminho) {
+        return null;
+      }
+
+      return decodeURIComponent(
+        caminho
+      );
+    }
+  } catch {
+    return null;
+  }
+
+  return null;
+}
+
+async function adicionarUrlAssinada(
+  documento: DocumentoExecucao
+): Promise<DocumentoExecucao> {
   const caminho =
-    arquivoUrl.slice(
-      indiceMarcador +
-      marcador.length
+    extrairCaminhoStorage(
+      documento.arquivo_url
     );
 
   if (!caminho) {
-    return null;
+    throw new Error(
+      `Não foi possível identificar o arquivo do documento "${documento.nome}".`
+    );
   }
 
-  return decodeURIComponent(
-    caminho
-  );
+  const {
+    data,
+    error,
+  } = await supabase.storage
+    .from(
+      BUCKET_DOCUMENTOS
+    )
+    .createSignedUrl(
+      caminho,
+      DURACAO_URL_ASSINADA_SEGUNDOS
+    );
+
+  if (
+    error ||
+    !data?.signedUrl
+  ) {
+    throw error || new Error(
+      `Não foi possível liberar o acesso temporário ao documento "${documento.nome}".`
+    );
+  }
+
+  return {
+    ...documento,
+    arquivo_url:
+      data.signedUrl,
+  };
 }
 
 async function buscarDemandaDocumento(
@@ -103,11 +186,6 @@ async function buscarDemandaDocumento(
     .single();
 
   if (error) {
-    console.error(
-      "Erro ao buscar a demanda para o documento:",
-      error
-    );
-
     throw error;
   }
 
@@ -140,18 +218,20 @@ export async function getDocumentosPorDemanda(
     );
 
   if (error) {
-    console.error(
-      "Erro ao buscar documentos da demanda da execução:",
-      error
-    );
-
     throw error;
   }
 
-  return (
-    data ??
-    []
-  ) as DocumentoExecucao[];
+  const documentos =
+    (
+      data ??
+      []
+    ) as DocumentoExecucao[];
+
+  return Promise.all(
+    documentos.map(
+      adicionarUrlAssinada
+    )
+  );
 }
 
 export async function uploadDocumentoDaDemanda(
@@ -216,7 +296,7 @@ export async function uploadDocumentoDaDemanda(
     error: uploadError,
   } = await supabase.storage
     .from(
-      "documentos"
+      BUCKET_DOCUMENTOS
     )
     .upload(
       caminho,
@@ -224,25 +304,14 @@ export async function uploadDocumentoDaDemanda(
     );
 
   if (uploadError) {
-    console.error(
-      "Erro ao enviar documento para o Storage:",
-      uploadError
-    );
-
     throw uploadError;
   }
 
-  try {
-    const {
-      data: urlData,
-    } = supabase.storage
-      .from(
-        "documentos"
-      )
-      .getPublicUrl(
-        caminho
-      );
+  let documentoCriadoId:
+    | string
+    | null = null;
 
+  try {
     const {
       data,
       error,
@@ -273,7 +342,7 @@ export async function uploadDocumentoDaDemanda(
           "demanda",
 
         arquivo_url:
-          urlData.publicUrl,
+          caminho,
       })
       .select(
         "*"
@@ -284,27 +353,35 @@ export async function uploadDocumentoDaDemanda(
       throw error;
     }
 
-    return data as DocumentoExecucao;
+    const documento =
+      data as DocumentoExecucao;
+
+    documentoCriadoId =
+      documento.id;
+
+    return await adicionarUrlAssinada(
+      documento
+    );
   } catch (error) {
-    const {
-      error:
-        erroRemocaoStorage,
-    } = await supabase.storage
+    if (documentoCriadoId) {
+      await supabase
+        .from(
+          "documentos_obras_execucao"
+        )
+        .delete()
+        .eq(
+          "id",
+          documentoCriadoId
+        );
+    }
+
+    await supabase.storage
       .from(
-        "documentos"
+        BUCKET_DOCUMENTOS
       )
       .remove([
         caminho,
       ]);
-
-    if (
-      erroRemocaoStorage
-    ) {
-      console.warn(
-        "O cadastro do documento falhou e o arquivo não pôde ser removido do Storage:",
-        erroRemocaoStorage
-      );
-    }
 
     throw error;
   }
@@ -327,11 +404,6 @@ export async function deletarDocumento(
     );
 
   if (dbError) {
-    console.error(
-      "Erro ao excluir documento da execução no banco:",
-      dbError
-    );
-
     throw dbError;
   }
 
@@ -341,27 +413,14 @@ export async function deletarDocumento(
     );
 
   if (!caminhoArquivo) {
-    console.warn(
-      "O registro foi excluído, mas não foi possível identificar o caminho do arquivo no Storage."
-    );
-
     return;
   }
 
-  const {
-    error: storageError,
-  } = await supabase.storage
+  await supabase.storage
     .from(
-      "documentos"
+      BUCKET_DOCUMENTOS
     )
     .remove([
       caminhoArquivo,
     ]);
-
-  if (storageError) {
-    console.warn(
-      "O registro foi removido, mas o arquivo não pôde ser excluído do Storage:",
-      storageError
-    );
-  }
 }
