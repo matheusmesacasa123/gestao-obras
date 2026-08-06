@@ -71,6 +71,93 @@ const consultaDocumento = `
   )
 `;
 
+const BUCKET_DOCUMENTOS = "documentos";
+const DURACAO_URL_ASSINADA_SEGUNDOS = 60 * 60;
+
+function extrairCaminhoArquivo(
+  arquivoUrlOuCaminho: string
+): string | null {
+  const valor = arquivoUrlOuCaminho.trim();
+
+  if (!valor) {
+    return null;
+  }
+
+  const removerConsultaEDecodificar = (caminho: string) => {
+    const caminhoSemConsulta = caminho.split("?")[0].replace(/^\/+/, "");
+
+    try {
+      return decodeURIComponent(caminhoSemConsulta);
+    } catch {
+      return caminhoSemConsulta;
+    }
+  };
+
+  if (!/^https?:\/\//i.test(valor)) {
+    return removerConsultaEDecodificar(valor);
+  }
+
+  try {
+    const url = new URL(valor);
+    const marcadores = [
+      `/storage/v1/object/public/${BUCKET_DOCUMENTOS}/`,
+      `/storage/v1/object/sign/${BUCKET_DOCUMENTOS}/`,
+      `/storage/v1/object/authenticated/${BUCKET_DOCUMENTOS}/`,
+      `/${BUCKET_DOCUMENTOS}/`,
+    ];
+
+    for (const marcador of marcadores) {
+      const indice = url.pathname.indexOf(marcador);
+
+      if (indice >= 0) {
+        return removerConsultaEDecodificar(
+          url.pathname.slice(indice + marcador.length)
+        );
+      }
+    }
+  } catch {
+    return null;
+  }
+
+  return null;
+}
+
+async function adicionarUrlAssinada<T extends Documento>(
+  documento: T
+): Promise<T> {
+  const caminho = extrairCaminhoArquivo(documento.arquivo_url);
+
+  if (!caminho) {
+    throw new Error(
+      `Não foi possível identificar o arquivo do documento "${documento.nome}".`
+    );
+  }
+
+  const { data, error } = await supabase.storage
+    .from(BUCKET_DOCUMENTOS)
+    .createSignedUrl(caminho, DURACAO_URL_ASSINADA_SEGUNDOS);
+
+  if (error) {
+    console.error(
+      `Erro ao gerar URL assinada para o documento "${documento.nome}":`,
+      error
+    );
+
+    throw error;
+  }
+
+  return {
+    ...documento,
+    arquivo_url: data.signedUrl,
+  };
+}
+
+async function adicionarUrlsAssinadas<T extends Documento>(
+  documentos: T[]
+): Promise<T[]> {
+  return Promise.all(documentos.map(adicionarUrlAssinada));
+}
+
 export async function getDocumentosPorObra(
   obraId: string
 ): Promise<Documento[]> {
@@ -135,7 +222,7 @@ export async function getDocumentosPorObra(
       );
   }
 
-  return documentos as Documento[];
+  return adicionarUrlsAssinadas(documentos) as Promise<Documento[]>;
 }
 
 export async function getEtapasDocumentosPorObra(
@@ -238,7 +325,9 @@ export async function getDocumentosPorDemanda(
     throw error;
   }
 
-  return (data ?? []) as unknown as Documento[];
+  const documentos = (data ?? []) as unknown as Documento[];
+
+  return adicionarUrlsAssinadas(documentos);
 }
 
 export async function uploadDocumentoDaDemanda(
@@ -277,17 +366,13 @@ export async function uploadDocumentoDaDemanda(
   }
 
   try {
-    const { data: urlData } = supabase.storage
-      .from("documentos")
-      .getPublicUrl(caminho);
-
     const { data, error } = await supabase
       .from("documentos")
       .insert({
         demanda_id: demandaId,
         enviado_por: usuarioData.user.id,
         nome: nomeTratado,
-        arquivo_url: urlData.publicUrl,
+        arquivo_url: caminho,
       })
       .select(consultaDocumento)
       .single();
@@ -296,7 +381,7 @@ export async function uploadDocumentoDaDemanda(
       throw error;
     }
 
-    return data as unknown as Documento;
+    return adicionarUrlAssinada(data as unknown as Documento);
   } catch (error) {
     await supabase.storage
       .from("documentos")
@@ -351,14 +436,6 @@ export async function uploadDocumento(
 
   try {
     const {
-      data: urlData,
-    } = supabase.storage
-      .from("documentos")
-      .getPublicUrl(
-        caminho
-      );
-
-    const {
       data,
       error,
     } = await supabase
@@ -379,7 +456,7 @@ export async function uploadDocumento(
         nome,
 
         arquivo_url:
-          urlData.publicUrl,
+          caminho,
       })
       .select(
         consultaDocumento
@@ -390,7 +467,9 @@ export async function uploadDocumento(
       throw error;
     }
 
-    return data as Documento;
+    return adicionarUrlAssinada(
+      data as Documento
+    );
   } catch (error) {
     const {
       error: removerArquivoError,
@@ -437,13 +516,10 @@ export async function deletarDocumento(
   }
 
   try {
-    const partesUrl =
-      arquivoUrl.split(
-        "/documentos/"
-      );
-
     const caminhoArquivo =
-      partesUrl[1];
+      extrairCaminhoArquivo(
+        arquivoUrl
+      );
 
     if (
       !caminhoArquivo
@@ -451,17 +527,12 @@ export async function deletarDocumento(
       return;
     }
 
-    const caminhoDecodificado =
-      decodeURIComponent(
-        caminhoArquivo
-      );
-
     const {
       error: storageError,
     } = await supabase.storage
       .from("documentos")
       .remove([
-        caminhoDecodificado,
+        caminhoArquivo,
       ]);
 
     if (
@@ -489,8 +560,10 @@ export async function atualizarDocumento(
     | string
     | null = null;
 
-  let novaUrl =
-    documento.arquivo_url;
+  let novoValorArquivo =
+    extrairCaminhoArquivo(
+      documento.arquivo_url
+    ) ?? documento.arquivo_url;
 
   if (novoArquivo) {
     const nomeArquivoSeguro =
@@ -515,16 +588,8 @@ export async function atualizarDocumento(
       throw uploadError;
     }
 
-    const {
-      data: urlData,
-    } = supabase.storage
-      .from("documentos")
-      .getPublicUrl(
-        novoCaminho
-      );
-
-    novaUrl =
-      urlData.publicUrl;
+    novoValorArquivo =
+      novoCaminho;
   }
 
   try {
@@ -541,7 +606,7 @@ export async function atualizarDocumento(
           dados.demanda_id,
 
         arquivo_url:
-          novaUrl,
+          novoValorArquivo,
       })
       .eq(
         "id",
@@ -557,13 +622,10 @@ export async function atualizarDocumento(
     }
 
     if (novoArquivo) {
-      const partesUrlAntiga =
-        documento.arquivo_url.split(
-          "/documentos/"
-        );
-
       const caminhoAntigo =
-        partesUrlAntiga[1];
+        extrairCaminhoArquivo(
+          documento.arquivo_url
+        );
 
       if (caminhoAntigo) {
         const {
@@ -571,9 +633,7 @@ export async function atualizarDocumento(
         } = await supabase.storage
           .from("documentos")
           .remove([
-            decodeURIComponent(
-              caminhoAntigo
-            ),
+            caminhoAntigo,
           ]);
 
         if (
@@ -587,7 +647,9 @@ export async function atualizarDocumento(
       }
     }
 
-    return data as Documento;
+    return adicionarUrlAssinada(
+      data as Documento
+    );
   } catch (error) {
     if (novoCaminho) {
       const {
