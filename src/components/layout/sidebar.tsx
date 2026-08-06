@@ -71,13 +71,11 @@ export function Sidebar() {
       <div className="pointer-events-none absolute -right-20 -top-24 h-52 w-52 rounded-full bg-[#91bda4]/10 blur-2xl" />
 
       <div className="relative mb-9">
-        <div className="inline-flex rounded-2xl bg-white px-4 py-3 shadow-sm">
-          <img
-            src="/kemia-logo.png"
-            alt="Kemia"
-            className="h-11 w-auto object-contain"
-          />
-        </div>
+        <img
+          src="/kemia-logo.png"
+          alt="Kemia"
+          className="h-auto w-44 object-contain object-left drop-shadow-sm"
+        />
 
         <p className="mt-4 text-sm font-semibold text-white">
           Gestão de Obras
