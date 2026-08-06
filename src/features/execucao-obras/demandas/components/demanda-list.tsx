@@ -24,12 +24,12 @@ import {
 } from "@/features/auth/auth-context";
 
 import {
-  listarStatusAnaliseCriticaDemandas,
+  listarAnalisesCriticasAtuaisPorDemandas,
 } from "@/features/execucao-obras/analises-criticas/services/analises-criticas-service";
 
 import type {
+  AnaliseCriticaDemanda,
   StatusAnaliseCritica,
-  StatusAnaliseCriticaDemanda,
 } from "@/features/execucao-obras/analises-criticas/types";
 
 import {
@@ -308,15 +308,23 @@ export function DemandaList({
   ] = useState<
     Record<
       string,
-      StatusAnaliseCriticaDemanda
+      AnaliseCriticaDemanda
     >
   >({});
 
   useEffect(() => {
-    const obraId =
-      demandas[0]?.obra_id;
+    const demandaIds =
+      demandas.map(
+        (
+          demanda
+        ) =>
+          demanda.id
+      );
 
-    if (!obraId) {
+    if (
+      demandaIds.length ===
+      0
+    ) {
       setAnalisesPorDemanda(
         {}
       );
@@ -330,8 +338,8 @@ export function DemandaList({
     async function carregarAnalisesCriticas() {
       try {
         const analises =
-          await listarStatusAnaliseCriticaDemandas(
-            obraId
+          await listarAnalisesCriticasAtuaisPorDemandas(
+            demandaIds
           );
 
         if (!ativo) {
@@ -342,7 +350,7 @@ export function DemandaList({
           analises.reduce<
             Record<
               string,
-              StatusAnaliseCriticaDemanda
+              AnaliseCriticaDemanda
             >
           >(
             (
@@ -814,7 +822,7 @@ export function DemandaList({
 
                         const statusAnaliseCritica:
                           StatusAnaliseCritica =
-                          analiseCritica?.status_analise ||
+                          analiseCritica?.resultado ||
                           "pendente";
 
                         const itensPendentes =

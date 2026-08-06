@@ -3,11 +3,60 @@ import {
 } from "@/integrations/supabase/client";
 
 import type {
+  AnaliseCriticaDemanda,
   CriarAnaliseCriticaDados,
   StatusAnaliseCriticaDemanda,
   StatusAnaliseCriticaEtapa,
   StatusAnaliseCriticaObra,
 } from "../types";
+
+export async function listarAnalisesCriticasAtuaisPorDemandas(
+  demandaIds: string[]
+): Promise<AnaliseCriticaDemanda[]> {
+  if (
+    demandaIds.length ===
+    0
+  ) {
+    return [];
+  }
+
+  const {
+    data,
+    error,
+  } = await supabase
+    .from(
+      "analises_criticas_demandas_execucao_atuais"
+    )
+    .select(
+      `
+        id,
+        demanda_id,
+        resultado,
+        observacao,
+        analisado_por,
+        created_at,
+        analisado_por_nome,
+        analisado_por_email
+      `
+    )
+    .in(
+      "demanda_id",
+      demandaIds
+    );
+
+  if (error) {
+    console.error(
+      "Erro ao listar as análises críticas atuais das revisões:",
+      error
+    );
+
+    throw error;
+  }
+
+  return (
+    data ?? []
+  ) as AnaliseCriticaDemanda[];
+}
 
 function normalizarNumero(
   valor: unknown

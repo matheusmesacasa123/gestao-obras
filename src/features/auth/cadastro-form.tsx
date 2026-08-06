@@ -115,39 +115,103 @@ export function CadastroForm() {
       );
 
       if (error) {
-        const mensagem =
-          error.message.toLowerCase();
-
-        if (
-          mensagem.includes(
-            "already registered"
-          ) ||
-          mensagem.includes(
-            "already been registered"
-          )
-        ) {
-          setErro(
-            "Este e-mail já está cadastrado."
-          );
-
-          return;
-        }
-
-        if (
-          mensagem.includes(
-            "password"
-          )
-        ) {
-          setErro(
-            "A senha informada não atende aos requisitos de segurança."
-          );
-
-          return;
-        }
-
-        setErro(
-          "Não foi possível realizar o cadastro."
+        console.error(
+          "Erro retornado pelo Supabase:",
+          error
         );
+
+        switch (
+          error.code
+        ) {
+          case "over_email_send_rate_limit":
+            setErro(
+              "O limite de envio de e-mails foi atingido. Aguarde alguns minutos e tente novamente."
+            );
+            break;
+
+          case "over_request_rate_limit":
+            setErro(
+              "Foram realizadas muitas tentativas. Aguarde alguns minutos e tente novamente."
+            );
+            break;
+
+          case "weak_password":
+            setErro(
+              "A senha não atende aos requisitos de segurança."
+            );
+            break;
+
+          case "email_address_invalid":
+            setErro(
+              "O endereço de e-mail informado é inválido."
+            );
+            break;
+
+          case "email_address_not_authorized":
+            setErro(
+              "Este endereço de e-mail não está autorizado para cadastro."
+            );
+            break;
+
+          case "user_already_exists":
+          case "email_exists":
+            setErro(
+              "Este e-mail já está cadastrado."
+            );
+            break;
+
+          case "signup_disabled":
+            setErro(
+              "O cadastro de novos usuários está desativado."
+            );
+            break;
+
+          case "captcha_failed":
+            setErro(
+              "A verificação de segurança falhou. Atualize a página e tente novamente."
+            );
+            break;
+
+          default: {
+            const mensagem =
+              error.message
+                ?.toLowerCase() ||
+              "";
+
+            if (
+              mensagem.includes(
+                "already registered"
+              ) ||
+              mensagem.includes(
+                "already been registered"
+              )
+            ) {
+              setErro(
+                "Este e-mail já está cadastrado."
+              );
+
+              break;
+            }
+
+            if (
+              mensagem.includes(
+                "password"
+              )
+            ) {
+              setErro(
+                "A senha informada não atende aos requisitos de segurança."
+              );
+
+              break;
+            }
+
+            setErro(
+              error.message
+                ? `Não foi possível realizar o cadastro: ${error.message}`
+                : "Não foi possível realizar o cadastro."
+            );
+          }
+        }
 
         return;
       }
@@ -168,19 +232,21 @@ export function CadastroForm() {
       );
     } catch (error) {
       console.error(
-        "Erro ao cadastrar usuário:",
+        "Erro inesperado ao cadastrar usuário:",
         error
       );
 
       setErro(
-        "Não foi possível realizar o cadastro."
+        "Ocorreu um erro inesperado ao realizar o cadastro. Verifique sua conexão e tente novamente."
       );
     } finally {
       setLoading(false);
     }
   }
 
-  if (cadastroRealizado) {
+  if (
+    cadastroRealizado
+  ) {
     return (
       <div className="w-full max-w-sm space-y-5 rounded-2xl border bg-white p-8 text-center shadow-xl">
         <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-green-100 text-green-700">
@@ -213,7 +279,9 @@ export function CadastroForm() {
 
   return (
     <form
-      onSubmit={handleCadastro}
+      onSubmit={
+        handleCadastro
+      }
       className="w-full max-w-sm space-y-5 rounded-2xl border bg-white p-8 shadow-xl"
     >
       <div>
@@ -227,7 +295,10 @@ export function CadastroForm() {
       </div>
 
       {erro && (
-        <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
+        <div
+          role="alert"
+          className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
+        >
           {erro}
         </div>
       )}
@@ -247,8 +318,12 @@ export function CadastroForm() {
             id="cadastro-nome"
             type="text"
             placeholder="Seu nome completo"
-            value={nome}
-            onChange={(event) =>
+            value={
+              nome
+            }
+            onChange={(
+              event
+            ) =>
               setNome(
                 event.target.value
               )
@@ -275,8 +350,12 @@ export function CadastroForm() {
             id="cadastro-email"
             type="email"
             placeholder="seuemail@empresa.com"
-            value={email}
-            onChange={(event) =>
+            value={
+              email
+            }
+            onChange={(
+              event
+            ) =>
               setEmail(
                 event.target.value
               )
@@ -303,14 +382,20 @@ export function CadastroForm() {
             id="cadastro-senha"
             type="password"
             placeholder="Mínimo de 6 caracteres"
-            value={senha}
-            onChange={(event) =>
+            value={
+              senha
+            }
+            onChange={(
+              event
+            ) =>
               setSenha(
                 event.target.value
               )
             }
             required
-            minLength={6}
+            minLength={
+              6
+            }
             autoComplete="new-password"
             className="h-11 w-full rounded-lg border bg-white pl-10 pr-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
           />
@@ -332,14 +417,20 @@ export function CadastroForm() {
             id="cadastro-confirmar-senha"
             type="password"
             placeholder="Digite a senha novamente"
-            value={confirmarSenha}
-            onChange={(event) =>
+            value={
+              confirmarSenha
+            }
+            onChange={(
+              event
+            ) =>
               setConfirmarSenha(
                 event.target.value
               )
             }
             required
-            minLength={6}
+            minLength={
+              6
+            }
             autoComplete="new-password"
             className="h-11 w-full rounded-lg border bg-white pl-10 pr-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
           />
@@ -348,7 +439,9 @@ export function CadastroForm() {
 
       <button
         type="submit"
-        disabled={loading}
+        disabled={
+          loading
+        }
         className="flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-lg bg-slate-950 px-4 text-sm font-medium text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
       >
         <UserRoundPlus className="h-4 w-4" />

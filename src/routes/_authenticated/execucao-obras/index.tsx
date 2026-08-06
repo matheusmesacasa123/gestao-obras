@@ -133,6 +133,12 @@ function ExecucaoObrasPage() {
               ""
             ).toLowerCase();
 
+          const codigoErp =
+            (
+              obra.codigo_erp ||
+              ""
+            ).toLowerCase();
+
           const cliente =
             (
               obra.cliente_relacionado
@@ -150,6 +156,9 @@ function ExecucaoObrasPage() {
           const correspondePesquisa =
             !termo ||
             identificacao.includes(
+              termo
+            ) ||
+            codigoErp.includes(
               termo
             ) ||
             cliente.includes(
@@ -308,7 +317,7 @@ function ExecucaoObrasPage() {
                     event.target.value
                   )
                 }
-                placeholder="Código, cliente ou nome da obra..."
+                placeholder="Código, ERP, cliente ou nome da obra..."
                 className="h-11 w-full rounded-xl border border-slate-300 bg-white pl-10 pr-4 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
               />
             </div>
