@@ -25,10 +25,10 @@ import {
 
 import {
   listarAnalisesCriticasAtuaisPorDemandas,
+  listarStatusAnaliseCriticaDemandas,
 } from "@/features/execucao-obras/analises-criticas/services/analises-criticas-service";
 
 import type {
-  AnaliseCriticaDemanda,
   StatusAnaliseCritica,
 } from "@/features/execucao-obras/analises-criticas/types";
 
@@ -63,6 +63,11 @@ interface DemandaListProps {
 interface GrupoDemanda {
   grupoId: string;
   revisoes: Demanda[];
+}
+
+interface AnaliseCriticaExibicao {
+  status_analise: StatusAnaliseCritica;
+  observacao: string | null;
 }
 
 function formatarData(
@@ -308,23 +313,22 @@ export function DemandaList({
   ] = useState<
     Record<
       string,
-      AnaliseCriticaDemanda
+      AnaliseCriticaExibicao
     >
   >({});
 
-  useEffect(() => {
-    const demandaIds =
-      demandas.map(
-        (
-          demanda
-        ) =>
-          demanda.id
-      );
+  const [
+    analiseAbertaDemandaId,
+    setAnaliseAbertaDemandaId,
+  ] = useState<string | null>(
+    null
+  );
 
-    if (
-      demandaIds.length ===
-      0
-    ) {
+  useEffect(() => {
+    const obraId =
+      demandas[0]?.obra_id;
+
+    if (!obraId) {
       setAnalisesPorDemanda(
         {}
       );
@@ -337,20 +341,36 @@ export function DemandaList({
 
     async function carregarAnalisesCriticas() {
       try {
-        const analises =
-          await listarAnalisesCriticasAtuaisPorDemandas(
-            demandaIds
+        const demandaIds =
+          demandas.map(
+            (
+              demanda
+            ) =>
+              demanda.id
           );
+
+        const [
+          statusAtuais,
+          analisesDasRevisoes,
+        ] = await Promise.all([
+          listarStatusAnaliseCriticaDemandas(
+            obraId
+          ),
+
+          listarAnalisesCriticasAtuaisPorDemandas(
+            demandaIds
+          ),
+        ]);
 
         if (!ativo) {
           return;
         }
 
         const mapa =
-          analises.reduce<
+          statusAtuais.reduce<
             Record<
               string,
-              AnaliseCriticaDemanda
+              AnaliseCriticaExibicao
             >
           >(
             (
@@ -360,10 +380,31 @@ export function DemandaList({
               ...acumulador,
 
               [analise.demanda_id]:
-                analise,
+                {
+                  status_analise:
+                    analise.status_analise,
+
+                  observacao:
+                    analise.observacao,
+                },
             }),
             {}
           );
+
+        for (
+          const analise
+          of analisesDasRevisoes
+        ) {
+          mapa[
+            analise.demanda_id
+          ] = {
+            status_analise:
+              analise.resultado,
+
+            observacao:
+              analise.observacao,
+          };
+        }
 
         setAnalisesPorDemanda(
           mapa
@@ -822,8 +863,12 @@ export function DemandaList({
 
                         const statusAnaliseCritica:
                           StatusAnaliseCritica =
-                          analiseCritica?.resultado ||
+                          analiseCritica?.status_analise ||
                           "pendente";
+
+                        const analiseAberta =
+                          analiseAbertaDemandaId ===
+                          demandaSelecionada.id;
 
                         const itensPendentes =
                           (
@@ -894,25 +939,27 @@ export function DemandaList({
                             className={`space-y-4 border-l-2 px-5 py-5 transition ${classeContainer}`}
                           >
                             <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  onEdit?.(
-                                    demandaSelecionada
-                                  )
-                                }
-                                className="min-w-0 cursor-pointer text-left"
-                              >
+                              <div className="min-w-0">
                                 <div className="flex flex-wrap items-center gap-2">
-                                  <span
-                                    className={`h-2 w-2 shrink-0 rounded-full ${classeMarcador}`}
-                                  />
-
-                                  <h4
-                                    className={`truncate text-sm font-extrabold ${classeTitulo}`}
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      onEdit?.(
+                                        demandaSelecionada
+                                      )
+                                    }
+                                    className="inline-flex min-w-0 cursor-pointer items-center gap-2 text-left"
                                   >
-                                    {revisaoMaisRecente.titulo}
-                                  </h4>
+                                    <span
+                                      className={`h-2 w-2 shrink-0 rounded-full ${classeMarcador}`}
+                                    />
+
+                                    <h4
+                                      className={`truncate text-sm font-extrabold ${classeTitulo}`}
+                                    >
+                                      {revisaoMaisRecente.titulo}
+                                    </h4>
+                                  </button>
 
                                   <span
                                     className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-bold ${classeDetalhe}`}
@@ -921,8 +968,25 @@ export function DemandaList({
 
                                     {grupo.revisoes.length} revisão(ões)
                                   </span>
-                                  <span
-                                    className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-bold ${obterClasseAnaliseCritica(
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      setAnaliseAbertaDemandaId(
+                                        (
+                                          demandaIdAtual
+                                        ) =>
+                                          demandaIdAtual ===
+                                          demandaSelecionada.id
+                                            ? null
+                                            : demandaSelecionada.id
+                                      )
+                                    }
+                                    aria-expanded={
+                                      analiseAberta
+                                    }
+                                    aria-controls={`observacao-analise-${demandaSelecionada.id}`}
+                                    title="Clique para visualizar a observação da análise crítica"
+                                    className={`inline-flex cursor-pointer items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-bold transition hover:brightness-95 focus:outline-none focus:ring-2 focus:ring-offset-1 ${obterClasseAnaliseCritica(
                                       statusAnaliseCritica
                                     )}`}
                                   >
@@ -935,15 +999,25 @@ export function DemandaList({
                                     {obterLabelAnaliseCritica(
                                       statusAnaliseCritica
                                     )}
-                                  </span>
+                                  </button>
                                 </div>
 
                                 {demandaSelecionada.descricao && (
-                                  <p className="mt-1 line-clamp-1 text-xs text-gray-500">
-                                    {demandaSelecionada.descricao}
-                                  </p>
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      onEdit?.(
+                                        demandaSelecionada
+                                      )
+                                    }
+                                    className="mt-1 block max-w-full cursor-pointer text-left"
+                                  >
+                                    <span className="line-clamp-1 text-xs text-gray-500">
+                                      {demandaSelecionada.descricao}
+                                    </span>
+                                  </button>
                                 )}
-                              </button>
+                              </div>
 
                               <div className="flex flex-wrap items-center gap-2">
                                 <label
@@ -1025,6 +1099,33 @@ export function DemandaList({
                                 )}
                               </div>
                             </div>
+
+                            {analiseAberta && (
+                              <div
+                                id={`observacao-analise-${demandaSelecionada.id}`}
+                                className={`rounded-xl border px-4 py-3 ${
+                                  statusAnaliseCritica ===
+                                  "reprovada"
+                                    ? "border-red-200 bg-red-50 text-red-900"
+                                    : "border-slate-200 bg-slate-50 text-slate-800"
+                                }`}
+                              >
+                                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide">
+                                  <IconeAnaliseCritica
+                                    status={
+                                      statusAnaliseCritica
+                                    }
+                                  />
+
+                                  Observação da análise crítica
+                                </div>
+
+                                <p className="mt-1.5 whitespace-pre-wrap text-sm leading-6">
+                                  {analiseCritica?.observacao?.trim() ||
+                                    "Nenhuma observação foi registrada nesta análise."}
+                                </p>
+                              </div>
+                            )}
 
                             <div
                               className={`grid gap-3 rounded-xl border p-4 md:grid-cols-[130px_minmax(0,1fr)_180px_140px_auto] md:items-center ${classePainel}`}

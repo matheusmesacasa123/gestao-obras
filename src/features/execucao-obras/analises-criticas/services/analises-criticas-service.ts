@@ -10,6 +10,15 @@ import type {
   StatusAnaliseCriticaObra,
 } from "../types";
 
+interface ReprovacaoHistoricaDemanda
+  extends AnaliseCriticaDemanda {
+  obra_id: string;
+  etapa_id: string;
+  grupo_revisao_id: string;
+  numero_revisao: number;
+  titulo: string;
+}
+
 export async function listarAnalisesCriticasAtuaisPorDemandas(
   demandaIds: string[]
 ): Promise<AnaliseCriticaDemanda[]> {
@@ -56,6 +65,118 @@ export async function listarAnalisesCriticasAtuaisPorDemandas(
   return (
     data ?? []
   ) as AnaliseCriticaDemanda[];
+}
+
+export async function listarReprovacoesHistoricasPorObra(
+  obraId: string
+): Promise<ReprovacaoHistoricaDemanda[]> {
+  const {
+    data: revisoes,
+    error,
+  } = await supabase
+    .from(
+      "demandas_obras_execucao"
+    )
+    .select(
+      `
+        id,
+        obra_id,
+        etapa_id,
+        grupo_revisao_id,
+        numero_revisao,
+        titulo
+      `
+    )
+    .eq(
+      "obra_id",
+      obraId
+    );
+
+  if (error) {
+    console.error(
+      "Erro ao listar revisões para o histórico de reprovações:",
+      error
+    );
+
+    throw error;
+  }
+
+  const listaRevisoes =
+    revisoes ?? [];
+
+  const analises =
+    await listarAnalisesCriticasAtuaisPorDemandas(
+      listaRevisoes.map(
+        (
+          revisao
+        ) =>
+          revisao.id
+      )
+    );
+
+  const analisesPorDemanda =
+    new Map(
+      analises.map(
+        (
+          analise
+        ) => [
+          analise.demanda_id,
+          analise,
+        ]
+      )
+    );
+
+  return listaRevisoes
+    .flatMap(
+      (
+        revisao
+      ) => {
+        const analise =
+          analisesPorDemanda.get(
+            revisao.id
+          );
+
+        if (
+          !analise ||
+          analise.resultado !==
+            "reprovada"
+        ) {
+          return [];
+        }
+
+        return [
+          {
+            ...analise,
+
+            obra_id:
+              revisao.obra_id,
+
+            etapa_id:
+              revisao.etapa_id,
+
+            grupo_revisao_id:
+              revisao.grupo_revisao_id,
+
+            numero_revisao:
+              Number(
+                revisao.numero_revisao ??
+                  0
+              ),
+
+            titulo:
+              revisao.titulo,
+          },
+        ];
+      }
+    )
+    .sort(
+      (
+        analiseA,
+        analiseB
+      ) =>
+        analiseB.numero_revisao -
+        analiseA.numero_revisao
+    );
 }
 
 function normalizarNumero(

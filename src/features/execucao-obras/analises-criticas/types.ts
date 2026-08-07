@@ -19,6 +19,15 @@ export interface AnaliseCriticaDemanda {
   analisado_por_email?: string | null;
 }
 
+export interface ReprovacaoHistoricaDemanda
+  extends AnaliseCriticaDemanda {
+  obra_id: string;
+  etapa_id: string;
+  grupo_revisao_id: string;
+  numero_revisao: number;
+  titulo: string;
+}
+
 export interface StatusAnaliseCriticaDemanda {
   demanda_id: string;
   obra_id: string;

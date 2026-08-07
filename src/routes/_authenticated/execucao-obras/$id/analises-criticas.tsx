@@ -27,11 +27,13 @@ import {
   criarAnaliseCriticaDemanda,
   editarAnaliseCriticaDemanda,
   excluirAnaliseCriticaDemanda,
+  listarReprovacoesHistoricasPorObra,
   listarStatusAnaliseCriticaDemandas,
   listarStatusAnaliseCriticaEtapas,
 } from "@/features/execucao-obras/analises-criticas/services/analises-criticas-service";
 
 import type {
+  ReprovacaoHistoricaDemanda,
   ResultadoAnaliseCritica,
   StatusAnaliseCritica,
   StatusAnaliseCriticaDemanda,
@@ -198,6 +200,13 @@ function AnalisesCriticasPage() {
   >([]);
 
   const [
+    reprovacoesHistoricas,
+    setReprovacoesHistoricas,
+  ] = useState<
+    ReprovacaoHistoricaDemanda[]
+  >([]);
+
+  const [
     etapasAbertas,
     setEtapasAbertas,
   ] = useState<
@@ -284,6 +293,7 @@ function AnalisesCriticasPage() {
         resumoObra,
         resumoEtapas,
         resumoDemandas,
+        historicoReprovacoes,
       ] = await Promise.all([
         buscarStatusAnaliseCriticaObra(
           id
@@ -294,6 +304,10 @@ function AnalisesCriticasPage() {
         ),
 
         listarStatusAnaliseCriticaDemandas(
+          id
+        ),
+
+        listarReprovacoesHistoricasPorObra(
           id
         ),
       ]);
@@ -308,6 +322,10 @@ function AnalisesCriticasPage() {
 
       setDemandas(
         resumoDemandas
+      );
+
+      setReprovacoesHistoricas(
+        historicoReprovacoes
       );
 
       setEtapasAbertas(
@@ -891,11 +909,78 @@ function AnalisesCriticasPage() {
                                       )}
                                     </p>
 
-                                    {demanda.observacao && (
-                                      <p className="mt-2 max-w-3xl rounded-lg bg-gray-50 p-3 text-sm text-gray-700">
-                                        {demanda.observacao}
-                                      </p>
+                                    {demanda.status_analise ===
+                                      "reprovada" &&
+                                      demanda.observacao && (
+                                      <div className="mt-3 max-w-3xl rounded-xl border border-red-200 bg-red-50 p-3 text-red-900">
+                                        <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-red-700">
+                                          <XCircle className="h-4 w-4 shrink-0" />
+
+                                          Motivo da reprovação
+                                        </div>
+
+                                        <p className="mt-1.5 whitespace-pre-wrap text-sm leading-6">
+                                          {demanda.observacao}
+                                        </p>
+                                      </div>
                                     )}
+
+                                    {reprovacoesHistoricas
+                                      .filter(
+                                        (
+                                          reprovacao
+                                        ) =>
+                                          reprovacao.grupo_revisao_id ===
+                                            demanda.grupo_revisao_id &&
+                                          reprovacao.demanda_id !==
+                                            demanda.demanda_id
+                                      )
+                                      .map(
+                                        (
+                                          reprovacao
+                                        ) => (
+                                          <div
+                                            key={
+                                              reprovacao.id
+                                            }
+                                            className="mt-3 max-w-3xl rounded-xl border border-red-200 bg-red-50 p-3 text-red-900"
+                                          >
+                                            <div className="flex flex-wrap items-center gap-2 text-xs font-bold uppercase tracking-wide text-red-700">
+                                              <XCircle className="h-4 w-4 shrink-0" />
+
+                                              Motivo da reprovação
+
+                                              <span className="rounded-full border border-red-200 bg-white px-2 py-0.5 text-[10px] tracking-normal">
+                                                Rev.{" "}
+                                                {String(
+                                                  reprovacao.numero_revisao
+                                                ).padStart(
+                                                  2,
+                                                  "0"
+                                                )}
+                                              </span>
+                                            </div>
+
+                                            <p className="mt-1.5 whitespace-pre-wrap text-sm leading-6">
+                                              {reprovacao.observacao}
+                                            </p>
+
+                                            <p className="mt-2 text-xs text-red-700/80">
+                                              {reprovacao.analisado_por_nome && (
+                                                <>
+                                                  Analisada por{" "}
+                                                  {reprovacao.analisado_por_nome}
+                                                  {" · "}
+                                                </>
+                                              )}
+
+                                              {formatarDataHora(
+                                                reprovacao.created_at
+                                              )}
+                                            </p>
+                                          </div>
+                                        )
+                                      )}
                                   </div>
                                 </div>
 
