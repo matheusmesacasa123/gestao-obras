@@ -79,6 +79,14 @@ type ResumoDemandasEtapa = {
   concluidas: number;
   todasConcluidas: boolean;
   maiorDataConclusao: string | null;
+  iniciosPorRevisao: Record<
+    string,
+    string | null
+  >;
+  prazosPorRevisao: Record<
+    string,
+    string | null
+  >;
 };
 
 const opcoesStatus: {
@@ -618,7 +626,7 @@ function EtapasObraPage() {
         supabase
           .from("demandas")
           .select(
-            "etapa_id, status, data_conclusao"
+            "etapa_id, status, data_inicio, data_conclusao, numero_revisao, prazo"
           )
           .eq(
             "obra_id",
@@ -701,6 +709,12 @@ function EtapasObraPage() {
 
             maiorDataConclusao:
               null,
+
+            iniciosPorRevisao:
+              {},
+
+            prazosPorRevisao:
+              {},
           };
         }
 
@@ -708,6 +722,68 @@ function EtapasObraPage() {
           demanda.etapa_id
         ].total +=
           1;
+
+        const numeroRevisao =
+          String(
+            demanda.numero_revisao ??
+              0
+          );
+
+        const inicioAtualDaRevisao =
+          novoResumoDemandas[
+            demanda.etapa_id
+          ].iniciosPorRevisao[
+            numeroRevisao
+          ];
+
+        if (
+          inicioAtualDaRevisao ===
+            undefined ||
+          (
+            demanda.data_inicio &&
+            (
+              !inicioAtualDaRevisao ||
+              demanda.data_inicio <
+                inicioAtualDaRevisao
+            )
+          )
+        ) {
+          novoResumoDemandas[
+            demanda.etapa_id
+          ].iniciosPorRevisao[
+            numeroRevisao
+          ] =
+            demanda.data_inicio ||
+            null;
+        }
+
+        const prazoAtualDaRevisao =
+          novoResumoDemandas[
+            demanda.etapa_id
+          ].prazosPorRevisao[
+            numeroRevisao
+          ];
+
+        if (
+          prazoAtualDaRevisao ===
+            undefined ||
+          (
+            demanda.prazo &&
+            (
+              !prazoAtualDaRevisao ||
+              demanda.prazo >
+                prazoAtualDaRevisao
+            )
+          )
+        ) {
+          novoResumoDemandas[
+            demanda.etapa_id
+          ].prazosPorRevisao[
+            numeroRevisao
+          ] =
+            demanda.prazo ||
+            null;
+        }
 
         if (
           demanda.status ===
@@ -882,6 +958,45 @@ function EtapasObraPage() {
             valor,
         },
       })
+    );
+  }
+
+  function atualizarPrazoRevisao(
+    etapaId: string,
+    numeroRevisao: number,
+    prazo: string
+  ) {
+    setResumoDemandasPorEtapa(
+      (
+        estadoAtual
+      ) => {
+        const resumoAtual =
+          estadoAtual[
+            etapaId
+          ];
+
+        if (!resumoAtual) {
+          return estadoAtual;
+        }
+
+        return {
+          ...estadoAtual,
+
+          [etapaId]: {
+            ...resumoAtual,
+
+            prazosPorRevisao: {
+              ...resumoAtual.prazosPorRevisao,
+
+              [String(
+                numeroRevisao
+              )]:
+                prazo ||
+                null,
+            },
+          },
+        };
+      }
     );
   }
 
@@ -1229,10 +1344,6 @@ function EtapasObraPage() {
             edicao.data_inicio ||
             null,
 
-          prazo:
-            edicao.prazo ||
-            null,
-
           data_conclusao:
             edicao.status ===
             "concluida"
@@ -1251,6 +1362,51 @@ function EtapasObraPage() {
             null,
         }
       );
+
+      const prazosPorRevisao =
+        Object.entries(
+          resumoDemandas?.prazosPorRevisao ||
+            {}
+        ).map(
+          ([
+            numeroRevisao,
+            prazo,
+          ]) => ({
+            numero_revisao:
+              Number(
+                numeroRevisao
+              ),
+
+            prazo:
+              prazo ||
+              null,
+          })
+        );
+
+      if (
+        prazosPorRevisao.length >
+        0
+      ) {
+        const {
+          error:
+            erroPrazosRevisoes,
+        } = await supabase.rpc(
+          "atualizar_prazos_revisoes_etapa" as never,
+          {
+            p_etapa_id:
+              etapa.id,
+
+            p_prazos:
+              prazosPorRevisao,
+          } as never
+        );
+
+        if (
+          erroPrazosRevisoes
+        ) {
+          throw erroPrazosRevisoes;
+        }
+      }
 
       setMensagem(
         "Etapa atualizada com sucesso."
@@ -1973,7 +2129,93 @@ function EtapasObraPage() {
 
                   maiorDataConclusao:
                     null,
+
+                  iniciosPorRevisao:
+                    {},
+
+                  prazosPorRevisao:
+                    {},
                 };
+
+              const iniciosPorRevisao =
+                Object.entries(
+                  resumoDemandas.iniciosPorRevisao
+                )
+                  .map(
+                    ([
+                      numeroRevisao,
+                      dataInicio,
+                    ]) => ({
+                      numeroRevisao:
+                        Number(
+                          numeroRevisao
+                        ),
+
+                      dataInicio,
+                    })
+                  )
+                  .sort(
+                    (
+                      revisaoA,
+                      revisaoB
+                    ) =>
+                      revisaoA.numeroRevisao -
+                      revisaoB.numeroRevisao
+                  );
+
+              if (
+                iniciosPorRevisao.length ===
+                0
+              ) {
+                iniciosPorRevisao.push({
+                  numeroRevisao:
+                    0,
+
+                  dataInicio:
+                    etapa.data_inicio ||
+                    null,
+                });
+              }
+
+              const prazosPorRevisao =
+                Object.entries(
+                  resumoDemandas.prazosPorRevisao
+                )
+                  .map(
+                    ([
+                      numeroRevisao,
+                      prazo,
+                    ]) => ({
+                      numeroRevisao:
+                        Number(
+                          numeroRevisao
+                        ),
+
+                      prazo,
+                    })
+                  )
+                  .sort(
+                    (
+                      revisaoA,
+                      revisaoB
+                    ) =>
+                      revisaoA.numeroRevisao -
+                      revisaoB.numeroRevisao
+                  );
+
+              if (
+                prazosPorRevisao.length ===
+                0
+              ) {
+                prazosPorRevisao.push({
+                  numeroRevisao:
+                    0,
+
+                  prazo:
+                    etapa.prazo ||
+                    null,
+                });
+              }
 
               const podeConcluirPorDemandas =
                 resumoDemandas.todasConcluidas;
@@ -2334,54 +2576,115 @@ function EtapasObraPage() {
 
                     <div className="space-y-2">
                       <label className="text-sm font-medium">
-                        Data de início
+                        Datas de início da etapa por revisão
                       </label>
 
-                      <input
-                        type="date"
-                        value={
-                          edicao.data_inicio
-                        }
-                        onChange={(
-                          event
-                        ) =>
-                          atualizarEdicao(
-                            etapa.id,
-                            "data_inicio",
-                            event.target.value
+                      <div className="overflow-hidden rounded-xl border bg-slate-50">
+                        {iniciosPorRevisao.map(
+                          (
+                            revisao,
+                            indiceRevisao
+                          ) => (
+                            <div
+                              key={
+                                revisao.numeroRevisao
+                              }
+                              className={`flex items-center justify-between gap-4 px-3 py-2.5 text-sm ${
+                                indiceRevisao >
+                                0
+                                  ? "border-t"
+                                  : ""
+                              }`}
+                            >
+                              <span className="inline-flex rounded-md border border-slate-300 bg-white px-2 py-1 text-xs font-bold text-slate-700">
+                                Rev. {String(
+                                  revisao.numeroRevisao
+                                ).padStart(
+                                  2,
+                                  "0"
+                                )}
+                              </span>
+
+                              <span className="inline-flex items-center gap-2 font-semibold text-gray-800">
+                                <CalendarDays className="h-4 w-4 text-gray-500" />
+
+                                {formatarData(
+                                  revisao.dataInicio
+                                )}
+                              </span>
+                            </div>
                           )
-                        }
-                        disabled={
-                          !podeEditar
-                        }
-                        className="h-10 w-full rounded-lg border px-3 text-sm outline-none focus:border-blue-500 disabled:cursor-not-allowed disabled:bg-muted"
-                      />
+                        )}
+                      </div>
+
+                      <p className="text-xs text-muted-foreground">
+                        A data é registrada quando a primeira demanda da revisão é iniciada.
+                      </p>
                     </div>
 
                     <div className="space-y-2">
                       <label className="text-sm font-medium">
-                        Prazo da etapa
+                        Prazos da etapa por revisão
                       </label>
 
-                      <input
-                        type="date"
-                        value={
-                          edicao.prazo
-                        }
-                        onChange={(
-                          event
-                        ) =>
-                          atualizarEdicao(
-                            etapa.id,
-                            "prazo",
-                            event.target.value
+                      <div className="overflow-hidden rounded-xl border bg-slate-50">
+                        {prazosPorRevisao.map(
+                          (
+                            revisao,
+                            indiceRevisao
+                          ) => (
+                            <div
+                              key={
+                                revisao.numeroRevisao
+                              }
+                              className={`flex items-center justify-between gap-4 px-3 py-2.5 text-sm ${
+                                indiceRevisao >
+                                0
+                                  ? "border-t"
+                                  : ""
+                              }`}
+                            >
+                              <span className="inline-flex rounded-md border border-slate-300 bg-white px-2 py-1 text-xs font-bold text-slate-700">
+                                Rev. {String(
+                                  revisao.numeroRevisao
+                                ).padStart(
+                                  2,
+                                  "0"
+                                )}
+                              </span>
+
+                              <div className="relative w-44">
+                                <CalendarDays className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
+
+                                <input
+                                  type="date"
+                                  value={
+                                    revisao.prazo ||
+                                    ""
+                                  }
+                                  onChange={(
+                                    event
+                                  ) =>
+                                    atualizarPrazoRevisao(
+                                      etapa.id,
+                                      revisao.numeroRevisao,
+                                      event.target.value
+                                    )
+                                  }
+                                  disabled={
+                                    !podeEditar
+                                  }
+                                  className="h-9 w-full rounded-lg border bg-white pl-9 pr-2 text-sm font-semibold text-gray-800 outline-none focus:border-blue-500 disabled:cursor-not-allowed disabled:bg-muted"
+                                />
+                              </div>
+                            </div>
                           )
-                        }
-                        disabled={
-                          !podeEditar
-                        }
-                        className="h-10 w-full rounded-lg border px-3 text-sm outline-none focus:border-blue-500 disabled:cursor-not-allowed disabled:bg-muted"
-                      />
+                        )}
+                      </div>
+
+                      <p className="text-xs text-muted-foreground">
+                        Defina e altere aqui o prazo de cada revisão da etapa.
+                      </p>
                     </div>
 
 

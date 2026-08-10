@@ -10,42 +10,16 @@ import type {
 
 export interface AtualizarDemandaDados {
   titulo?: string;
-
-  descricao?:
-    | string
-    | null;
-
+  descricao?: string | null;
   status?: StatusDemanda;
-
   prioridade?: PrioridadeDemanda;
-
-  etapa_id?:
-    | string
-    | null;
-
-  setor_id?:
-    | string
-    | null;
-
-  responsavel_id?:
-    | string
-    | null;
-
-  prazo?:
-    | string
-    | null;
-
-  data_inicio?:
-    | string
-    | null;
-
-  data_conclusao?:
-    | string
-    | null;
-
-  motivo_atraso?:
-    | string
-    | null;
+  etapa_id?: string | null;
+  setor_id?: string | null;
+  responsavel_id?: string | null;
+  prazo?: string | null;
+  data_inicio?: string | null;
+  data_conclusao?: string | null;
+  motivo_atraso?: string | null;
 }
 
 export type DemandaItem = {
@@ -110,27 +84,14 @@ export async function getDemandasPorObra(
     error,
   } = await supabase
     .from("demandas")
-    .select(
-      consultaDemanda
-    )
-    .eq(
-      "obra_id",
-      obraId
-    )
-    .order(
-      "numero_revisao",
-      {
-        ascending:
-          false,
-      }
-    )
-    .order(
-      "created_at",
-      {
-        ascending:
-          false,
-      }
-    );
+    .select(consultaDemanda)
+    .eq("obra_id", obraId)
+    .order("numero_revisao", {
+      ascending: false,
+    })
+    .order("created_at", {
+      ascending: false,
+    });
 
   if (error) {
     console.error(
@@ -141,40 +102,24 @@ export async function getDemandasPorObra(
     throw error;
   }
 
-  const demandas =
-    (
-      data ??
-      []
-    ) as unknown as Array<
-      Demanda & {
-        itens?: DemandaItem[];
-      }
-    >;
+  const demandas = (data ?? []) as unknown as Array<
+    Demanda & {
+      itens?: DemandaItem[];
+    }
+  >;
 
-  return demandas.map(
-    (
-      demanda
-    ) => ({
-      ...demanda,
-
-      itens:
-        (
-          demanda.itens ??
-          []
-        ).sort(
-          (
-            itemA,
-            itemB
-          ) =>
-            itemA.ordem -
-            itemB.ordem
-        ),
-    })
-  ) as unknown as Demanda[];
+  return demandas.map((demanda) => ({
+    ...demanda,
+    itens: (demanda.itens ?? []).sort(
+      (itemA, itemB) => itemA.ordem - itemB.ordem
+    ),
+  })) as unknown as Demanda[];
 }
 
 export async function criarNovaRevisaoDemanda(
-  demandaId: string
+  demandaId: string,
+  responsavelId: string,
+  prazo: string | null
 ): Promise<string> {
   const {
     data,
@@ -182,9 +127,10 @@ export async function criarNovaRevisaoDemanda(
   } = await supabase.rpc(
     "criar_nova_revisao_demanda",
     {
-      p_demanda_id:
-        demandaId,
-    }
+      p_demanda_id: demandaId,
+      p_responsavel_id: responsavelId,
+      p_prazo: prazo || null,
+    } as never
   );
 
   if (error) {
@@ -196,11 +142,7 @@ export async function criarNovaRevisaoDemanda(
     throw error;
   }
 
-  if (
-    typeof data !==
-      "string" ||
-    !data
-  ) {
+  if (typeof data !== "string" || !data) {
     throw new Error(
       "A nova revisão foi criada, mas o identificador não foi retornado."
     );
@@ -212,22 +154,15 @@ export async function criarNovaRevisaoDemanda(
 export async function iniciarDemanda(
   demandaId: string
 ): Promise<void> {
-  const {
-    error,
-  } = await supabase.rpc(
+  const { error } = await supabase.rpc(
     "iniciar_demanda",
     {
-      p_demanda_id:
-        demandaId,
+      p_demanda_id: demandaId,
     }
   );
 
   if (error) {
-    console.error(
-      "Erro ao iniciar demanda:",
-      error
-    );
-
+    console.error("Erro ao iniciar demanda:", error);
     throw error;
   }
 }
@@ -235,22 +170,15 @@ export async function iniciarDemanda(
 export async function concluirDemanda(
   demandaId: string
 ): Promise<void> {
-  const {
-    error,
-  } = await supabase.rpc(
+  const { error } = await supabase.rpc(
     "concluir_demanda",
     {
-      p_demanda_id:
-        demandaId,
+      p_demanda_id: demandaId,
     }
   );
 
   if (error) {
-    console.error(
-      "Erro ao concluir demanda:",
-      error
-    );
-
+    console.error("Erro ao concluir demanda:", error);
     throw error;
   }
 }
@@ -258,22 +186,13 @@ export async function concluirDemanda(
 export async function deleteDemanda(
   id: string
 ): Promise<void> {
-  const {
-    error,
-  } = await supabase
+  const { error } = await supabase
     .from("demandas")
     .delete()
-    .eq(
-      "id",
-      id
-    );
+    .eq("id", id);
 
   if (error) {
-    console.error(
-      "Erro ao excluir demanda:",
-      error
-    );
-
+    console.error("Erro ao excluir demanda:", error);
     throw error;
   }
 }
@@ -287,25 +206,34 @@ export async function updateDemanda(
     error,
   } = await supabase
     .from("demandas")
-    .update(
-      dados
-    )
-    .eq(
-      "id",
-      id
-    )
-    .select(
-      consultaDemanda
-    )
+    .update(dados)
+    .eq("id", id)
+    .select(consultaDemanda)
     .single();
 
   if (error) {
-    console.error(
-      "Erro ao atualizar demanda:",
-      error
+    console.error("Erro ao atualizar demanda:", error);
+    throw error;
+  }
+
+  if (dados.status === "em_andamento") {
+    const {
+      error: erroSincronizacaoEtapa,
+    } = await supabase.rpc(
+      "iniciar_demanda",
+      {
+        p_demanda_id: id,
+      }
     );
 
-    throw error;
+    if (erroSincronizacaoEtapa) {
+      console.error(
+        "Erro ao sincronizar a etapa da demanda:",
+        erroSincronizacaoEtapa
+      );
+
+      throw erroSincronizacaoEtapa;
+    }
   }
 
   return data as unknown as Demanda;
@@ -318,76 +246,42 @@ export async function listarItensDemanda(
     data,
     error,
   } = await supabase
-    .from(
-      "demanda_itens" as never
-    )
-    .select(
-      "*"
-    )
-    .eq(
-      "demanda_id",
-      demandaId
-    )
-    .order(
-      "ordem",
-      {
-        ascending:
-          true,
-      }
-    );
+    .from("demanda_itens" as never)
+    .select("*")
+    .eq("demanda_id", demandaId)
+    .order("ordem", {
+      ascending: true,
+    });
 
   if (error) {
-    console.error(
-      "Erro ao listar itens da demanda:",
-      error
-    );
-
+    console.error("Erro ao listar itens da demanda:", error);
     throw error;
   }
 
-  return (
-    data ??
-    []
-  ) as unknown as DemandaItem[];
+  return (data ?? []) as unknown as DemandaItem[];
 }
 
 export async function criarItemDemanda(
   demandaId: string,
   titulo: string
 ): Promise<DemandaItem> {
-  const tituloTratado =
-    titulo.trim();
+  const tituloTratado = titulo.trim();
 
   if (!tituloTratado) {
-    throw new Error(
-      "Informe o título do item."
-    );
+    throw new Error("Informe o título do item.");
   }
 
   const {
     data: ultimoItem,
     error: erroOrdem,
   } = await supabase
-    .from(
-      "demanda_itens" as never
-    )
-    .select(
-      "ordem"
-    )
-    .eq(
-      "demanda_id",
-      demandaId
-    )
-    .order(
-      "ordem",
-      {
-        ascending:
-          false,
-      }
-    )
-    .limit(
-      1
-    )
+    .from("demanda_itens" as never)
+    .select("ordem")
+    .eq("demanda_id", demandaId)
+    .order("ordem", {
+      ascending: false,
+    })
+    .limit(1)
     .maybeSingle();
 
   if (erroOrdem) {
@@ -401,43 +295,24 @@ export async function criarItemDemanda(
 
   const proximaOrdem =
     Number(
-      (
-        ultimoItem as {
-          ordem?: number;
-        } | null
-      )?.ordem ??
-      0
-    ) +
-    1;
+      (ultimoItem as { ordem?: number } | null)?.ordem ?? 0
+    ) + 1;
 
   const {
     data,
     error,
   } = await supabase
-    .from(
-      "demanda_itens" as never
-    )
+    .from("demanda_itens" as never)
     .insert({
-      demanda_id:
-        demandaId,
-
-      titulo:
-        tituloTratado,
-
-      ordem:
-        proximaOrdem,
+      demanda_id: demandaId,
+      titulo: tituloTratado,
+      ordem: proximaOrdem,
     } as never)
-    .select(
-      "*"
-    )
+    .select("*")
     .single();
 
   if (error) {
-    console.error(
-      "Erro ao criar item da demanda:",
-      error
-    );
-
+    console.error("Erro ao criar item da demanda:", error);
     throw error;
   }
 
@@ -463,9 +338,7 @@ export async function atualizarItemDemanda(
       "titulo"
     )
   ) {
-    const tituloTratado =
-      dados.titulo?.trim() ||
-      "";
+    const tituloTratado = dados.titulo?.trim() || "";
 
     if (!tituloTratado) {
       throw new Error(
@@ -473,8 +346,7 @@ export async function atualizarItemDemanda(
       );
     }
 
-    payload.titulo =
-      tituloTratado;
+    payload.titulo = tituloTratado;
   }
 
   if (
@@ -483,45 +355,24 @@ export async function atualizarItemDemanda(
       "concluido"
     )
   ) {
-    payload.concluido =
-      dados.concluido;
-
-    payload.data_conclusao =
-      dados.concluido
-        ? new Date()
-            .toISOString()
-            .slice(
-              0,
-              10
-            )
-        : null;
+    payload.concluido = dados.concluido;
+    payload.data_conclusao = dados.concluido
+      ? new Date().toISOString().slice(0, 10)
+      : null;
   }
 
   const {
     data,
     error,
   } = await supabase
-    .from(
-      "demanda_itens" as never
-    )
-    .update(
-      payload as never
-    )
-    .eq(
-      "id",
-      itemId
-    )
-    .select(
-      "*"
-    )
+    .from("demanda_itens" as never)
+    .update(payload as never)
+    .eq("id", itemId)
+    .select("*")
     .single();
 
   if (error) {
-    console.error(
-      "Erro ao atualizar item da demanda:",
-      error
-    );
-
+    console.error("Erro ao atualizar item da demanda:", error);
     throw error;
   }
 
@@ -531,24 +382,13 @@ export async function atualizarItemDemanda(
 export async function excluirItemDemanda(
   itemId: string
 ): Promise<void> {
-  const {
-    error,
-  } = await supabase
-    .from(
-      "demanda_itens" as never
-    )
+  const { error } = await supabase
+    .from("demanda_itens" as never)
     .delete()
-    .eq(
-      "id",
-      itemId
-    );
+    .eq("id", itemId);
 
   if (error) {
-    console.error(
-      "Erro ao excluir item da demanda:",
-      error
-    );
-
+    console.error("Erro ao excluir item da demanda:", error);
     throw error;
   }
 }

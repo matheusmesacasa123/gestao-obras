@@ -1474,6 +1474,30 @@ function EditarObraPage() {
         </div>
 
         <div className="border rounded-2xl p-6 space-y-3 bg-white">
+          <label
+            htmlFor="descricao"
+            className="text-sm font-medium"
+          >
+            Descrição do orçamento
+          </label>
+
+          <textarea
+            id="descricao"
+            name="descricao"
+            value={
+              form.descricao ??
+              ""
+            }
+            onChange={
+              handleChange
+            }
+            rows={5}
+            placeholder="Descreva o escopo e as principais informações do orçamento."
+            className="border rounded-lg p-3 w-full"
+          />
+        </div>
+
+        <div className="border rounded-2xl p-6 space-y-3 bg-white">
           <label className="text-sm font-medium">
             Observações
           </label>

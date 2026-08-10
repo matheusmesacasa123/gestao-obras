@@ -150,12 +150,12 @@ function ObraLayoutPage() {
         <div className="flex min-h-[145px] flex-col justify-between gap-6 lg:flex-row lg:items-end">
           <div className="space-y-1">
             <span className="block text-xs font-medium text-gray-500">
-              Código do orçamento
+              Número da proposta
             </span>
 
             <h1 className="text-3xl font-extrabold tracking-tight text-gray-900">
-              {obra.codigo ||
-                "Sem código"}
+              {obra.numero_proposta ||
+                "Sem número de proposta"}
             </h1>
 
             <p className="text-base font-semibold text-gray-800">

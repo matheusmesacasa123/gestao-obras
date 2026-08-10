@@ -157,46 +157,90 @@ function ObrasPage() {
           .trim()
           .toLowerCase();
 
-      return obras.filter(
-        (
-          obra
-        ) => {
-          const codigo =
-            obra.codigo
-              ?.toLowerCase() ||
-            "";
+      return obras
+        .filter(
+          (
+            obra
+          ) => {
+            const codigo =
+              obra.codigo
+                ?.toLowerCase() ||
+              "";
 
-          const cliente =
-            obra.cliente
-              ?.toLowerCase() ||
-            "";
+            const cliente =
+              obra.cliente
+                ?.toLowerCase() ||
+              "";
 
-          const correspondePesquisa =
-            !termo ||
-            codigo.includes(
-              termo
-            ) ||
-            cliente.includes(
-              termo
-            );
+            const correspondePesquisa =
+              !termo ||
+              codigo.includes(
+                termo
+              ) ||
+              cliente.includes(
+                termo
+              );
 
-          const correspondeSetor =
-            setorSelecionadoId ===
-              "todos" ||
-            (
+            const correspondeSetor =
               setorSelecionadoId ===
-                "sem_setor" &&
-              !obra.setor_id
-            ) ||
-            obra.setor_id ===
-              setorSelecionadoId;
+                "todos" ||
+              (
+                setorSelecionadoId ===
+                  "sem_setor" &&
+                !obra.setor_id
+              ) ||
+              obra.setor_id ===
+                setorSelecionadoId;
 
-          return (
-            correspondePesquisa &&
-            correspondeSetor
-          );
-        }
-      );
+            return (
+              correspondePesquisa &&
+              correspondeSetor
+            );
+          }
+        )
+        .sort(
+          (
+            obraA,
+            obraB
+          ) => {
+            const propostaA =
+              obraA.numero_proposta
+                ?.trim() ||
+              "";
+
+            const propostaB =
+              obraB.numero_proposta
+                ?.trim() ||
+              "";
+
+            if (
+              !propostaA &&
+              !propostaB
+            ) {
+              return 0;
+            }
+
+            if (!propostaA) {
+              return 1;
+            }
+
+            if (!propostaB) {
+              return -1;
+            }
+
+            return propostaB.localeCompare(
+              propostaA,
+              "pt-BR",
+              {
+                numeric:
+                  true,
+
+                sensitivity:
+                  "base",
+              }
+            );
+          }
+        );
     }, [
       obras,
       pesquisa,

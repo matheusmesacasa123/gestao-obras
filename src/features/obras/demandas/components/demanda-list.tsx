@@ -1,6 +1,7 @@
 import {
   useMemo,
   useState,
+  type FormEvent,
 } from "react";
 
 import {
@@ -13,6 +14,7 @@ import {
   History,
   ListTodo,
   Loader2,
+  Trash2,
 } from "lucide-react";
 
 import {
@@ -20,8 +22,13 @@ import {
 } from "@/features/auth/auth-context";
 
 import {
+  supabase,
+} from "@/integrations/supabase/client";
+
+import {
   concluirDemanda,
   criarNovaRevisaoDemanda,
+  deleteDemanda,
   iniciarDemanda,
 } from "../services/demandas-service";
 
@@ -51,6 +58,13 @@ interface DemandaListProps {
 interface GrupoDemanda {
   grupoId: string;
   revisoes: Demanda[];
+}
+
+interface UsuarioResponsavelRevisao {
+  id: string;
+  nome: string;
+  email: string;
+  setor_id: string | null;
 }
 
 function formatarData(
@@ -90,9 +104,48 @@ function formatarData(
   );
 }
 
-function obterLabelStatus(
-  status?: StatusDemanda | null
+function demandaFoiConcluidaComAtraso(
+  demanda: Demanda
 ) {
+  if (
+    demanda.status !==
+      "concluida" ||
+    !demanda.prazo ||
+    !demanda.data_conclusao
+  ) {
+    return false;
+  }
+
+  const prazo =
+    demanda.prazo.slice(
+      0,
+      10
+    );
+
+  const dataConclusao =
+    demanda.data_conclusao.slice(
+      0,
+      10
+    );
+
+  return (
+    dataConclusao >
+    prazo
+  );
+}
+
+function obterLabelStatus(
+  status?: StatusDemanda | null,
+  concluidaComAtraso = false
+) {
+  if (
+    status ===
+      "concluida" &&
+    concluidaComAtraso
+  ) {
+    return "Concluída com atraso";
+  }
+
   switch (status) {
     case "em_andamento":
       return "Em andamento";
@@ -109,8 +162,17 @@ function obterLabelStatus(
 }
 
 function obterClasseStatus(
-  status?: StatusDemanda | null
+  status?: StatusDemanda | null,
+  concluidaComAtraso = false
 ) {
+  if (
+    status ===
+      "concluida" &&
+    concluidaComAtraso
+  ) {
+    return "border-amber-300 bg-amber-100 text-amber-800";
+  }
+
   switch (status) {
     case "em_andamento":
       return "border-blue-200 bg-blue-50 text-blue-700";
@@ -219,6 +281,47 @@ export function DemandaList({
     null
   );
 
+  const [
+    demandaExcluindoId,
+    setDemandaExcluindoId,
+  ] = useState<string | null>(
+    null
+  );
+
+  const [
+    grupoNovaRevisao,
+    setGrupoNovaRevisao,
+  ] = useState<GrupoDemanda | null>(
+    null
+  );
+
+  const [
+    responsavelNovaRevisaoId,
+    setResponsavelNovaRevisaoId,
+  ] = useState("");
+
+  const [
+    prazoNovaRevisao,
+    setPrazoNovaRevisao,
+  ] = useState("");
+
+  const [
+    usuariosResponsaveis,
+    setUsuariosResponsaveis,
+  ] = useState<
+    UsuarioResponsavelRevisao[]
+  >([]);
+
+  const [
+    carregandoResponsaveis,
+    setCarregandoResponsaveis,
+  ] = useState(false);
+
+  const [
+    erroNovaRevisao,
+    setErroNovaRevisao,
+  ] = useState("");
+
   async function handleIniciarDemanda(
     demanda: Demanda
   ) {
@@ -291,35 +394,164 @@ export function DemandaList({
     }
   }
 
-  async function handleCriarNovaRevisao(
+  async function abrirModalNovaRevisao(
     grupo: GrupoDemanda
   ) {
     const revisaoMaisRecente =
       grupo.revisoes[0];
 
-    const proximaRevisao =
-      revisaoMaisRecente.numero_revisao +
-      1;
-
-    const confirmou =
-      window.confirm(
-        `Criar a ${formatarNumeroRevisao(
-          proximaRevisao
-        )} da demanda “${revisaoMaisRecente.titulo}”? O checklist será copiado como pendente. Documentos e observações não serão copiados.`
+    if (
+      !revisaoMaisRecente.setor_id
+    ) {
+      window.alert(
+        "A demanda precisa possuir um setor antes de criar uma nova revisão."
       );
 
-    if (!confirmou) {
       return;
     }
 
+    setGrupoNovaRevisao(
+      grupo
+    );
+
+    setResponsavelNovaRevisaoId(
+      ""
+    );
+
+    setPrazoNovaRevisao(
+      ""
+    );
+
+    setUsuariosResponsaveis(
+      []
+    );
+
+    setErroNovaRevisao(
+      ""
+    );
+
     try {
+      setCarregandoResponsaveis(
+        true
+      );
+
+      const {
+        data,
+        error,
+      } = await supabase
+        .from("usuarios")
+        .select(
+          "id, nome, email, setor_id"
+        )
+        .eq(
+          "ativo",
+          true
+        )
+        .eq(
+          "setor_id",
+          revisaoMaisRecente.setor_id
+        )
+        .order(
+          "nome",
+          {
+            ascending:
+              true,
+          }
+        );
+
+      if (error) {
+        throw error;
+      }
+
+      setUsuariosResponsaveis(
+        (
+          data ??
+          []
+        ) as UsuarioResponsavelRevisao[]
+      );
+    } catch (error) {
+      console.error(
+        "Erro ao carregar responsáveis:",
+        error
+      );
+
+      setErroNovaRevisao(
+        "Não foi possível carregar os responsáveis deste setor."
+      );
+    } finally {
+      setCarregandoResponsaveis(
+        false
+      );
+    }
+  }
+
+  function fecharModalNovaRevisao() {
+    if (
+      grupoCriandoRevisaoId
+    ) {
+      return;
+    }
+
+    setGrupoNovaRevisao(
+      null
+    );
+
+    setResponsavelNovaRevisaoId(
+      ""
+    );
+
+    setPrazoNovaRevisao(
+      ""
+    );
+
+    setUsuariosResponsaveis(
+      []
+    );
+
+    setErroNovaRevisao(
+      ""
+    );
+  }
+
+  async function handleCriarNovaRevisao(
+    event: FormEvent<HTMLFormElement>
+  ) {
+    event.preventDefault();
+
+    if (
+      !grupoNovaRevisao
+    ) {
+      return;
+    }
+
+    if (
+      !responsavelNovaRevisaoId
+    ) {
+      setErroNovaRevisao(
+        "Selecione o responsável pela nova revisão."
+      );
+
+      return;
+    }
+
+    const revisaoMaisRecente =
+      grupoNovaRevisao.revisoes[0];
+
+    try {
+      setErroNovaRevisao(
+        ""
+      );
+
       setGrupoCriandoRevisaoId(
-        grupo.grupoId
+        grupoNovaRevisao.grupoId
       );
 
       const novaDemandaId =
         await criarNovaRevisaoDemanda(
-          revisaoMaisRecente.id
+          revisaoMaisRecente.id,
+          responsavelNovaRevisaoId,
+          prazoNovaRevisao ||
+            null
         );
 
       setRevisaoSelecionadaPorGrupo(
@@ -328,9 +560,25 @@ export function DemandaList({
         ) => ({
           ...estadoAtual,
 
-          [grupo.grupoId]:
+          [grupoNovaRevisao.grupoId]:
             novaDemandaId,
         })
+      );
+
+      setGrupoNovaRevisao(
+        null
+      );
+
+      setResponsavelNovaRevisaoId(
+        ""
+      );
+
+      setPrazoNovaRevisao(
+        ""
+      );
+
+      setUsuariosResponsaveis(
+        []
       );
 
       await onStatusChange?.();
@@ -340,13 +588,92 @@ export function DemandaList({
         error
       );
 
-      window.alert(
+      setErroNovaRevisao(
         error?.message ||
           error?.details ||
           "Não foi possível criar a nova revisão."
       );
     } finally {
       setGrupoCriandoRevisaoId(
+        null
+      );
+    }
+  }
+
+  async function handleExcluirRevisao(
+    grupo: GrupoDemanda,
+    demanda: Demanda
+  ) {
+    if (
+      grupo.revisoes.length <=
+      1
+    ) {
+      window.alert(
+        "Não é possível excluir a única revisão da demanda."
+      );
+
+      return;
+    }
+
+    const confirmou =
+      window.confirm(
+        `Excluir definitivamente a ${formatarNumeroRevisao(
+          demanda.numero_revisao
+        )} da demanda “${demanda.titulo}”? O checklist, as observações e os acompanhamentos desta revisão também serão excluídos.`
+      );
+
+    if (!confirmou) {
+      return;
+    }
+
+    try {
+      setDemandaExcluindoId(
+        demanda.id
+      );
+
+      await deleteDemanda(
+        demanda.id
+      );
+
+      setRevisaoSelecionadaPorGrupo(
+        (
+          estadoAtual
+        ) => {
+          const novoEstado = {
+            ...estadoAtual,
+          };
+
+          delete novoEstado[
+            grupo.grupoId
+          ];
+
+          return novoEstado;
+        }
+      );
+
+      await onStatusChange?.();
+    } catch (error: any) {
+      console.error(
+        "Erro ao excluir revisão da demanda:",
+        error
+      );
+
+      if (
+        error?.code ===
+        "23503"
+      ) {
+        window.alert(
+          "Esta revisão possui documentos vinculados. Remova ou desvincule os documentos antes de excluir a revisão."
+        );
+      } else {
+        window.alert(
+          error?.message ||
+            error?.details ||
+            "Não foi possível excluir a revisão."
+        );
+      }
+    } finally {
+      setDemandaExcluindoId(
         null
       );
     }
@@ -519,7 +846,8 @@ export function DemandaList({
   }
 
   return (
-    <div className="space-y-3">
+    <>
+      <div className="space-y-3">
       {etapasOrdenadas.map(
         (
           etapa
@@ -681,6 +1009,11 @@ export function DemandaList({
                           demandaSelecionada.status ===
                           "concluida";
 
+                        const demandaConcluidaComAtraso =
+                          demandaFoiConcluidaComAtraso(
+                            demandaSelecionada
+                          );
+
                         const classeContainer =
                           demandaConcluida
                             ? "border-l-green-600 bg-green-50/70"
@@ -808,7 +1141,7 @@ export function DemandaList({
                                   <button
                                     type="button"
                                     onClick={() =>
-                                      handleCriarNovaRevisao(
+                                      abrirModalNovaRevisao(
                                         grupo
                                       )
                                     }
@@ -826,6 +1159,42 @@ export function DemandaList({
                                     )}
 
                                     Nova revisão
+                                  </button>
+                                )}
+
+                                {podeGerenciar && (
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      handleExcluirRevisao(
+                                        grupo,
+                                        demandaSelecionada
+                                      )
+                                    }
+                                    disabled={
+                                      grupo.revisoes.length <=
+                                        1 ||
+                                      demandaExcluindoId ===
+                                        demandaSelecionada.id
+                                    }
+                                    title={
+                                      grupo.revisoes.length <=
+                                      1
+                                        ? "A única revisão da demanda não pode ser excluída."
+                                        : `Excluir ${formatarNumeroRevisao(
+                                            demandaSelecionada.numero_revisao
+                                          )}`
+                                    }
+                                    className="inline-flex h-9 cursor-pointer items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 text-xs font-semibold text-red-700 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-40"
+                                  >
+                                    {demandaExcluindoId ===
+                                    demandaSelecionada.id ? (
+                                      <Loader2 className="h-4 w-4 animate-spin" />
+                                    ) : (
+                                      <Trash2 className="h-4 w-4" />
+                                    )}
+
+                                    Excluir revisão
                                   </button>
                                 )}
                               </div>
@@ -851,11 +1220,13 @@ export function DemandaList({
                               <div>
                                 <span
                                   className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${obterClasseStatus(
-                                    demandaSelecionada.status
+                                    demandaSelecionada.status,
+                                    demandaConcluidaComAtraso
                                   )}`}
                                 >
                                   {obterLabelStatus(
-                                    demandaSelecionada.status
+                                    demandaSelecionada.status,
+                                    demandaConcluidaComAtraso
                                   )}
                                 </span>
                               </div>
@@ -976,6 +1347,189 @@ export function DemandaList({
           );
         }
       )}
-    </div>
+      </div>
+
+      {grupoNovaRevisao && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          onMouseDown={(
+            event
+          ) => {
+            if (
+              event.target ===
+              event.currentTarget
+            ) {
+              fecharModalNovaRevisao();
+            }
+          }}
+        >
+          <form
+            onSubmit={
+              handleCriarNovaRevisao
+            }
+            className="w-full max-w-lg rounded-2xl border bg-white p-6 shadow-xl"
+          >
+            <div>
+              <h3 className="text-xl font-bold text-gray-900">
+                Criar nova revisão
+              </h3>
+
+              <p className="mt-2 text-sm leading-6 text-gray-600">
+                Selecione o responsável e, se houver, informe o prazo da{" "}
+                {formatarNumeroRevisao(
+                  grupoNovaRevisao.revisoes[0].numero_revisao +
+                    1
+                )}{" "}
+                da demanda “{grupoNovaRevisao.revisoes[0].titulo}”.
+              </p>
+            </div>
+
+            <label className="mt-6 block space-y-2">
+              <span className="block text-sm font-semibold text-gray-700">
+                Responsável
+              </span>
+
+              <select
+                value={
+                  responsavelNovaRevisaoId
+                }
+                onChange={(
+                  event
+                ) => {
+                  setResponsavelNovaRevisaoId(
+                    event.target.value
+                  );
+
+                  setErroNovaRevisao(
+                    ""
+                  );
+                }}
+                disabled={
+                  carregandoResponsaveis ||
+                  Boolean(
+                    grupoCriandoRevisaoId
+                  )
+                }
+                required
+                className="h-11 w-full rounded-xl border border-gray-300 bg-white px-3 text-sm outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-100 disabled:cursor-not-allowed disabled:bg-gray-100"
+              >
+                <option value="">
+                  {carregandoResponsaveis
+                    ? "Carregando responsáveis..."
+                    : "Selecione o responsável"}
+                </option>
+
+                {usuariosResponsaveis.map(
+                  (
+                    usuario
+                  ) => (
+                    <option
+                      key={
+                        usuario.id
+                      }
+                      value={
+                        usuario.id
+                      }
+                    >
+                      {usuario.nome} — {usuario.email}
+                    </option>
+                  )
+                )}
+              </select>
+            </label>
+
+            <label className="mt-4 block space-y-2">
+              <span className="block text-sm font-semibold text-gray-700">
+                Prazo da nova revisão (opcional)
+              </span>
+
+              <input
+                type="date"
+                value={
+                  prazoNovaRevisao
+                }
+                onChange={(
+                  event
+                ) => {
+                  setPrazoNovaRevisao(
+                    event.target.value
+                  );
+
+                  setErroNovaRevisao(
+                    ""
+                  );
+                }}
+                disabled={
+                  Boolean(
+                    grupoCriandoRevisaoId
+                  )
+                }
+                className="h-11 w-full rounded-xl border border-gray-300 bg-white px-3 text-sm outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-100 disabled:cursor-not-allowed disabled:bg-gray-100"
+              />
+
+              <span className="block text-xs text-gray-500">
+                Se não houver prazo definido, deixe este campo vazio.
+              </span>
+            </label>
+
+            {!carregandoResponsaveis &&
+              usuariosResponsaveis.length ===
+                0 &&
+              !erroNovaRevisao && (
+                <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">
+                  Não há usuários ativos cadastrados no setor desta demanda.
+                </p>
+              )}
+
+            {erroNovaRevisao && (
+              <p className="mt-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+                {erroNovaRevisao}
+              </p>
+            )}
+
+            <div className="mt-6 flex flex-col-reverse gap-3 border-t pt-5 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                onClick={
+                  fecharModalNovaRevisao
+                }
+                disabled={
+                  Boolean(
+                    grupoCriandoRevisaoId
+                  )
+                }
+                className="rounded-xl border px-4 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+
+              <button
+                type="submit"
+                disabled={
+                  carregandoResponsaveis ||
+                  !responsavelNovaRevisaoId ||
+                  usuariosResponsaveis.length ===
+                    0 ||
+                  Boolean(
+                    grupoCriandoRevisaoId
+                  )
+                }
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-violet-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {grupoCriandoRevisaoId ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <CopyPlus className="h-4 w-4" />
+                )}
+
+                {grupoCriandoRevisaoId
+                  ? "Criando..."
+                  : "Criar revisão"}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+    </>
   );
 }

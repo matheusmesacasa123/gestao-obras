@@ -431,7 +431,9 @@ function converterValor(
 }
 
 function ObraInformacoesPage() {
-  const obra =
+  const {
+    obra,
+  } =
     useLoaderData({
       from:
         "/_authenticated/obras/$id",
@@ -761,6 +763,17 @@ function ObraInformacoesPage() {
                 {obra.vazao
                   ? `${obra.vazao} m³/dia`
                   : "-"}
+              </p>
+            </div>
+
+            <div className="md:col-span-2">
+              <h3 className="text-sm font-medium text-gray-500">
+                Descrição do orçamento
+              </h3>
+
+              <p className="mt-1 whitespace-pre-wrap text-base font-semibold text-gray-900">
+                {obra.descricao ||
+                  "-"}
               </p>
             </div>
           </div>

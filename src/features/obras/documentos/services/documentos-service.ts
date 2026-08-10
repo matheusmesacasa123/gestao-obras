@@ -2,6 +2,10 @@ import {
   supabase,
 } from "@/integrations/supabase/client";
 
+import {
+  Upload as TusUpload,
+} from "tus-js-client";
+
 import type {
   Documento,
   EtapaDocumento,
@@ -73,6 +77,106 @@ const consultaDocumento = `
 
 const BUCKET_DOCUMENTOS = "documentos";
 const DURACAO_URL_ASSINADA_SEGUNDOS = 60 * 60;
+const LIMITE_UPLOAD_PADRAO_BYTES = 6 * 1024 * 1024;
+const TAMANHO_BLOCO_TUS_BYTES = 6 * 1024 * 1024;
+
+function obterEndpointUploadResumivel(): string {
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+
+  if (!supabaseUrl) {
+    throw new Error(
+      "A variável VITE_SUPABASE_URL não está configurada."
+    );
+  }
+
+  let projectId = "";
+
+  try {
+    projectId = new URL(supabaseUrl).hostname.split(".")[0] ?? "";
+  } catch {
+    throw new Error("A URL do Supabase configurada é inválida.");
+  }
+
+  if (!projectId) {
+    throw new Error(
+      "Não foi possível identificar o projeto do Supabase."
+    );
+  }
+
+  return `https://${projectId}.storage.supabase.co/storage/v1/upload/resumable`;
+}
+
+async function uploadResumivel(
+  caminho: string,
+  arquivo: File
+): Promise<void> {
+  const {
+    data: { session },
+    error: sessionError,
+  } = await supabase.auth.getSession();
+
+  if (sessionError || !session?.access_token) {
+    throw new Error(
+      "Não foi possível autenticar o envio do documento."
+    );
+  }
+
+  await new Promise<void>((resolve, reject) => {
+    const upload = new TusUpload(arquivo, {
+      endpoint: obterEndpointUploadResumivel(),
+      retryDelays: [0, 3000, 5000, 10000, 20000],
+      headers: {
+        authorization: `Bearer ${session.access_token}`,
+      },
+      uploadDataDuringCreation: true,
+      removeFingerprintOnSuccess: true,
+      metadata: {
+        bucketName: BUCKET_DOCUMENTOS,
+        objectName: caminho,
+        contentType:
+          arquivo.type || "application/octet-stream",
+        cacheControl: "3600",
+      },
+      chunkSize: TAMANHO_BLOCO_TUS_BYTES,
+      onError: (error) => {
+        console.error("Erro no upload resumível:", error);
+        reject(
+          new Error(
+            `Não foi possível enviar o arquivo grande: ${error.message}`
+          )
+        );
+      },
+      onSuccess: () => {
+        resolve();
+      },
+    });
+
+    upload.start();
+  });
+}
+
+async function enviarArquivoParaStorage(
+  caminho: string,
+  arquivo: File
+): Promise<void> {
+  if (arquivo.size > LIMITE_UPLOAD_PADRAO_BYTES) {
+    await uploadResumivel(caminho, arquivo);
+    return;
+  }
+
+  const { error } = await supabase.storage
+    .from(BUCKET_DOCUMENTOS)
+    .upload(caminho, arquivo, {
+      cacheControl: "3600",
+      contentType:
+        arquivo.type || "application/octet-stream",
+      upsert: false,
+    });
+
+  if (error) {
+    throw error;
+  }
+}
 
 function extrairCaminhoArquivo(
   arquivoUrlOuCaminho: string
@@ -357,13 +461,7 @@ export async function uploadDocumentoDaDemanda(
   const caminho =
     `${obraId}/demandas/${demandaId}/${Date.now()}-${nomeArquivoSeguro}`;
 
-  const { error: uploadError } = await supabase.storage
-    .from("documentos")
-    .upload(caminho, arquivo);
-
-  if (uploadError) {
-    throw uploadError;
-  }
+  await enviarArquivoParaStorage(caminho, arquivo);
 
   try {
     const { data, error } = await supabase
@@ -421,18 +519,10 @@ export async function uploadDocumento(
   const caminho =
     `${obraId}/${Date.now()}-${nomeArquivoSeguro}`;
 
-  const {
-    error: uploadError,
-  } = await supabase.storage
-    .from("documentos")
-    .upload(
-      caminho,
-      arquivo
-    );
-
-  if (uploadError) {
-    throw uploadError;
-  }
+  await enviarArquivoParaStorage(
+    caminho,
+    arquivo
+  );
 
   try {
     const {
@@ -575,18 +665,10 @@ export async function atualizarDocumento(
     novoCaminho =
       `${documento.obra_id}/${Date.now()}-${nomeArquivoSeguro}`;
 
-    const {
-      error: uploadError,
-    } = await supabase.storage
-      .from("documentos")
-      .upload(
-        novoCaminho,
-        novoArquivo
-      );
-
-    if (uploadError) {
-      throw uploadError;
-    }
+    await enviarArquivoParaStorage(
+      novoCaminho,
+      novoArquivo
+    );
 
     novoValorArquivo =
       novoCaminho;
