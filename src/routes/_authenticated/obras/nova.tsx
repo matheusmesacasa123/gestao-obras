@@ -70,7 +70,6 @@ function NovaObraPage() {
 
   const [form, setForm] = useState({
     obra_execucao_id: "",
-    codigo: "",
     setor_id: "",
 
     cliente_id: "",
@@ -377,8 +376,6 @@ function NovaObraPage() {
       await criarObra({
         obra_execucao_id: usarObraExistente ? form.obra_execucao_id : null,
 
-        codigo: form.codigo || null,
-
         setor_id: form.setor_id,
 
         cliente_id: form.cliente_id || null,
@@ -415,7 +412,7 @@ function NovaObraPage() {
 
         tipo_orcamentacao: form.tipo_orcamentacao || null,
 
-        nome_obra: form.nome_obra || "Obra sem nome",
+        nome_obra: form.nome_obra,
 
         descricao: form.descricao || null,
 
@@ -648,17 +645,17 @@ function NovaObraPage() {
           <div className="grid gap-5 md:grid-cols-2">
             <div className="space-y-2">
               <label
-                htmlFor="codigo"
+                htmlFor="numero_proposta"
                 className="text-sm font-semibold text-gray-700"
               >
-                Código da obra
+                Número da proposta
               </label>
 
               <input
-                id="codigo"
-                name="codigo"
-                placeholder="Ex.: 1234/2026"
-                value={form.codigo}
+                id="numero_proposta"
+                name="numero_proposta"
+                placeholder="Ex.: 123/2026"
+                value={form.numero_proposta}
                 onChange={handleChange}
                 className={inputClassName}
               />
@@ -669,7 +666,7 @@ function NovaObraPage() {
                 htmlFor="nome_obra"
                 className="text-sm font-semibold text-gray-700"
               >
-                Nome da obra *
+                Nome da obra
               </label>
 
               <input
@@ -679,7 +676,6 @@ function NovaObraPage() {
                 value={form.nome_obra}
                 onChange={handleChange}
                 className={inputClassName}
-                required
               />
             </div>
 
@@ -938,24 +934,6 @@ function NovaObraPage() {
           )}
 
           <div className="grid gap-5 md:grid-cols-2">
-            <div className="space-y-2">
-              <label
-                htmlFor="numero_proposta"
-                className="text-sm font-semibold text-gray-700"
-              >
-                Número da proposta
-              </label>
-
-              <input
-                id="numero_proposta"
-                name="numero_proposta"
-                placeholder="Ex.: 123/2026"
-                value={form.numero_proposta}
-                onChange={handleChange}
-                className={inputClassName}
-              />
-            </div>
-
             <div className="space-y-2">
               <label
                 htmlFor="vendedor_id"
