@@ -125,7 +125,8 @@ function extrairCaminhoStorage(
 }
 
 async function adicionarUrlAssinada(
-  documento: DocumentoExecucao
+  documento: DocumentoExecucao,
+  forcarDownload = false
 ): Promise<DocumentoExecucao> {
   const caminho =
     extrairCaminhoStorage(
@@ -147,7 +148,13 @@ async function adicionarUrlAssinada(
     )
     .createSignedUrl(
       caminho,
-      DURACAO_URL_ASSINADA_SEGUNDOS
+      DURACAO_URL_ASSINADA_SEGUNDOS,
+      forcarDownload
+        ? {
+            download:
+              documento.nome,
+          }
+        : undefined
     );
 
   if (
@@ -230,6 +237,70 @@ export async function getDocumentosPorDemanda(
   return Promise.all(
     documentos.map(
       adicionarUrlAssinada
+    )
+  );
+}
+
+export async function getDocumentosPorDemandas(
+  demandaIds: string[]
+): Promise<DocumentoExecucao[]> {
+  const idsUnicos =
+    Array.from(
+      new Set(
+        demandaIds.filter(
+          Boolean
+        )
+      )
+    );
+
+  if (
+    idsUnicos.length ===
+    0
+  ) {
+    return [];
+  }
+
+  const {
+    data,
+    error,
+  } = await supabase
+    .from(
+      "documentos_obras_execucao"
+    )
+    .select(
+      "*"
+    )
+    .in(
+      "demanda_id",
+      idsUnicos
+    )
+    .order(
+      "created_at",
+      {
+        ascending:
+          false,
+      }
+    );
+
+  if (error) {
+    throw error;
+  }
+
+  const documentos =
+    (
+      data ??
+      []
+    ) as DocumentoExecucao[];
+
+  return Promise.all(
+    documentos.map(
+      (
+        documento
+      ) =>
+        adicionarUrlAssinada(
+          documento,
+          true
+        )
     )
   );
 }

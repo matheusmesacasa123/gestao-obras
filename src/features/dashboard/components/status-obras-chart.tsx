@@ -2,16 +2,38 @@ import {
   Activity,
   AlertTriangle,
   CheckCircle2,
+  CirclePause,
+  CirclePlay,
   Clock3,
+  Hourglass,
+  Inbox,
+  UserRoundCheck,
+  XCircle,
+} from "lucide-react";
+
+import type {
+  LucideIcon,
 } from "lucide-react";
 
 import type {
   Obra,
 } from "@/features/obras/types";
 
-interface Props {
-  obras: Obra[];
-}
+import type {
+  ObraExecucao,
+} from "@/features/execucao-obras/types";
+
+type Props =
+  | {
+      tipo: "orcamentacao";
+      orcamentos: Obra[];
+      obrasExecucao?: never;
+    }
+  | {
+      tipo: "execucao";
+      obrasExecucao: ObraExecucao[];
+      orcamentos?: never;
+    };
 
 type StatusItem = {
   nome: string;
@@ -21,11 +43,11 @@ type StatusItem = {
   barraClassName: string;
   iconeClassName: string;
   iconeContainerClassName: string;
-  Icone: typeof Activity;
+  Icone: LucideIcon;
 };
 
 function criarDataLocal(
-  valor?: string | null
+  valor?: string | null,
 ) {
   if (!valor) {
     return null;
@@ -51,12 +73,12 @@ function criarDataLocal(
     new Date(
       ano,
       mes - 1,
-      dia
+      dia,
     );
 
   if (
     Number.isNaN(
-      data.getTime()
+      data.getTime(),
     )
   ) {
     return null;
@@ -65,37 +87,57 @@ function criarDataLocal(
   return data;
 }
 
-function obraEstaConcluida(
-  obra: Obra
+/* =========================================================
+   ORÇAMENTAÇÃO
+========================================================= */
+
+function etapasValidasOrcamento(
+  obra: Obra,
 ) {
-  return (
-    obra.status ===
-      "concluida" ||
-    obra.status ===
-      "entregue" ||
-    Boolean(
-      obra.data_entrega
-    )
+  return obra.etapas ?? [];
+}
+
+function orcamentoEstaConcluido(
+  obra: Obra,
+) {
+  const etapas =
+    etapasValidasOrcamento(
+      obra,
+    );
+
+  if (
+    etapas.length === 0
+  ) {
+    return (
+      obra.status ===
+      "concluida"
+    );
+  }
+
+  return etapas.every(
+    (etapa) =>
+      etapa.status ===
+      "concluida",
   );
 }
 
-function obraEstaAtrasada(
-  obra: Obra
+function etapaOrcamentoEstaAtrasada(
+  prazo?: string | null,
+  status?: string | null,
 ) {
   if (
-    obraEstaConcluida(
-      obra
-    )
+    !prazo ||
+    status === "concluida"
   ) {
     return false;
   }
 
-  const dataEsperada =
+  const dataPrazo =
     criarDataLocal(
-      obra.data_entrega_esperada
+      prazo,
     );
 
-  if (!dataEsperada) {
+  if (!dataPrazo) {
     return false;
   }
 
@@ -106,88 +148,227 @@ function obraEstaAtrasada(
     0,
     0,
     0,
-    0
+    0,
   );
 
   return (
-    dataEsperada <
+    dataPrazo <
     hoje
   );
 }
 
-function obraFinalizadaComAtraso(
-  obra: Obra
+function orcamentoEstaAtrasado(
+  obra: Obra,
 ) {
   if (
-    !obraEstaConcluida(
-      obra
-    ) ||
-    !obra.data_entrega ||
-    !obra.data_entrega_esperada
+    orcamentoEstaConcluido(
+      obra,
+    )
   ) {
     return false;
   }
 
-  const dataEsperada =
+  return etapasValidasOrcamento(
+    obra,
+  ).some(
+    (etapa) =>
+      etapaOrcamentoEstaAtrasada(
+        etapa.prazo,
+        etapa.status,
+      ),
+  );
+}
+
+function orcamentoEstaEmAndamento(
+  obra: Obra,
+) {
+  if (
+    orcamentoEstaConcluido(
+      obra,
+    ) ||
+    orcamentoEstaAtrasado(
+      obra,
+    )
+  ) {
+    return false;
+  }
+
+  return etapasValidasOrcamento(
+    obra,
+  ).some(
+    (etapa) =>
+      etapa.status ===
+      "em_andamento",
+  );
+}
+
+function orcamentoEstaAguardandoCliente(
+  obra: Obra,
+) {
+  if (
+    orcamentoEstaConcluido(
+      obra,
+    ) ||
+    orcamentoEstaAtrasado(
+      obra,
+    )
+  ) {
+    return false;
+  }
+
+  return etapasValidasOrcamento(
+    obra,
+  ).some(
+    (etapa) =>
+      etapa.status ===
+      "aguardando_cliente",
+  );
+}
+
+function orcamentoEstaRecebido(
+  obra: Obra,
+) {
+  return (
+    !orcamentoEstaConcluido(
+      obra,
+    ) &&
+    !orcamentoEstaAtrasado(
+      obra,
+    ) &&
+    !orcamentoEstaEmAndamento(
+      obra,
+    ) &&
+    !orcamentoEstaAguardandoCliente(
+      obra,
+    )
+  );
+}
+
+/* =========================================================
+   EXECUÇÃO
+========================================================= */
+
+function execucaoEstaConcluida(
+  obra: ObraExecucao,
+) {
+  return (
+    obra.status ===
+      "concluida" ||
+    Boolean(
+      obra.data_entrega,
+    )
+  );
+}
+
+function execucaoEstaCancelada(
+  obra: ObraExecucao,
+) {
+  return (
+    obra.status ===
+    "cancelada"
+  );
+}
+
+function execucaoEstaAtrasada(
+  obra: ObraExecucao,
+) {
+  if (
+    execucaoEstaConcluida(
+      obra,
+    ) ||
+    execucaoEstaCancelada(
+      obra,
+    )
+  ) {
+    return false;
+  }
+
+  if (
+    obra.status ===
+    "atrasada"
+  ) {
+    return true;
+  }
+
+  const prazo =
     criarDataLocal(
-      obra.data_entrega_esperada
+      obra.prazo_entrega,
     );
 
-  const dataReal =
+  if (!prazo) {
+    return false;
+  }
+
+  const hoje =
+    new Date();
+
+  hoje.setHours(
+    0,
+    0,
+    0,
+    0,
+  );
+
+  return (
+    prazo <
+    hoje
+  );
+}
+
+function execucaoFinalizadaComAtraso(
+  obra: ObraExecucao,
+) {
+  if (
+    !execucaoEstaConcluida(
+      obra,
+    ) ||
+    !obra.data_entrega ||
+    !obra.prazo_entrega
+  ) {
+    return false;
+  }
+
+  const prazo =
     criarDataLocal(
-      obra.data_entrega
+      obra.prazo_entrega,
+    );
+
+  const entrega =
+    criarDataLocal(
+      obra.data_entrega,
     );
 
   if (
-    !dataEsperada ||
-    !dataReal
+    !prazo ||
+    !entrega
   ) {
     return false;
   }
 
   return (
-    dataReal >
-    dataEsperada
+    entrega >
+    prazo
   );
 }
 
-export function StatusObrasChart({
-  obras,
-}: Props) {
-  const totalObras =
-    obras.length;
+/* =========================================================
+   COMPONENTE
+========================================================= */
 
-  const andamento =
-    obras.filter(
-      (
-        obra
-      ) =>
-        !obraEstaConcluida(
-          obra
-        )
-    ).length;
-
-  const concluidas =
-    obras.filter(
-      obraEstaConcluida
-    ).length;
-
-  const atrasadas =
-    obras.filter(
-      obraEstaAtrasada
-    ).length;
-
-  const finalizadasComAtraso =
-    obras.filter(
-      obraFinalizadaComAtraso
-    ).length;
+export function StatusObrasChart(
+  props: Props,
+) {
+  const total =
+    props.tipo ===
+    "orcamentacao"
+      ? props.orcamentos.length
+      : props.obrasExecucao.length;
 
   function calcularPercentual(
-    valor: number
+    valor: number,
   ) {
     if (
-      totalObras ===
-      0
+      total === 0
     ) {
       return 0;
     }
@@ -197,166 +378,550 @@ export function StatusObrasChart({
       Math.round(
         (
           valor /
-          totalObras
+          total
         ) *
-          100
-      )
+          100,
+      ),
     );
   }
 
-  const dados: StatusItem[] = [
-    {
-      nome:
-        "Em andamento",
+  let dados: StatusItem[] =
+    [];
 
-      descricao:
-        "Obras ainda em execução",
+  let titulo =
+    "";
 
-      valor:
-        andamento,
+  let descricao =
+    "";
 
-      percentual:
-        calcularPercentual(
-          andamento
-        ),
+  let labelTotal =
+    "";
 
-      barraClassName:
-        "bg-blue-500",
+  if (
+    props.tipo ===
+    "orcamentacao"
+  ) {
+    const {
+      orcamentos,
+    } = props;
 
-      iconeClassName:
-        "text-blue-600",
+    const recebidos =
+      orcamentos.filter(
+        orcamentoEstaRecebido,
+      ).length;
 
-      iconeContainerClassName:
-        "border-blue-100 bg-blue-50",
+    const emAndamento =
+      orcamentos.filter(
+        orcamentoEstaEmAndamento,
+      ).length;
 
-      Icone:
-        Activity,
-    },
+    const aguardandoCliente =
+      orcamentos.filter(
+        orcamentoEstaAguardandoCliente,
+      ).length;
 
-    {
-      nome:
-        "Concluídas",
+    const concluidos =
+      orcamentos.filter(
+        orcamentoEstaConcluido,
+      ).length;
 
-      descricao:
-        "Obras finalizadas",
+    const atrasados =
+      orcamentos.filter(
+        orcamentoEstaAtrasado,
+      ).length;
 
-      valor:
-        concluidas,
+    titulo =
+      "Status dos orçamentos";
 
-      percentual:
-        calcularPercentual(
-          concluidas
-        ),
+    descricao =
+      "Distribuição dos orçamentos conforme o andamento das etapas.";
 
-      barraClassName:
-        "bg-emerald-500",
+    labelTotal =
+      total === 1
+        ? "orçamento"
+        : "orçamentos";
 
-      iconeClassName:
-        "text-emerald-600",
+    dados = [
+      {
+        nome:
+          "Recebidos",
 
-      iconeContainerClassName:
-        "border-emerald-100 bg-emerald-50",
+        descricao:
+          "Orçamentos aguardando início",
 
-      Icone:
-        CheckCircle2,
-    },
+        valor:
+          recebidos,
 
-    {
-      nome:
-        "Atrasadas",
+        percentual:
+          calcularPercentual(
+            recebidos,
+          ),
 
-      descricao:
-        "Obras abertas fora do prazo",
+        barraClassName:
+          "bg-slate-500",
 
-      valor:
-        atrasadas,
+        iconeClassName:
+          "text-slate-600",
 
-      percentual:
-        calcularPercentual(
-          atrasadas
-        ),
+        iconeContainerClassName:
+          "border-slate-200 bg-slate-100",
 
-      barraClassName:
-        "bg-red-500",
+        Icone:
+          Inbox,
+      },
 
-      iconeClassName:
-        "text-red-600",
+      {
+        nome:
+          "Em andamento",
 
-      iconeContainerClassName:
-        "border-red-100 bg-red-50",
+        descricao:
+          "Orçamentos atualmente em elaboração",
 
-      Icone:
-        AlertTriangle,
-    },
+        valor:
+          emAndamento,
 
-    {
-      nome:
-        "Finalizadas com atraso",
+        percentual:
+          calcularPercentual(
+            emAndamento,
+          ),
 
-      descricao:
-        "Entregues após a data prevista",
+        barraClassName:
+          "bg-blue-500",
 
-      valor:
-        finalizadasComAtraso,
+        iconeClassName:
+          "text-blue-600",
 
-      percentual:
-        calcularPercentual(
-          finalizadasComAtraso
-        ),
+        iconeContainerClassName:
+          "border-blue-100 bg-blue-50",
 
-      barraClassName:
-        "bg-amber-500",
+        Icone:
+          Activity,
+      },
 
-      iconeClassName:
-        "text-amber-600",
+      {
+        nome:
+          "Aguardando cliente",
 
-      iconeContainerClassName:
-        "border-amber-100 bg-amber-50",
+        descricao:
+          "Dependem de retorno do cliente",
 
-      Icone:
-        Clock3,
-    },
-  ];
+        valor:
+          aguardandoCliente,
+
+        percentual:
+          calcularPercentual(
+            aguardandoCliente,
+          ),
+
+        barraClassName:
+          "bg-amber-500",
+
+        iconeClassName:
+          "text-amber-600",
+
+        iconeContainerClassName:
+          "border-amber-100 bg-amber-50",
+
+        Icone:
+          UserRoundCheck,
+      },
+
+      {
+        nome:
+          "Concluídos",
+
+        descricao:
+          "Orçamentos com todas as etapas concluídas",
+
+        valor:
+          concluidos,
+
+        percentual:
+          calcularPercentual(
+            concluidos,
+          ),
+
+        barraClassName:
+          "bg-emerald-500",
+
+        iconeClassName:
+          "text-emerald-600",
+
+        iconeContainerClassName:
+          "border-emerald-100 bg-emerald-50",
+
+        Icone:
+          CheckCircle2,
+      },
+
+      {
+        nome:
+          "Atrasados",
+
+        descricao:
+          "Orçamentos com etapa aberta fora do prazo",
+
+        valor:
+          atrasados,
+
+        percentual:
+          calcularPercentual(
+            atrasados,
+          ),
+
+        barraClassName:
+          "bg-red-500",
+
+        iconeClassName:
+          "text-red-600",
+
+        iconeContainerClassName:
+          "border-red-100 bg-red-50",
+
+        Icone:
+          AlertTriangle,
+      },
+    ];
+  } else {
+    const {
+      obrasExecucao,
+    } = props;
+
+    const naoIniciadas =
+      obrasExecucao.filter(
+        (obra) =>
+          obra.status ===
+            "nao_iniciada" &&
+          !execucaoEstaAtrasada(
+            obra,
+          ),
+      ).length;
+
+    const andamento =
+      obrasExecucao.filter(
+        (obra) =>
+          obra.status ===
+            "em_andamento" &&
+          !execucaoEstaAtrasada(
+            obra,
+          ),
+      ).length;
+
+    const aguardandoCliente =
+      obrasExecucao.filter(
+        (obra) =>
+          obra.status ===
+            "aguardando_cliente" &&
+          !execucaoEstaAtrasada(
+            obra,
+          ),
+      ).length;
+
+    const paralisadas =
+      obrasExecucao.filter(
+        (obra) =>
+          obra.status ===
+            "paralisada" &&
+          !execucaoEstaAtrasada(
+            obra,
+          ),
+      ).length;
+
+    const atrasadas =
+      obrasExecucao.filter(
+        execucaoEstaAtrasada,
+      ).length;
+
+    const concluidas =
+      obrasExecucao.filter(
+        execucaoEstaConcluida,
+      ).length;
+
+    const canceladas =
+      obrasExecucao.filter(
+        execucaoEstaCancelada,
+      ).length;
+
+    const finalizadasComAtraso =
+      obrasExecucao.filter(
+        execucaoFinalizadaComAtraso,
+      ).length;
+
+    titulo =
+      "Status das obras";
+
+    descricao =
+      "Distribuição das obras em execução por situação.";
+
+    labelTotal =
+      total === 1
+        ? "obra"
+        : "obras";
+
+    dados = [
+      {
+        nome:
+          "Não iniciadas",
+
+        descricao:
+          "Obras aguardando início",
+
+        valor:
+          naoIniciadas,
+
+        percentual:
+          calcularPercentual(
+            naoIniciadas,
+          ),
+
+        barraClassName:
+          "bg-slate-500",
+
+        iconeClassName:
+          "text-slate-600",
+
+        iconeContainerClassName:
+          "border-slate-200 bg-slate-100",
+
+        Icone:
+          CirclePlay,
+      },
+
+      {
+        nome:
+          "Em andamento",
+
+        descricao:
+          "Obras atualmente em execução",
+
+        valor:
+          andamento,
+
+        percentual:
+          calcularPercentual(
+            andamento,
+          ),
+
+        barraClassName:
+          "bg-blue-500",
+
+        iconeClassName:
+          "text-blue-600",
+
+        iconeContainerClassName:
+          "border-blue-100 bg-blue-50",
+
+        Icone:
+          Activity,
+      },
+
+      {
+        nome:
+          "Aguardando cliente",
+
+        descricao:
+          "Dependem de retorno do cliente",
+
+        valor:
+          aguardandoCliente,
+
+        percentual:
+          calcularPercentual(
+            aguardandoCliente,
+          ),
+
+        barraClassName:
+          "bg-amber-500",
+
+        iconeClassName:
+          "text-amber-600",
+
+        iconeContainerClassName:
+          "border-amber-100 bg-amber-50",
+
+        Icone:
+          Hourglass,
+      },
+
+      {
+        nome:
+          "Paralisadas",
+
+        descricao:
+          "Obras temporariamente paradas",
+
+        valor:
+          paralisadas,
+
+        percentual:
+          calcularPercentual(
+            paralisadas,
+          ),
+
+        barraClassName:
+          "bg-orange-500",
+
+        iconeClassName:
+          "text-orange-600",
+
+        iconeContainerClassName:
+          "border-orange-100 bg-orange-50",
+
+        Icone:
+          CirclePause,
+      },
+
+      {
+        nome:
+          "Atrasadas",
+
+        descricao:
+          "Obras abertas fora do prazo",
+
+        valor:
+          atrasadas,
+
+        percentual:
+          calcularPercentual(
+            atrasadas,
+          ),
+
+        barraClassName:
+          "bg-red-500",
+
+        iconeClassName:
+          "text-red-600",
+
+        iconeContainerClassName:
+          "border-red-100 bg-red-50",
+
+        Icone:
+          AlertTriangle,
+      },
+
+      {
+        nome:
+          "Concluídas",
+
+        descricao:
+          "Obras finalizadas",
+
+        valor:
+          concluidas,
+
+        percentual:
+          calcularPercentual(
+            concluidas,
+          ),
+
+        barraClassName:
+          "bg-emerald-500",
+
+        iconeClassName:
+          "text-emerald-600",
+
+        iconeContainerClassName:
+          "border-emerald-100 bg-emerald-50",
+
+        Icone:
+          CheckCircle2,
+      },
+
+      {
+        nome:
+          "Canceladas",
+
+        descricao:
+          "Obras canceladas",
+
+        valor:
+          canceladas,
+
+        percentual:
+          calcularPercentual(
+            canceladas,
+          ),
+
+        barraClassName:
+          "bg-slate-400",
+
+        iconeClassName:
+          "text-slate-500",
+
+        iconeContainerClassName:
+          "border-slate-200 bg-slate-50",
+
+        Icone:
+          XCircle,
+      },
+
+      {
+        nome:
+          "Finalizadas com atraso",
+
+        descricao:
+          "Entregues após o prazo previsto",
+
+        valor:
+          finalizadasComAtraso,
+
+        percentual:
+          calcularPercentual(
+            finalizadasComAtraso,
+          ),
+
+        barraClassName:
+          "bg-amber-600",
+
+        iconeClassName:
+          "text-amber-700",
+
+        iconeContainerClassName:
+          "border-amber-200 bg-amber-50",
+
+        Icone:
+          Clock3,
+      },
+    ];
+  }
 
   return (
     <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
       <div className="flex flex-wrap items-start justify-between gap-4 border-b border-slate-100 pb-5">
         <div>
           <h2 className="text-lg font-bold tracking-tight text-slate-950">
-            Status das obras
+            {titulo}
           </h2>
 
           <p className="mt-1 text-sm text-slate-500">
-            Distribuição das obras por situação.
+            {descricao}
           </p>
         </div>
 
         <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-600">
-          {totalObras}{" "}
-          {totalObras === 1
-            ? "obra"
-            : "obras"}
+          {total}{" "}
+          {labelTotal}
         </span>
       </div>
 
-      {totalObras ===
+      {total ===
       0 ? (
         <div className="flex min-h-64 flex-col items-center justify-center text-center">
           <Activity className="h-10 w-10 text-slate-300" />
 
           <h3 className="mt-4 font-semibold text-slate-900">
-            Nenhuma obra cadastrada
+            Nenhum registro cadastrado
           </h3>
 
           <p className="mt-1 text-sm text-slate-500">
-            Os indicadores aparecerão quando houver obras cadastradas.
+            Os indicadores aparecerão quando houver registros cadastrados.
           </p>
         </div>
       ) : (
         <div className="mt-6 space-y-5">
           {dados.map(
             (
-              item
+              item,
             ) => {
               const {
                 Icone,
@@ -413,7 +978,7 @@ export function StatusObrasChart({
                   </div>
                 </div>
               );
-            }
+            },
           )}
         </div>
       )}

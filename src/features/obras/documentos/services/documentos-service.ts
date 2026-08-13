@@ -227,7 +227,8 @@ function extrairCaminhoArquivo(
 }
 
 async function adicionarUrlAssinada<T extends Documento>(
-  documento: T
+  documento: T,
+  forcarDownload = false
 ): Promise<T> {
   const caminho = extrairCaminhoArquivo(documento.arquivo_url);
 
@@ -239,7 +240,16 @@ async function adicionarUrlAssinada<T extends Documento>(
 
   const { data, error } = await supabase.storage
     .from(BUCKET_DOCUMENTOS)
-    .createSignedUrl(caminho, DURACAO_URL_ASSINADA_SEGUNDOS);
+    .createSignedUrl(
+      caminho,
+      DURACAO_URL_ASSINADA_SEGUNDOS,
+      forcarDownload
+        ? {
+            download:
+              true,
+          }
+        : undefined
+    );
 
   if (error) {
     console.error(
@@ -257,9 +267,20 @@ async function adicionarUrlAssinada<T extends Documento>(
 }
 
 async function adicionarUrlsAssinadas<T extends Documento>(
-  documentos: T[]
+  documentos: T[],
+  forcarDownload = false
 ): Promise<T[]> {
-  return Promise.all(documentos.map(adicionarUrlAssinada));
+  return Promise.all(
+    documentos.map(
+      (
+        documento
+      ) =>
+        adicionarUrlAssinada(
+          documento,
+          forcarDownload
+        )
+    )
+  );
 }
 
 export async function getDocumentosPorObra(
@@ -432,6 +453,64 @@ export async function getDocumentosPorDemanda(
   const documentos = (data ?? []) as unknown as Documento[];
 
   return adicionarUrlsAssinadas(documentos);
+}
+
+export async function getDocumentosPorDemandas(
+  demandaIds: string[]
+): Promise<Documento[]> {
+  const idsUnicos =
+    Array.from(
+      new Set(
+        demandaIds.filter(
+          Boolean
+        )
+      )
+    );
+
+  if (
+    idsUnicos.length ===
+    0
+  ) {
+    return [];
+  }
+
+  const {
+    data,
+    error,
+  } = await supabase
+    .from("documentos")
+    .select(consultaDocumento)
+    .in(
+      "demanda_id",
+      idsUnicos
+    )
+    .order(
+      "created_at",
+      {
+        ascending:
+          false,
+      }
+    );
+
+  if (error) {
+    console.error(
+      "Erro ao buscar documentos das demandas:",
+      error
+    );
+
+    throw error;
+  }
+
+  const documentos =
+    (
+      data ??
+      []
+    ) as unknown as Documento[];
+
+  return adicionarUrlsAssinadas(
+    documentos,
+    true
+  );
 }
 
 export async function uploadDocumentoDaDemanda(

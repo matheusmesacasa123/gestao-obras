@@ -12,6 +12,9 @@ import {
   CirclePause,
   Clock3,
   ExternalLink,
+  FileArchive,
+  FileImage,
+  FileSpreadsheet,
   FileText,
   ShieldAlert,
   Layers3,
@@ -116,6 +119,157 @@ interface DemandaObservacao {
     | UsuarioObservacao
     | null;
 }
+
+type TipoVisualDocumento =
+  | "excel"
+  | "word"
+  | "pdf"
+  | "powerpoint"
+  | "imagem"
+  | "compactado"
+  | "generico";
+
+function obterExtensaoArquivo(
+  ...referencias: Array<string | null | undefined>
+) {
+  for (const referencia of referencias) {
+    if (!referencia) {
+      continue;
+    }
+
+    const referenciaSemParametros =
+      referencia
+        .split("?")[0]
+        .split("#")[0];
+
+    const ultimoSegmento =
+      referenciaSemParametros
+        .split("/")
+        .pop() || "";
+
+    const partes =
+      ultimoSegmento.split(".");
+
+    if (partes.length < 2) {
+      continue;
+    }
+
+    const extensao =
+      (
+        partes.pop() ||
+        ""
+      ).toLowerCase();
+
+    if (extensao) {
+      return extensao;
+    }
+  }
+
+  return "";
+}
+
+function obterTipoVisualDocumento(
+  extensao: string
+): TipoVisualDocumento {
+  if (["xls", "xlsx", "xlsm", "xlsb", "csv", "ods"].includes(extensao)) {
+    return "excel";
+  }
+
+  if (["doc", "docx", "docm", "odt", "rtf"].includes(extensao)) {
+    return "word";
+  }
+
+  if (extensao === "pdf") {
+    return "pdf";
+  }
+
+  if (["ppt", "pptx", "pptm", "odp"].includes(extensao)) {
+    return "powerpoint";
+  }
+
+  if (["png", "jpg", "jpeg", "gif", "webp", "svg", "bmp", "tif", "tiff"].includes(extensao)) {
+    return "imagem";
+  }
+
+  if (["zip", "rar", "7z", "tar", "gz"].includes(extensao)) {
+    return "compactado";
+  }
+
+  return "generico";
+}
+
+function obterVisualArquivo(
+  ...referencias: Array<string | null | undefined>
+) {
+  const extensao =
+    obterExtensaoArquivo(
+      ...referencias
+    );
+
+  const tipo =
+    obterTipoVisualDocumento(
+      extensao
+    );
+
+  switch (tipo) {
+    case "excel":
+      return {
+        Icone: FileSpreadsheet,
+        rotulo: "EXCEL",
+        classeIcone: "text-emerald-600",
+        classeRotulo: "bg-emerald-100 text-emerald-800",
+      };
+
+    case "word":
+      return {
+        Icone: FileText,
+        rotulo: "WORD",
+        classeIcone: "text-blue-600",
+        classeRotulo: "bg-blue-100 text-blue-800",
+      };
+
+    case "pdf":
+      return {
+        Icone: FileText,
+        rotulo: "PDF",
+        classeIcone: "text-red-600",
+        classeRotulo: "bg-red-100 text-red-800",
+      };
+
+    case "powerpoint":
+      return {
+        Icone: FileText,
+        rotulo: "POWERPOINT",
+        classeIcone: "text-orange-600",
+        classeRotulo: "bg-orange-100 text-orange-800",
+      };
+
+    case "imagem":
+      return {
+        Icone: FileImage,
+        rotulo: extensao.toUpperCase() || "IMAGEM",
+        classeIcone: "text-violet-600",
+        classeRotulo: "bg-violet-100 text-violet-800",
+      };
+
+    case "compactado":
+      return {
+        Icone: FileArchive,
+        rotulo: extensao.toUpperCase() || "ARQUIVO",
+        classeIcone: "text-amber-600",
+        classeRotulo: "bg-amber-100 text-amber-800",
+      };
+
+    default:
+      return {
+        Icone: FileText,
+        rotulo: extensao.toUpperCase() || "ARQUIVO",
+        classeIcone: "text-slate-600",
+        classeRotulo: "bg-slate-200 text-slate-800",
+      };
+  }
+}
+
 
 function obterSomenteData(
   data?: string | null
@@ -2756,28 +2910,46 @@ function ModalEditarDemanda({
                     </label>
                   </div>
 
-                  {arquivoNovoDocumento && (
-                    <div className="flex items-center justify-between gap-3 rounded-xl border bg-slate-50 px-3 py-3">
-                      <div className="flex min-w-0 items-center gap-2">
-                        <FileText className="h-5 w-5 shrink-0 text-blue-600" />
+                  {arquivoNovoDocumento && (() => {
+                    const visualArquivo =
+                      obterVisualArquivo(
+                        arquivoNovoDocumento.name
+                      );
 
-                        <span className="truncate text-sm font-medium text-gray-800">
-                          {arquivoNovoDocumento.name}
-                        </span>
+                    const IconeArquivo =
+                      visualArquivo.Icone;
+
+                    return (
+                      <div className="flex items-center justify-between gap-3 rounded-xl border bg-slate-50 px-3 py-3">
+                        <div className="flex min-w-0 items-center gap-2">
+                          <IconeArquivo
+                            className={`h-5 w-5 shrink-0 ${visualArquivo.classeIcone}`}
+                          />
+
+                          <span
+                            className={`shrink-0 rounded-md px-2 py-1 text-[10px] font-bold ${visualArquivo.classeRotulo}`}
+                          >
+                            {visualArquivo.rotulo}
+                          </span>
+
+                          <span className="truncate text-sm font-medium text-gray-800">
+                            {arquivoNovoDocumento.name}
+                          </span>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setArquivoNovoDocumento(null)
+                          }
+                          disabled={enviandoDocumento}
+                          className="rounded-lg p-1.5 text-gray-400 transition hover:bg-red-50 hover:text-red-600"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
                       </div>
-
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setArquivoNovoDocumento(null)
-                        }
-                        disabled={enviandoDocumento}
-                        className="rounded-lg p-1.5 text-gray-400 transition hover:bg-red-50 hover:text-red-600"
-                      >
-                        <X className="h-4 w-4" />
-                      </button>
-                    </div>
-                  )}
+                    );
+                  })()}
 
                   <button
                     type="button"
@@ -2807,18 +2979,38 @@ function ModalEditarDemanda({
                   ) : (
                     <div className="space-y-2">
                       {documentosDemanda.map(
-                        (documento) => (
+                        (documento) => {
+                          const visualArquivo =
+                            obterVisualArquivo(
+                              documento.nome,
+                              documento.arquivo_url
+                            );
+
+                          const IconeArquivo =
+                            visualArquivo.Icone;
+
+                          return (
                           <div
                             key={documento.id}
                             className="flex flex-col gap-3 rounded-xl border bg-slate-50 px-3 py-3 sm:flex-row sm:items-center"
                           >
                             <div className="flex min-w-0 flex-1 items-center gap-3">
-                              <FileText className="h-5 w-5 shrink-0 text-blue-600" />
+                              <IconeArquivo
+                                className={`h-5 w-5 shrink-0 ${visualArquivo.classeIcone}`}
+                              />
 
                               <div className="min-w-0">
-                                <p className="truncate text-sm font-semibold text-gray-900">
-                                  {documento.nome}
-                                </p>
+                                <div className="flex min-w-0 items-center gap-2">
+                                  <span
+                                    className={`shrink-0 rounded-md px-2 py-1 text-[10px] font-bold ${visualArquivo.classeRotulo}`}
+                                  >
+                                    {visualArquivo.rotulo}
+                                  </span>
+
+                                  <p className="truncate text-sm font-semibold text-gray-900">
+                                    {documento.nome}
+                                  </p>
+                                </div>
 
                                 <p className="text-xs text-gray-500">
                                   {formatarDataHora(
@@ -2861,7 +3053,8 @@ function ModalEditarDemanda({
                               </button>
                             </div>
                           </div>
-                        )
+                          );
+                        }
                       )}
                     </div>
                   )}

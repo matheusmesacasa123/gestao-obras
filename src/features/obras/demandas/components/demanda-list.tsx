@@ -1,4 +1,5 @@
 import {
+  useEffect,
   useMemo,
   useState,
   type FormEvent,
@@ -11,9 +12,15 @@ import {
   CirclePlay,
   CircleUserRound,
   CopyPlus,
+  Download,
+  FileArchive,
+  FileImage,
+  FileSpreadsheet,
+  FileText,
   History,
   ListTodo,
   Loader2,
+  Pencil,
   Trash2,
 } from "lucide-react";
 
@@ -26,10 +33,19 @@ import {
 } from "@/integrations/supabase/client";
 
 import {
+  getDocumentosPorDemandas,
+} from "@/features/obras/documentos/services/documentos-service";
+
+import type {
+  Documento,
+} from "@/features/obras/documentos/types";
+
+import {
   concluirDemanda,
   criarNovaRevisaoDemanda,
   deleteDemanda,
   iniciarDemanda,
+  updateDemanda,
 } from "../services/demandas-service";
 
 import type {
@@ -65,6 +81,219 @@ interface UsuarioResponsavelRevisao {
   nome: string;
   email: string;
   setor_id: string | null;
+}
+
+type TipoVisualDocumento =
+  | "excel"
+  | "word"
+  | "pdf"
+  | "powerpoint"
+  | "imagem"
+  | "compactado"
+  | "generico";
+
+function obterExtensaoDocumento(
+  documento: Documento
+) {
+  const referencias = [
+    documento.nome,
+    documento.arquivo_url,
+  ];
+
+  for (const referencia of referencias) {
+    if (!referencia) {
+      continue;
+    }
+
+    const referenciaSemParametros =
+      referencia
+        .split("?")[0]
+        .split("#")[0];
+
+    const ultimoSegmento =
+      referenciaSemParametros
+        .split("/")
+        .pop() || "";
+
+    const partes =
+      ultimoSegmento.split(".");
+
+    if (partes.length < 2) {
+      continue;
+    }
+
+    const extensao =
+      (
+        partes.pop() ||
+        ""
+      ).toLowerCase();
+
+    if (extensao) {
+      return extensao;
+    }
+  }
+
+  return "";
+}
+
+function obterTipoVisualDocumento(
+  extensao: string
+): TipoVisualDocumento {
+  if (
+    [
+      "xls",
+      "xlsx",
+      "xlsm",
+      "xlsb",
+      "csv",
+      "ods",
+    ].includes(extensao)
+  ) {
+    return "excel";
+  }
+
+  if (
+    [
+      "doc",
+      "docx",
+      "docm",
+      "odt",
+      "rtf",
+    ].includes(extensao)
+  ) {
+    return "word";
+  }
+
+  if (extensao === "pdf") {
+    return "pdf";
+  }
+
+  if (
+    [
+      "ppt",
+      "pptx",
+      "pptm",
+      "odp",
+    ].includes(extensao)
+  ) {
+    return "powerpoint";
+  }
+
+  if (
+    [
+      "png",
+      "jpg",
+      "jpeg",
+      "gif",
+      "webp",
+      "svg",
+      "bmp",
+      "tif",
+      "tiff",
+    ].includes(extensao)
+  ) {
+    return "imagem";
+  }
+
+  if (
+    [
+      "zip",
+      "rar",
+      "7z",
+      "tar",
+      "gz",
+    ].includes(extensao)
+  ) {
+    return "compactado";
+  }
+
+  return "generico";
+}
+
+function obterVisualDocumento(
+  documento: Documento
+) {
+  const extensao =
+    obterExtensaoDocumento(
+      documento
+    );
+
+  const tipo =
+    obterTipoVisualDocumento(
+      extensao
+    );
+
+  switch (tipo) {
+    case "excel":
+      return {
+        Icone: FileSpreadsheet,
+        rotulo: "EXCEL",
+        classe:
+          "border-emerald-200 bg-emerald-50 text-emerald-800 hover:border-emerald-300 hover:bg-emerald-100 focus:ring-emerald-500",
+        classeRotulo:
+          "bg-emerald-200/70 text-emerald-900",
+      };
+
+    case "word":
+      return {
+        Icone: FileText,
+        rotulo: "WORD",
+        classe:
+          "border-blue-200 bg-blue-50 text-blue-800 hover:border-blue-300 hover:bg-blue-100 focus:ring-blue-500",
+        classeRotulo:
+          "bg-blue-200/70 text-blue-900",
+      };
+
+    case "pdf":
+      return {
+        Icone: FileText,
+        rotulo: "PDF",
+        classe:
+          "border-red-200 bg-red-50 text-red-800 hover:border-red-300 hover:bg-red-100 focus:ring-red-500",
+        classeRotulo:
+          "bg-red-200/70 text-red-900",
+      };
+
+    case "powerpoint":
+      return {
+        Icone: FileText,
+        rotulo: extensao.toUpperCase() || "PPT",
+        classe:
+          "border-orange-200 bg-orange-50 text-orange-800 hover:border-orange-300 hover:bg-orange-100 focus:ring-orange-500",
+        classeRotulo:
+          "bg-orange-200/70 text-orange-900",
+      };
+
+    case "imagem":
+      return {
+        Icone: FileImage,
+        rotulo: extensao.toUpperCase() || "IMG",
+        classe:
+          "border-violet-200 bg-violet-50 text-violet-800 hover:border-violet-300 hover:bg-violet-100 focus:ring-violet-500",
+        classeRotulo:
+          "bg-violet-200/70 text-violet-900",
+      };
+
+    case "compactado":
+      return {
+        Icone: FileArchive,
+        rotulo: extensao.toUpperCase() || "ZIP",
+        classe:
+          "border-amber-200 bg-amber-50 text-amber-800 hover:border-amber-300 hover:bg-amber-100 focus:ring-amber-500",
+        classeRotulo:
+          "bg-amber-200/70 text-amber-900",
+      };
+
+    default:
+      return {
+        Icone: FileText,
+        rotulo: extensao.toUpperCase() || "ARQUIVO",
+        classe:
+          "border-slate-200 bg-slate-50 text-slate-700 hover:border-slate-300 hover:bg-slate-100 focus:ring-slate-500",
+        classeRotulo:
+          "bg-slate-200 text-slate-800",
+      };
+  }
 }
 
 function formatarData(
@@ -134,10 +363,67 @@ function demandaFoiConcluidaComAtraso(
   );
 }
 
+function demandaEstaEmAtraso(
+  demanda: Demanda
+) {
+  if (
+    (
+      demanda.status !==
+        "aberta" &&
+      demanda.status !==
+        "em_andamento"
+    ) ||
+    !demanda.prazo
+  ) {
+    return false;
+  }
+
+  const prazo =
+    demanda.prazo.slice(
+      0,
+      10
+    );
+
+  if (
+    !/^\d{4}-\d{2}-\d{2}$/.test(
+      prazo
+    )
+  ) {
+    return false;
+  }
+
+  const hoje =
+    new Date();
+
+  const dataAtual = [
+    hoje.getFullYear(),
+    String(
+      hoje.getMonth() +
+        1
+    ).padStart(
+      2,
+      "0"
+    ),
+    String(
+      hoje.getDate()
+    ).padStart(
+      2,
+      "0"
+    ),
+  ].join("-");
+
+  return prazo < dataAtual;
+}
+
 function obterLabelStatus(
   status?: StatusDemanda | null,
-  concluidaComAtraso = false
+  concluidaComAtraso = false,
+  emAtraso = false
 ) {
+  if (emAtraso) {
+    return "Em atraso";
+  }
+
   if (
     status ===
       "concluida" &&
@@ -163,8 +449,13 @@ function obterLabelStatus(
 
 function obterClasseStatus(
   status?: StatusDemanda | null,
-  concluidaComAtraso = false
+  concluidaComAtraso = false,
+  emAtraso = false
 ) {
+  if (emAtraso) {
+    return "border-red-300 bg-red-50 text-red-700";
+  }
+
   if (
     status ===
       "concluida" &&
@@ -321,6 +612,150 @@ export function DemandaList({
     erroNovaRevisao,
     setErroNovaRevisao,
   ] = useState("");
+
+  const [
+    demandaEditandoPrazo,
+    setDemandaEditandoPrazo,
+  ] = useState<Demanda | null>(
+    null
+  );
+
+  const [
+    prazoEditado,
+    setPrazoEditado,
+  ] = useState("");
+
+  const [
+    salvandoPrazo,
+    setSalvandoPrazo,
+  ] = useState(false);
+
+  const [
+    erroPrazo,
+    setErroPrazo,
+  ] = useState("");
+
+  const [
+    documentosPorDemanda,
+    setDocumentosPorDemanda,
+  ] = useState<
+    Record<
+      string,
+      Documento[]
+    >
+  >({});
+
+  const [
+    carregandoDocumentos,
+    setCarregandoDocumentos,
+  ] = useState(false);
+
+  useEffect(() => {
+    const demandaIds =
+      Array.from(
+        new Set(
+          demandas.map(
+            (
+              demanda
+            ) =>
+              demanda.id
+          )
+        )
+      );
+
+    if (
+      demandaIds.length ===
+      0
+    ) {
+      setDocumentosPorDemanda(
+        {}
+      );
+
+      setCarregandoDocumentos(
+        false
+      );
+
+      return;
+    }
+
+    let ativo =
+      true;
+
+    async function carregarDocumentos() {
+      try {
+        setCarregandoDocumentos(
+          true
+        );
+
+        const documentos =
+          await getDocumentosPorDemandas(
+            demandaIds
+          );
+
+        if (!ativo) {
+          return;
+        }
+
+        const mapa =
+          documentos.reduce<
+            Record<
+              string,
+              Documento[]
+            >
+          >(
+            (
+              acumulador,
+              documento
+            ) => {
+              const documentosDaDemanda =
+                acumulador[
+                  documento.demanda_id
+                ] || [];
+
+              acumulador[
+                documento.demanda_id
+              ] = [
+                ...documentosDaDemanda,
+                documento,
+              ];
+
+              return acumulador;
+            },
+            {}
+          );
+
+        setDocumentosPorDemanda(
+          mapa
+        );
+      } catch (error) {
+        console.error(
+          "Erro ao carregar documentos das demandas:",
+          error
+        );
+
+        if (ativo) {
+          setDocumentosPorDemanda(
+            {}
+          );
+        }
+      } finally {
+        if (ativo) {
+          setCarregandoDocumentos(
+            false
+          );
+        }
+      }
+    }
+
+    void carregarDocumentos();
+
+    return () => {
+      ativo =
+        false;
+    };
+  }, [
+    demandas,
+  ]);
 
   async function handleIniciarDemanda(
     demanda: Demanda
@@ -597,6 +1032,81 @@ export function DemandaList({
       setGrupoCriandoRevisaoId(
         null
       );
+    }
+  }
+
+  function abrirModalEditarPrazo(
+    demanda: Demanda
+  ) {
+    setDemandaEditandoPrazo(
+      demanda
+    );
+
+    setPrazoEditado(
+      demanda.prazo?.slice(
+        0,
+        10
+      ) || ""
+    );
+
+    setErroPrazo("");
+  }
+
+  function fecharModalEditarPrazo() {
+    if (salvandoPrazo) {
+      return;
+    }
+
+    setDemandaEditandoPrazo(
+      null
+    );
+
+    setPrazoEditado("");
+    setErroPrazo("");
+  }
+
+  async function handleSalvarPrazo(
+    event: FormEvent<HTMLFormElement>
+  ) {
+    event.preventDefault();
+
+    if (!demandaEditandoPrazo) {
+      return;
+    }
+
+    try {
+      setSalvandoPrazo(true);
+      setErroPrazo("");
+
+      await updateDemanda(
+        demandaEditandoPrazo.id,
+        {
+          prazo:
+            prazoEditado ||
+            null,
+        }
+      );
+
+      await onStatusChange?.();
+
+      setDemandaEditandoPrazo(
+        null
+      );
+
+      setPrazoEditado("");
+    } catch (error: any) {
+      console.error(
+        "Erro ao atualizar o prazo da revisão:",
+        error
+      );
+
+      setErroPrazo(
+        error?.message ||
+          error?.details ||
+          "Não foi possível atualizar o prazo da revisão."
+      );
+    } finally {
+      setSalvandoPrazo(false);
     }
   }
 
@@ -1002,6 +1512,11 @@ export function DemandaList({
                               demandaSelecionada.setor_id
                           );
 
+                        const documentosDaDemanda =
+                          documentosPorDemanda[
+                            demandaSelecionada.id
+                          ] || [];
+
                         const identidadeVisual =
                           obterIdentidadeVisualDemanda();
 
@@ -1011,6 +1526,11 @@ export function DemandaList({
 
                         const demandaConcluidaComAtraso =
                           demandaFoiConcluidaComAtraso(
+                            demandaSelecionada
+                          );
+
+                        const demandaEmAtraso =
+                          demandaEstaEmAtraso(
                             demandaSelecionada
                           );
 
@@ -1166,6 +1686,22 @@ export function DemandaList({
                                   <button
                                     type="button"
                                     onClick={() =>
+                                      abrirModalEditarPrazo(
+                                        demandaSelecionada
+                                      )
+                                    }
+                                    className="inline-flex h-9 cursor-pointer items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-3 text-xs font-semibold text-blue-700 transition hover:bg-blue-100"
+                                  >
+                                    <Pencil className="h-4 w-4" />
+
+                                    Editar prazo
+                                  </button>
+                                )}
+
+                                {podeGerenciar && (
+                                  <button
+                                    type="button"
+                                    onClick={() =>
                                       handleExcluirRevisao(
                                         grupo,
                                         demandaSelecionada
@@ -1221,12 +1757,14 @@ export function DemandaList({
                                 <span
                                   className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${obterClasseStatus(
                                     demandaSelecionada.status,
-                                    demandaConcluidaComAtraso
+                                    demandaConcluidaComAtraso,
+                                    demandaEmAtraso
                                   )}`}
                                 >
                                   {obterLabelStatus(
                                     demandaSelecionada.status,
-                                    demandaConcluidaComAtraso
+                                    demandaConcluidaComAtraso,
+                                    demandaEmAtraso
                                   )}
                                 </span>
                               </div>
@@ -1335,6 +1873,69 @@ export function DemandaList({
                                 </button>
                               </div>
                             </div>
+
+                            {carregandoDocumentos ? (
+                              <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white/80 px-4 py-3 text-xs font-medium text-slate-500">
+                                <Loader2 className="h-4 w-4 animate-spin" />
+
+                                Verificando documentos anexados...
+                              </div>
+                            ) : documentosDaDemanda.length >
+                              0 ? (
+                              <div className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-3 sm:flex-row sm:items-center">
+                                <div className="flex shrink-0 items-center gap-2 text-sm font-bold text-slate-700">
+                                  <FileText className="h-4 w-4" />
+
+                                  {documentosDaDemanda.length} documento(s)
+                                </div>
+
+                                <div className="flex min-w-0 flex-1 flex-wrap gap-2">
+                                  {documentosDaDemanda.map(
+                                    (
+                                      documento
+                                    ) => {
+                                      const visual =
+                                        obterVisualDocumento(
+                                          documento
+                                        );
+
+                                      const IconeDocumento =
+                                        visual.Icone;
+
+                                      return (
+                                      <a
+                                        key={
+                                          documento.id
+                                        }
+                                        href={
+                                          documento.arquivo_url
+                                        }
+                                        download={
+                                          documento.nome
+                                        }
+                                        title={`Baixar ${documento.nome}`}
+                                        className={`inline-flex max-w-full cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold transition focus:outline-none focus:ring-2 focus:ring-offset-1 ${visual.classe}`}
+                                      >
+                                        <IconeDocumento className="h-5 w-5 shrink-0" />
+
+                                        <span
+                                          className={`shrink-0 rounded px-1.5 py-0.5 text-[9px] font-extrabold leading-none ${visual.classeRotulo}`}
+                                        >
+                                          {visual.rotulo}
+                                        </span>
+
+                                        <span className="max-w-64 truncate">
+                                          {documento.nome}
+                                        </span>
+
+                                        <Download className="h-4 w-4 shrink-0 opacity-70" />
+                                      </a>
+                                      );
+                                    }
+                                  )}
+                                </div>
+                              </div>
+                            ) : null}
                           </article>
                         );
                       }
@@ -1525,6 +2126,110 @@ export function DemandaList({
                 {grupoCriandoRevisaoId
                   ? "Criando..."
                   : "Criar revisão"}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {demandaEditandoPrazo && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          onMouseDown={(
+            event
+          ) => {
+            if (
+              event.target ===
+              event.currentTarget
+            ) {
+              fecharModalEditarPrazo();
+            }
+          }}
+        >
+          <form
+            onSubmit={
+              handleSalvarPrazo
+            }
+            className="w-full max-w-lg rounded-2xl border bg-white p-6 shadow-xl"
+          >
+            <div>
+              <h3 className="text-xl font-bold text-gray-900">
+                Editar prazo da revisão
+              </h3>
+
+              <p className="mt-2 text-sm leading-6 text-gray-600">
+                Altere o prazo da{" "}
+                {formatarNumeroRevisao(
+                  demandaEditandoPrazo.numero_revisao
+                )}{" "}
+                da demanda “{demandaEditandoPrazo.titulo}”.
+              </p>
+            </div>
+
+            <label className="mt-6 block space-y-2">
+              <span className="block text-sm font-semibold text-gray-700">
+                Prazo da revisão
+              </span>
+
+              <input
+                type="date"
+                value={
+                  prazoEditado
+                }
+                onChange={(
+                  event
+                ) => {
+                  setPrazoEditado(
+                    event.target.value
+                  );
+
+                  setErroPrazo("");
+                }}
+                disabled={
+                  salvandoPrazo
+                }
+                className="h-11 w-full rounded-xl border border-gray-300 bg-white px-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-gray-100"
+              />
+
+              <span className="block text-xs text-gray-500">
+                Para deixar a revisão sem prazo, limpe a data antes de salvar.
+              </span>
+            </label>
+
+            {erroPrazo && (
+              <p className="mt-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+                {erroPrazo}
+              </p>
+            )}
+
+            <div className="mt-6 flex flex-col-reverse gap-3 border-t pt-5 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                onClick={
+                  fecharModalEditarPrazo
+                }
+                disabled={
+                  salvandoPrazo
+                }
+                className="rounded-xl border px-4 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+
+              <button
+                type="submit"
+                disabled={
+                  salvandoPrazo
+                }
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {salvandoPrazo && (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                )}
+
+                {salvandoPrazo
+                  ? "Salvando..."
+                  : "Salvar prazo"}
               </button>
             </div>
           </form>

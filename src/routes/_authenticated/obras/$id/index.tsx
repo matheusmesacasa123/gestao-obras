@@ -18,12 +18,19 @@ import {
   atualizarValoresObra,
 } from "@/features/obras/services/obras-service";
 
+import {
+  InformacoesClienteDocumentos,
+} from "@/features/obras/informacoes-cliente/components/informacoes-cliente-documentos";
+
 export const Route = createFileRoute(
   "/_authenticated/obras/$id/"
 )({
   component:
     ObraInformacoesPage,
 });
+
+const EXIBIR_VALORES_E_RESULTADO =
+  false;
 
 function formatarMoeda(
   valor?: number | null
@@ -779,6 +786,13 @@ function ObraInformacoesPage() {
           </div>
         </section>
 
+        <InformacoesClienteDocumentos
+          obraId={
+            obra.id
+          }
+        />
+
+        {EXIBIR_VALORES_E_RESULTADO && (
         <section className="space-y-5 rounded-2xl border bg-white p-6 shadow-sm">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div>
@@ -996,9 +1010,11 @@ function ObraInformacoesPage() {
             </div>
           </div>
         </section>
+        )}
       </div>
 
-      {modalAberto && (
+      {EXIBIR_VALORES_E_RESULTADO &&
+        modalAberto && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
           onMouseDown={

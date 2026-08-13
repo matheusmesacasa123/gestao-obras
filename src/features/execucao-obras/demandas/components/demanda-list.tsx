@@ -12,6 +12,11 @@ import {
   CirclePlay,
   CircleUserRound,
   CopyPlus,
+  Download,
+  FileArchive,
+  FileImage,
+  FileSpreadsheet,
+  FileText,
   History,
   ListTodo,
   Loader2,
@@ -31,6 +36,14 @@ import {
 import type {
   StatusAnaliseCritica,
 } from "@/features/execucao-obras/analises-criticas/types";
+
+import {
+  getDocumentosPorDemandas,
+} from "@/features/execucao-obras/documentos/services/documentos-service";
+
+import type {
+  DocumentoExecucao,
+} from "@/features/execucao-obras/documentos/services/documentos-service";
 
 import {
   concluirDemanda,
@@ -68,6 +81,175 @@ interface GrupoDemanda {
 interface AnaliseCriticaExibicao {
   status_analise: StatusAnaliseCritica;
   observacao: string | null;
+}
+
+type TipoVisualDocumento =
+  | "excel"
+  | "word"
+  | "pdf"
+  | "powerpoint"
+  | "imagem"
+  | "compactado"
+  | "generico";
+
+function obterExtensaoDocumento(
+  documento: DocumentoExecucao
+) {
+  const referencias = [
+    documento.nome,
+    documento.arquivo_url,
+  ];
+
+  for (const referencia of referencias) {
+    if (!referencia) {
+      continue;
+    }
+
+    const referenciaSemParametros =
+      referencia
+        .split("?")[0]
+        .split("#")[0];
+
+    const ultimoSegmento =
+      referenciaSemParametros
+        .split("/")
+        .pop() || "";
+
+    const partes =
+      ultimoSegmento.split(".");
+
+    if (partes.length < 2) {
+      continue;
+    }
+
+    const extensao =
+      (
+        partes.pop() ||
+        ""
+      ).toLowerCase();
+
+    if (extensao) {
+      return extensao;
+    }
+  }
+
+  return "";
+}
+
+function obterTipoVisualDocumento(
+  extensao: string
+): TipoVisualDocumento {
+  if (["xls", "xlsx", "xlsm", "xlsb", "csv", "ods"].includes(extensao)) {
+    return "excel";
+  }
+
+  if (["doc", "docx", "docm", "odt", "rtf"].includes(extensao)) {
+    return "word";
+  }
+
+  if (extensao === "pdf") {
+    return "pdf";
+  }
+
+  if (["ppt", "pptx", "pptm", "odp"].includes(extensao)) {
+    return "powerpoint";
+  }
+
+  if (["png", "jpg", "jpeg", "gif", "webp", "svg", "bmp", "tif", "tiff"].includes(extensao)) {
+    return "imagem";
+  }
+
+  if (["zip", "rar", "7z", "tar", "gz"].includes(extensao)) {
+    return "compactado";
+  }
+
+  return "generico";
+}
+
+function obterVisualDocumento(
+  documento: DocumentoExecucao
+) {
+  const extensao =
+    obterExtensaoDocumento(
+      documento
+    );
+
+  const tipo =
+    obterTipoVisualDocumento(
+      extensao
+    );
+
+  switch (tipo) {
+    case "excel":
+      return {
+        Icone: FileSpreadsheet,
+        rotulo: "EXCEL",
+        classe:
+          "border-emerald-200 bg-emerald-50 text-emerald-800 hover:border-emerald-300 hover:bg-emerald-100 focus:ring-emerald-500",
+        classeRotulo:
+          "bg-emerald-200/70 text-emerald-900",
+      };
+
+    case "word":
+      return {
+        Icone: FileText,
+        rotulo: "WORD",
+        classe:
+          "border-blue-200 bg-blue-50 text-blue-800 hover:border-blue-300 hover:bg-blue-100 focus:ring-blue-500",
+        classeRotulo:
+          "bg-blue-200/70 text-blue-900",
+      };
+
+    case "pdf":
+      return {
+        Icone: FileText,
+        rotulo: "PDF",
+        classe:
+          "border-red-200 bg-red-50 text-red-800 hover:border-red-300 hover:bg-red-100 focus:ring-red-500",
+        classeRotulo:
+          "bg-red-200/70 text-red-900",
+      };
+
+    case "powerpoint":
+      return {
+        Icone: FileText,
+        rotulo: extensao.toUpperCase() || "PPT",
+        classe:
+          "border-orange-200 bg-orange-50 text-orange-800 hover:border-orange-300 hover:bg-orange-100 focus:ring-orange-500",
+        classeRotulo:
+          "bg-orange-200/70 text-orange-900",
+      };
+
+    case "imagem":
+      return {
+        Icone: FileImage,
+        rotulo: extensao.toUpperCase() || "IMG",
+        classe:
+          "border-violet-200 bg-violet-50 text-violet-800 hover:border-violet-300 hover:bg-violet-100 focus:ring-violet-500",
+        classeRotulo:
+          "bg-violet-200/70 text-violet-900",
+      };
+
+    case "compactado":
+      return {
+        Icone: FileArchive,
+        rotulo: extensao.toUpperCase() || "ZIP",
+        classe:
+          "border-amber-200 bg-amber-50 text-amber-800 hover:border-amber-300 hover:bg-amber-100 focus:ring-amber-500",
+        classeRotulo:
+          "bg-amber-200/70 text-amber-900",
+      };
+
+    default:
+      return {
+        Icone: FileText,
+        rotulo: extensao.toUpperCase() || "ARQUIVO",
+        classe:
+          "border-slate-200 bg-slate-50 text-slate-700 hover:border-slate-300 hover:bg-slate-100 focus:ring-slate-500",
+        classeRotulo:
+          "bg-slate-200 text-slate-800",
+      };
+  }
 }
 
 function formatarData(
@@ -324,6 +506,21 @@ export function DemandaList({
     null
   );
 
+  const [
+    documentosPorDemanda,
+    setDocumentosPorDemanda,
+  ] = useState<
+    Record<
+      string,
+      DocumentoExecucao[]
+    >
+  >({});
+
+  const [
+    carregandoDocumentos,
+    setCarregandoDocumentos,
+  ] = useState(false);
+
   useEffect(() => {
     const obraId =
       demandas[0]?.obra_id;
@@ -424,6 +621,113 @@ export function DemandaList({
     }
 
     void carregarAnalisesCriticas();
+
+    return () => {
+      ativo =
+        false;
+    };
+  }, [
+    demandas,
+  ]);
+
+  useEffect(() => {
+    const demandaIds =
+      Array.from(
+        new Set(
+          demandas.map(
+            (
+              demanda
+            ) =>
+              demanda.id
+          )
+        )
+      );
+
+    if (
+      demandaIds.length ===
+      0
+    ) {
+      setDocumentosPorDemanda(
+        {}
+      );
+
+      setCarregandoDocumentos(
+        false
+      );
+
+      return;
+    }
+
+    let ativo =
+      true;
+
+    async function carregarDocumentos() {
+      try {
+        setCarregandoDocumentos(
+          true
+        );
+
+        const documentos =
+          await getDocumentosPorDemandas(
+            demandaIds
+          );
+
+        if (!ativo) {
+          return;
+        }
+
+        const mapa =
+          documentos.reduce<
+            Record<
+              string,
+              DocumentoExecucao[]
+            >
+          >(
+            (
+              acumulador,
+              documento
+            ) => {
+              const documentosDaDemanda =
+                acumulador[
+                  documento.demanda_id
+                ] || [];
+
+              acumulador[
+                documento.demanda_id
+              ] = [
+                ...documentosDaDemanda,
+                documento,
+              ];
+
+              return acumulador;
+            },
+            {}
+          );
+
+        setDocumentosPorDemanda(
+          mapa
+        );
+      } catch (error) {
+        console.error(
+          "Erro ao carregar documentos das demandas:",
+          error
+        );
+
+        if (ativo) {
+          setDocumentosPorDemanda(
+            {}
+          );
+        }
+      } finally {
+        if (ativo) {
+          setCarregandoDocumentos(
+            false
+          );
+        }
+      }
+    }
+
+    void carregarDocumentos();
 
     return () => {
       ativo =
@@ -906,6 +1210,11 @@ export function DemandaList({
                           demandaSelecionada.status ===
                           "concluida";
 
+                        const documentosDaDemanda =
+                          documentosPorDemanda[
+                            demandaSelecionada.id
+                          ] || [];
+
                         const classeContainer =
                           demandaConcluida
                             ? "border-l-green-600 bg-green-50/70"
@@ -1260,6 +1569,69 @@ export function DemandaList({
                                 </button>
                               </div>
                             </div>
+
+                            {carregandoDocumentos ? (
+                              <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white/80 px-4 py-3 text-xs font-medium text-slate-500">
+                                <Loader2 className="h-4 w-4 animate-spin" />
+
+                                Verificando documentos anexados...
+                              </div>
+                            ) : documentosDaDemanda.length >
+                              0 ? (
+                              <div className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-3 sm:flex-row sm:items-center">
+                                <div className="flex shrink-0 items-center gap-2 text-sm font-bold text-slate-700">
+                                  <FileText className="h-4 w-4" />
+
+                                  {documentosDaDemanda.length} documento(s)
+                                </div>
+
+                                <div className="flex min-w-0 flex-1 flex-wrap gap-2">
+                                  {documentosDaDemanda.map(
+                                    (
+                                      documento
+                                    ) => {
+                                      const visual =
+                                        obterVisualDocumento(
+                                          documento
+                                        );
+
+                                      const IconeDocumento =
+                                        visual.Icone;
+
+                                      return (
+                                      <a
+                                        key={
+                                          documento.id
+                                        }
+                                        href={
+                                          documento.arquivo_url
+                                        }
+                                        download={
+                                          documento.nome
+                                        }
+                                        title={`Baixar ${documento.nome}`}
+                                        className={`inline-flex max-w-full cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold transition focus:outline-none focus:ring-2 focus:ring-offset-1 ${visual.classe}`}
+                                      >
+                                        <IconeDocumento className="h-5 w-5 shrink-0" />
+
+                                        <span
+                                          className={`shrink-0 rounded px-1.5 py-0.5 text-[9px] font-extrabold leading-none ${visual.classeRotulo}`}
+                                        >
+                                          {visual.rotulo}
+                                        </span>
+
+                                        <span className="max-w-64 truncate">
+                                          {documento.nome}
+                                        </span>
+
+                                        <Download className="h-4 w-4 shrink-0 opacity-70" />
+                                      </a>
+                                      );
+                                    }
+                                  )}
+                                </div>
+                              </div>
+                            ) : null}
                           </article>
                         );
                       }
