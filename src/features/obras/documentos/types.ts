@@ -1,3 +1,7 @@
+export type OrigemIntegracaoDocumento =
+  | "planilha_orcamentaria"
+  | "proposta_comercial";
+
 export interface SetorDocumento {
   id: string;
   nome: string;
@@ -32,15 +36,50 @@ export interface Documento {
   id: string;
   obra_id: string;
   demanda_id: string;
-  demanda?: DemandaDocumento | null;
-  etapa_id: string | null;
-  etapa?: EtapaDocumento | null;
-  setor_id: string | null;
-  enviado_por: string | null;
+
+  demanda?:
+    | DemandaDocumento
+    | null;
+
+  etapa_id:
+    | string
+    | null;
+
+  etapa?:
+    | EtapaDocumento
+    | null;
+
+  setor_id:
+    | string
+    | null;
+
+  enviado_por:
+    | string
+    | null;
+
   nome: string;
-  categoria: string | null;
+
+  categoria:
+    | string
+    | null;
+
   arquivo_url: string;
+
+  origem_integracao:
+    | OrigemIntegracaoDocumento
+    | null;
+
+  orcamento_importacao_id:
+    | string
+    | null;
+
   created_at: string;
-  setor?: SetorDocumento | null;
-  usuario?: UsuarioDocumento | null;
+
+  setor?:
+    | SetorDocumento
+    | null;
+
+  usuario?:
+    | UsuarioDocumento
+    | null;
 }

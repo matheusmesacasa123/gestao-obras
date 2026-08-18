@@ -15,7 +15,7 @@ import {
 
 export const Route =
   createFileRoute(
-    "/_authenticated/obras/$id"
+    "/_authenticated/obras/$id",
   )({
     loader: async ({
       params,
@@ -28,7 +28,7 @@ export const Route =
         .select("*")
         .eq(
           "id",
-          params.id
+          params.id,
         )
         .single();
 
@@ -101,6 +101,16 @@ function ObraLayoutPage() {
 
       to:
         "/obras/$id/demandas",
+
+      exact:
+        false,
+    },
+    {
+      label:
+        "Orçamento",
+
+      to:
+        "/obras/$id/orcamento",
 
       exact:
         false,
@@ -199,7 +209,7 @@ function ObraLayoutPage() {
         <div className="flex flex-wrap items-center justify-center gap-2">
           {tabs.map(
             (
-              tab
+              tab,
             ) => (
               <Link
                 key={
@@ -224,13 +234,11 @@ function ObraLayoutPage() {
                   className:
                     "text-gray-600 hover:bg-gray-100 hover:text-gray-900",
                 }}
-                className="block min-w-[130px] whitespace-nowrap rounded-xl px-5 py-2.5 text-center text-sm font-semibold transition-all"
+                className="block min-w-[120px] whitespace-nowrap rounded-xl px-4 py-2.5 text-center text-sm font-semibold transition-all"
               >
-                {
-                  tab.label
-                }
+                {tab.label}
               </Link>
-            )
+            ),
           )}
         </div>
       </nav>

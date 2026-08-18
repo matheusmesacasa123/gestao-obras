@@ -37,6 +37,7 @@ import { Route as AuthenticatedObrasIdComercialRouteImport } from './routes/_aut
 import { Route as AuthenticatedObrasIdEditarRouteImport } from './routes/_authenticated/obras/$id/editar'
 import { Route as AuthenticatedObrasIdEtapasRouteImport } from './routes/_authenticated/obras/$id/etapas'
 import { Route as AuthenticatedObrasIdHistoricoRouteImport } from './routes/_authenticated/obras/$id/historico'
+import { Route as AuthenticatedObrasIdOrcamentoRouteImport } from './routes/_authenticated/obras/$id/orcamento'
 import { Route as AuthenticatedExecucaoObrasIdDemandasIndexRouteImport } from './routes/_authenticated/execucao-obras/$id/demandas/index'
 import { Route as AuthenticatedExecucaoObrasIdDemandasNovaRouteImport } from './routes/_authenticated/execucao-obras/$id/demandas/nova'
 import { Route as AuthenticatedObrasIdCronogramaIndexRouteImport } from './routes/_authenticated/obras/$id/cronograma/index'
@@ -202,6 +203,12 @@ const AuthenticatedObrasIdHistoricoRoute =
     path: '/historico',
     getParentRoute: () => AuthenticatedObrasIdRoute,
   } as any)
+const AuthenticatedObrasIdOrcamentoRoute =
+  AuthenticatedObrasIdOrcamentoRouteImport.update({
+    id: '/orcamento',
+    path: '/orcamento',
+    getParentRoute: () => AuthenticatedObrasIdRoute,
+  } as any)
 const AuthenticatedExecucaoObrasIdDemandasIndexRoute =
   AuthenticatedExecucaoObrasIdDemandasIndexRouteImport.update({
     id: '/demandas/',
@@ -278,6 +285,7 @@ export interface FileRoutesByFullPath {
   '/obras/$id/editar': typeof AuthenticatedObrasIdEditarRoute
   '/obras/$id/etapas': typeof AuthenticatedObrasIdEtapasRoute
   '/obras/$id/historico': typeof AuthenticatedObrasIdHistoricoRoute
+  '/obras/$id/orcamento': typeof AuthenticatedObrasIdOrcamentoRoute
   '/execucao-obras/$id/': typeof AuthenticatedExecucaoObrasIdIndexRoute
   '/obras/$id/': typeof AuthenticatedObrasIdIndexRoute
   '/execucao-obras/$id/demandas/nova': typeof AuthenticatedExecucaoObrasIdDemandasNovaRoute
@@ -313,6 +321,7 @@ export interface FileRoutesByTo {
   '/obras/$id/editar': typeof AuthenticatedObrasIdEditarRoute
   '/obras/$id/etapas': typeof AuthenticatedObrasIdEtapasRoute
   '/obras/$id/historico': typeof AuthenticatedObrasIdHistoricoRoute
+  '/obras/$id/orcamento': typeof AuthenticatedObrasIdOrcamentoRoute
   '/execucao-obras/$id': typeof AuthenticatedExecucaoObrasIdIndexRoute
   '/obras/$id': typeof AuthenticatedObrasIdIndexRoute
   '/execucao-obras/$id/demandas/nova': typeof AuthenticatedExecucaoObrasIdDemandasNovaRoute
@@ -352,6 +361,7 @@ export interface FileRoutesById {
   '/_authenticated/obras/$id/editar': typeof AuthenticatedObrasIdEditarRoute
   '/_authenticated/obras/$id/etapas': typeof AuthenticatedObrasIdEtapasRoute
   '/_authenticated/obras/$id/historico': typeof AuthenticatedObrasIdHistoricoRoute
+  '/_authenticated/obras/$id/orcamento': typeof AuthenticatedObrasIdOrcamentoRoute
   '/_authenticated/execucao-obras/$id/': typeof AuthenticatedExecucaoObrasIdIndexRoute
   '/_authenticated/obras/$id/': typeof AuthenticatedObrasIdIndexRoute
   '/_authenticated/execucao-obras/$id/demandas/nova': typeof AuthenticatedExecucaoObrasIdDemandasNovaRoute
@@ -392,6 +402,7 @@ export interface FileRouteTypes {
     | '/obras/$id/editar'
     | '/obras/$id/etapas'
     | '/obras/$id/historico'
+    | '/obras/$id/orcamento'
     | '/execucao-obras/$id/'
     | '/obras/$id/'
     | '/execucao-obras/$id/demandas/nova'
@@ -427,6 +438,7 @@ export interface FileRouteTypes {
     | '/obras/$id/editar'
     | '/obras/$id/etapas'
     | '/obras/$id/historico'
+    | '/obras/$id/orcamento'
     | '/execucao-obras/$id'
     | '/obras/$id'
     | '/execucao-obras/$id/demandas/nova'
@@ -465,6 +477,7 @@ export interface FileRouteTypes {
     | '/_authenticated/obras/$id/editar'
     | '/_authenticated/obras/$id/etapas'
     | '/_authenticated/obras/$id/historico'
+    | '/_authenticated/obras/$id/orcamento'
     | '/_authenticated/execucao-obras/$id/'
     | '/_authenticated/obras/$id/'
     | '/_authenticated/execucao-obras/$id/demandas/nova'
@@ -693,6 +706,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedObrasIdHistoricoRouteImport
       parentRoute: typeof AuthenticatedObrasIdRoute
     }
+    '/_authenticated/obras/$id/orcamento': {
+      id: '/_authenticated/obras/$id/orcamento'
+      path: '/orcamento'
+      fullPath: '/obras/$id/orcamento'
+      preLoaderRoute: typeof AuthenticatedObrasIdOrcamentoRouteImport
+      parentRoute: typeof AuthenticatedObrasIdRoute
+    }
     '/_authenticated/execucao-obras/$id/demandas/': {
       id: '/_authenticated/execucao-obras/$id/demandas/'
       path: '/demandas'
@@ -809,6 +829,7 @@ interface AuthenticatedObrasIdRouteChildren {
   AuthenticatedObrasIdEditarRoute: typeof AuthenticatedObrasIdEditarRoute
   AuthenticatedObrasIdEtapasRoute: typeof AuthenticatedObrasIdEtapasRoute
   AuthenticatedObrasIdHistoricoRoute: typeof AuthenticatedObrasIdHistoricoRoute
+  AuthenticatedObrasIdOrcamentoRoute: typeof AuthenticatedObrasIdOrcamentoRoute
   AuthenticatedObrasIdIndexRoute: typeof AuthenticatedObrasIdIndexRoute
   AuthenticatedObrasIdDemandasEditarRoute: typeof AuthenticatedObrasIdDemandasEditarRoute
   AuthenticatedObrasIdDemandasNovaRoute: typeof AuthenticatedObrasIdDemandasNovaRoute
@@ -823,6 +844,7 @@ const AuthenticatedObrasIdRouteChildren: AuthenticatedObrasIdRouteChildren = {
   AuthenticatedObrasIdEditarRoute: AuthenticatedObrasIdEditarRoute,
   AuthenticatedObrasIdEtapasRoute: AuthenticatedObrasIdEtapasRoute,
   AuthenticatedObrasIdHistoricoRoute: AuthenticatedObrasIdHistoricoRoute,
+  AuthenticatedObrasIdOrcamentoRoute: AuthenticatedObrasIdOrcamentoRoute,
   AuthenticatedObrasIdIndexRoute: AuthenticatedObrasIdIndexRoute,
   AuthenticatedObrasIdDemandasEditarRoute:
     AuthenticatedObrasIdDemandasEditarRoute,
